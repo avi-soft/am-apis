@@ -4,12 +4,17 @@ import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.*;
+import com.community.api.dto.AddProductDto;
+import com.community.api.dto.AddReserveCategoryDto;
+import com.community.api.dto.CommunicationRequest;
+import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.FilterProductTitleDto;
+import com.community.api.dto.PostProjectionDTO;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomServiceProviderTicket;
@@ -40,6 +45,7 @@ import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.SharedUtilityService;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -97,6 +103,7 @@ import static com.mchange.v2.ser.SerializableUtils.deepCopy;
 
      */
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/product-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class ProductController extends CatalogEndpoint {
@@ -104,7 +111,6 @@ public class ProductController extends CatalogEndpoint {
     public static final String TENTATIVEDATEAFTERACTIVEENDDATE = "Both tentative examination data must be after active end date.";
     public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date from must be before or equal of tentative exam date to.";
     public static final String TENTATIVEEXAMDATEAFTERACTIVEENDDATE = "Tentative examination date must be after active end date.";
-    public static final String POSTLESSTHANORZERO = "Number of post cannot be less than or equal to zero.";
     public static final String PRODUCTNOTFOUND = "Product not found.";
     public static final String PRODUCTFOUNDSUCCESSFULLY = "Products found successfully";
 
@@ -133,28 +139,24 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     OrderService orderService;
-
-    @Value("${origin.url}")
-    private String origin;
-
-    @Autowired
-    private ServiceProviderActionController serviceProviderActionController;
-
-    @Autowired
-    private ReserveCategoryAgeService reserveCategoryAgeService;
-
     @Autowired
     ProductGenderPhysicalRequirementService productGenderPhysicalRequirementService;
-
     @Autowired
     GenderService genderService;
-
-    @Autowired
-    private PostExecutionService postExecutionService;
-
     @Autowired
     PostService postService;
-    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService,GenderService genderService) {
+    @Value("${origin.url}")
+    private String origin;
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
+    @Autowired
+    private PostExecutionService postExecutionService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService, GenderService genderService) {
 
         this.exceptionHandlingService = exceptionHandlingService;
         this.entityManager = entityManager;
@@ -169,7 +171,60 @@ public class ProductController extends CatalogEndpoint {
         this.reserveCategoryService = reserveCategoryService;
         this.reserveCategoryDtoService = reserveCategoryDtoService;
         this.physicalRequirementDtoService = physicalRequirementDtoService;
-        this.genderService=genderService;
+        this.genderService = genderService;
+    }
+
+    public static List<PostProjectionDTO> getPosts(List<Post> postList) {
+        List<PostProjectionDTO> postProjectionDTOS = new ArrayList<>();
+        for (Post post : postList) {
+            PostProjectionDTO postProjectionDTO = new PostProjectionDTO();
+            postProjectionDTO.setPostId(post.getPostId());
+            postProjectionDTO.setPostName(post.getPostName());
+            postProjectionDTO.setPostCode(post.getPostCode());
+            postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
+            postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
+            postProjectionDTO.setStateDistributions(post.getStateDistributions());
+            postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
+            postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
+            postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
+            postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
+            postProjectionDTO.setStateDistributionAdditionalComments(post.getStateDistributionAdditionalComments());
+            postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
+            postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
+            postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+            postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
+            postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
+            postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
+            postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+            postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+            postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+            postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
+            postProjectionDTO.setReligion(post.getReligion());
+            postProjectionDTO.setIncome(post.getIncome());
+            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet = new ArrayList<>();
+            for (CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity : post.getAgeRequirement()) {
+                ReserveCategoryAgeDto reserveCategoryAgeDto = new ReserveCategoryAgeDto();
+                reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
+                reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
+                reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
+                reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
+                reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
+                reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
+                reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
+                reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
+                reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
+                reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
+                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
+                reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
+                reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
+            }
+            postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
+            postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+            postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
+            postProjectionDTOS.add(postProjectionDTO);
+        }
+        return postProjectionDTOS;
     }
 
     @Transactional
@@ -192,7 +247,6 @@ public class ProductController extends CatalogEndpoint {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-
             Advertisement advertisement=null;
             if(!saveDraft) {
                 advertisement = productService.validateAdvertisement(addProductDto);
@@ -208,6 +262,7 @@ public class ProductController extends CatalogEndpoint {
             Category category=null;
             if(categoryId!=null)
                 category = productService.validateCategory(categoryId);
+
 
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
@@ -437,9 +492,9 @@ public class ProductController extends CatalogEndpoint {
 //            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
-            if(addProductDto.getPlatformFee()==null)
+            if (addProductDto.getPlatformFee() == null)
                 customProduct.setPlatformFee(DEFAULT_PLATFORM_FEE);
-            if(addProductDto.getPlatformFee()!=null&&addProductDto.getPlatformFee()<0)
+            if (addProductDto.getPlatformFee() != null && addProductDto.getPlatformFee() < 0)
                 return ResponseService.generateErrorResponse("Platform fee cannot be negative", HttpStatus.BAD_REQUEST);
 
             if (addProductDto.getSector() != null) {
@@ -448,8 +503,8 @@ public class ProductController extends CatalogEndpoint {
                 } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
                     return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
                 }
-                CustomSector sector=entityManager.find(CustomSector.class,addProductDto.getSector());
-                if(sector==null)
+                CustomSector sector = entityManager.find(CustomSector.class, addProductDto.getSector());
+                if (sector == null)
                     return ResponseService.generateErrorResponse("Sector not found", HttpStatus.BAD_REQUEST);
                 customProduct.setSector(sector);
                 customProduct.setSectorRunningField(addProductDto.getSectorRunningField());
@@ -464,13 +519,13 @@ public class ProductController extends CatalogEndpoint {
             customProduct.setAdmitCardDateTo(originalProduct.getAdmitCardDateTo());
             customProduct.setModificationDateFrom(originalProduct.getModificationDateFrom());
             customProduct.setModificationDateTo(originalProduct.getModificationDateTo());
-            if(addProductDto.getAdditionalComments()!=null)
+            if (addProductDto.getAdditionalComments() != null)
                 customProduct.setAdditionalComments(addProductDto.getAdditionalComments());
-            if(addProductDto.getFeeAdditionalComments()!=null)
+            if (addProductDto.getFeeAdditionalComments() != null)
                 customProduct.setFeeAdditionalComments(addProductDto.getFeeAdditionalComments());
             customProduct.setExamDateFrom(originalProduct.getExamDateFrom());
             customProduct.setExamDateTo(originalProduct.getExamDateTo());
-            if(addProductDto.getProductState()==null){
+            if (addProductDto.getProductState() == null) {
                 // Validate dates fields.
                 productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
                 productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
@@ -607,24 +662,22 @@ public class ProductController extends CatalogEndpoint {
                     customProduct.setRejectionComment(null);
                 }
             }
-            System.out.println("product_state id is"+addProductDto.getProductState());
-            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3)
-            {
+            System.out.println("product_state id is" + addProductDto.getProductState());
+            if (addProductDto.getProductState() != null && addProductDto.getProductState() == 3) {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
                 customProduct.setIsEdited(false);
-                if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
+                if (customProduct.getGoLiveDate().equals(new Date()) || customProduct.getGoLiveDate().before(new Date())) {
                     System.out.println("yes");
-                    CustomProductState productState=entityManager.find(CustomProductState.class,5L);
-                    if(addProductDto.getProductState()==3L||customProduct.getIsApproved()) {
+                    CustomProductState productState = entityManager.find(CustomProductState.class, 5L);
+                    if (addProductDto.getProductState() == 3L || customProduct.getIsApproved()) {
                         customProduct.setProductState(productState);
                     }
                 }
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            if(saveAsDraft)
-            {
-                if(addProductDto.getMetaTitle().isEmpty()||addProductDto.getMetaTitle()==null)
+            if (saveAsDraft) {
+                if (addProductDto.getMetaTitle().isEmpty() || addProductDto.getMetaTitle() == null)
                     return ResponseService.generateErrorResponse("Title is required", HttpStatus.FORBIDDEN);
                 customProduct.setDisplayTemplate(addProductDto.getDisplayTemplate());
                 customProduct.setMetaTitle(addProductDto.getMetaTitle());
@@ -636,11 +689,11 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setModificationDateTo(addProductDto.getModificationDateTo());
                 customProduct.setExamDateFrom(addProductDto.getExamDateFrom());
                 customProduct.setExamDateTo(addProductDto.getExamDateTo());
-                CustomApplicationScope applicationScope=null;
-                if(addProductDto.getApplicationScope()!=null) {
-                    applicationScope= entityManager.find(CustomApplicationScope.class, addProductDto.getApplicationScope());
-                    if(applicationScope==null)
-                        return ResponseService.generateErrorResponse("Application scope not found",HttpStatus.BAD_REQUEST);
+                CustomApplicationScope applicationScope = null;
+                if (addProductDto.getApplicationScope() != null) {
+                    applicationScope = entityManager.find(CustomApplicationScope.class, addProductDto.getApplicationScope());
+                    if (applicationScope == null)
+                        return ResponseService.generateErrorResponse("Application scope not found", HttpStatus.BAD_REQUEST);
                 }
 
                 customProduct.setCustomApplicationScope(applicationScope);
@@ -650,17 +703,17 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setAdmitCardDateTo(addProductDto.getAdmitCardDateTo());
                 customProduct.setFormComplexity(addProductDto.getFormComplexity());
                 customProduct.setPriorityLevel(addProductDto.getPriorityLevel());
-                CustomSector sector=null;
-                if(addProductDto.getSector()!=null) {
-                    sector= entityManager.find(CustomSector.class, addProductDto.getSector());
-                    if(sector==null)
-                        return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
+                CustomSector sector = null;
+                if (addProductDto.getSector() != null) {
+                    sector = entityManager.find(CustomSector.class, addProductDto.getSector());
+                    if (sector == null)
+                        return ResponseService.generateErrorResponse("Sector not found", HttpStatus.BAD_REQUEST);
                 }
-                Advertisement advertisement=null;
-                if(addProductDto.getAdvertisement()!=null) {
-                    advertisement= entityManager.find(Advertisement.class, addProductDto.getAdvertisement());
-                    if(advertisement==null)
-                        return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.BAD_REQUEST);
+                Advertisement advertisement = null;
+                if (addProductDto.getAdvertisement() != null) {
+                    advertisement = entityManager.find(Advertisement.class, addProductDto.getAdvertisement());
+                    if (advertisement == null)
+                        return ResponseService.generateErrorResponse("Advertisement not found", HttpStatus.BAD_REQUEST);
                 }
                 customProduct.setAdvertisement(advertisement);
                 customProduct.setSector(sector);
@@ -691,7 +744,7 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsResultDeclarationDateNa(addProductDto.getIsResultDeclarationDateNa());
                 customProduct.setIsCounsellingDateNa(addProductDto.getIsCounsellingDateNa());
                 customProduct.setIsExamCenterAvailableDateNa(addProductDto.getIsExamCenterAvailableDateNa());
-                CustomProductState customProductState=entityManager.find(CustomProductState.class,7L);
+                CustomProductState customProductState = entityManager.find(CustomProductState.class, 7L);
                 customProduct.setProductState(customProductState);
                 productService.validatePostRequirement(addProductDto, roleId, userId);
                 postList = postService.savePosts(addProductDto.getPosts(), product);
@@ -752,13 +805,13 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
-            System.out.println("admit card date is "+customProduct.getAdmitCardDateFrom());
-            List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
+            System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
+            List<String> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
             System.out.println(diff);
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
-            if(!customProduct.getPurchasedBy().isEmpty()) {
+            if (!customProduct.getPurchasedBy().isEmpty()) {
                 Query query = entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
                 query.setParameter("productId", productId);
                 Boolean communicate = true;
@@ -804,13 +857,12 @@ public class ProductController extends CatalogEndpoint {
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
-            if((customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L)&&(addProductDto.getProductState()!=null&&addProductDto.getProductState()!=3)) {
-                CustomProductState productState=entityManager.find(CustomProductState.class,2L);
+            if ((customProduct.getProductState().getProductStateId() == 1L || customProduct.getProductState().getProductStateId() == 3L) && (addProductDto.getProductState() != null && addProductDto.getProductState() != 3)) {
+                CustomProductState productState = entityManager.find(CustomProductState.class, 2L);
                 customProduct.setProductState(productState);
             }
             customProduct.setIsEdited(true);
-            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3L)
-            {
+            if (addProductDto.getProductState() != null && addProductDto.getProductState() == 3L) {
                 customProduct.setIsEdited(false);
             }
             entityManager.merge(customProduct);
@@ -838,7 +890,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath,@RequestParam(name = "orderId",required = false)Long orderId, @RequestHeader(value = "Authorization",required = false) String authHeader,@RequestParam(name = "ticketId",required = false)Long ticketId) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestParam(name = "orderId", required = false) Long orderId, @RequestHeader(value = "Authorization", required = false) String authHeader, @RequestParam(name = "ticketId", required = false) Long ticketId) {
 
         try {
             Integer roleId = 5;
@@ -878,22 +930,21 @@ public class ProductController extends CatalogEndpoint {
                     bypass = true;
                 }
             }
-            if (roleId!=5&&ticketId != null) {
+            if (roleId != 5 && ticketId != null) {
 
                 System.out.println("yes yes");
-                CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class,ticketId);
+                CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
                 if (ticket == null)
                     return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.BAD_REQUEST);
-                ServiceProviderEntity entity=entityManager.find(ServiceProviderEntity.class,userId);
-                if(!ticket.getAssignee().equals(userId))
+                ServiceProviderEntity entity = entityManager.find(ServiceProviderEntity.class, userId);
+                if (!ticket.getAssignee().equals(userId))
                     return ResponseService.generateErrorResponse("Ticket does not belong to specified user", HttpStatus.BAD_REQUEST);
-                Order order=ticket.getOrder();
-                if(order==null)
-                {
-                    order=ticket.getParentTicket().getOrder();
+                Order order = ticket.getOrder();
+                if (order == null) {
+                    order = ticket.getParentTicket().getOrder();
                 }
-                if(order==null)
-                    return ResponseService.generateErrorResponse("No products linked to ticket",HttpStatus.BAD_REQUEST);
+                if (order == null)
+                    return ResponseService.generateErrorResponse("No products linked to ticket", HttpStatus.BAD_REQUEST);
                 OrderItem orderItem = order.getOrderItems().get(0);
                 Product product = findProductFromItemAttribute(orderItem);
                 System.out.println("productId" + product.getId());
@@ -941,7 +992,7 @@ public class ProductController extends CatalogEndpoint {
                 wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
             }
-        }catch(NumberFormatException numberFormatException) {
+        } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1023,7 +1074,6 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
 
     @DeleteMapping("/delete/{productId}")
     @Transactional
@@ -1220,23 +1270,21 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
-            @RequestParam(value = "isArchived", required = false) Boolean isArchived,
+            @RequestParam(value = "isArchived", required = false, defaultValue = "false") Boolean isArchived,
             @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "1000") int limit,
-            @RequestBody(required = false) FilterProductTitleDto titleDto)
-    {
+            @RequestBody(required = false) FilterProductTitleDto titleDto) {
 
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role = roleService.getRoleByRoleId(roleId);
+            Role roleEntity = roleService.getRoleByRoleId(roleId);
             Long createdById = null;
 
-            Role roleEntity = roleService.getRoleByRoleId(roleId);
             if (roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) {
                 myProducts = true;
             }
@@ -1254,13 +1302,6 @@ public class ProductController extends CatalogEndpoint {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
 
-          /*  if (isExpired && (roleId != 1 && roleId != 2)) {
-                return ResponseService.generateErrorResponse(
-                        "You are not authorized to view expired products.",
-                        HttpStatus.FORBIDDEN
-                );
-            }*/
-            // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
                 dateFrom = dateFormat.parse(dateFormat.format(dateFrom));
@@ -1274,6 +1315,10 @@ public class ProductController extends CatalogEndpoint {
             {
                 return ResponseService.generateErrorResponse("You are not authorized to view all products.",HttpStatus.FORBIDDEN);
             }*/
+            if ((isArchived != null && isArchived && !roleEntity.getRole_name().equals(SUPER_ADMIN) && !roleEntity.getRole_name().equals(ADMIN)) || roleEntity.getRole_name().equals(roleUser)) {
+                throw new IllegalArgumentException("Forbidden Access");
+            }
+
             if (!all) {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
@@ -1282,7 +1327,6 @@ public class ProductController extends CatalogEndpoint {
                         titleDto != null ? titleDto.getDisplayTemplate() : null,
                         fee, post, dateFrom, dateTo, isExpired, isArchived, offset, limit, all, createdById, productIds
                 );
-
 
             } else {
                 opresponse = productService.filterProducts(
@@ -1308,21 +1352,7 @@ public class ProductController extends CatalogEndpoint {
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
                 wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 responses.add(wrapper);
-            } /*else
-                {
-                    skipped++;
-                }*/
-
-
-           /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
-            CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
-
-            Root<CustomProduct> root = countQuery.from(CustomProduct.class);
-
-// SELECT COUNT(p) FROM CustomProduct p
-            countQuery.select(criteriaBuilder.count(root));
-
-            TypedQuery<Long> query = entityManager.createQuery(countQuery);*/
+            }
 
             // Pagination logic
             int totalItems = (Integer) opresponse.get("count");
@@ -1331,13 +1361,12 @@ public class ProductController extends CatalogEndpoint {
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more products availabe");
+                throw new IllegalArgumentException("No more products available");
             }
             // Validate offset request
             if (fromIndex >= totalItems && offset != 0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
-
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
@@ -1435,8 +1464,8 @@ public class ProductController extends CatalogEndpoint {
                     dateTo = dateFormat.parse(dateFormat.format(dateTo));
                 }
             }
-            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories,  titleDto != null ? titleDto.getTitle() : null,
-                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds,isArchived);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, titleDto != null ? titleDto.getTitle() : null,
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds, isArchived);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -1445,63 +1474,6 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    public static List<PostProjectionDTO> getPosts(List<Post> postList) {
-        List<PostProjectionDTO> postProjectionDTOS = new ArrayList<>();
-        for (Post post : postList) {
-            PostProjectionDTO postProjectionDTO = new PostProjectionDTO();
-            postProjectionDTO.setPostId(post.getPostId());
-            postProjectionDTO.setPostName(post.getPostName());
-            postProjectionDTO.setPostCode(post.getPostCode());
-            postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
-            postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
-            postProjectionDTO.setStateDistributions(post.getStateDistributions());
-            postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
-            postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
-            postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
-            postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
-            postProjectionDTO.setStateDistributionAdditionalComments(post.getStateDistributionAdditionalComments());
-            postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
-            postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
-            postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
-            postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
-            postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
-            postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
-            postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
-            postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
-            postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
-            postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
-            postProjectionDTO.setReligion(post.getReligion());
-            postProjectionDTO.setIncome(post.getIncome());
-            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet = new ArrayList<>();
-            for (CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity : post.getAgeRequirement()) {
-                ReserveCategoryAgeDto reserveCategoryAgeDto = new ReserveCategoryAgeDto();
-                reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
-                reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
-                reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
-                reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
-                reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
-                reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
-                reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
-                reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
-                reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
-                reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
-                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
-                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
-                reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
-                reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
-            }
-            postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
-            postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
-            postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-            postProjectionDTOS.add(postProjectionDTO);
-        }
-        return postProjectionDTOS;
-    }
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
 
     // Run every one hour
     @Scheduled(cron = "0 0 * * * *")
@@ -1514,12 +1486,14 @@ public class ProductController extends CatalogEndpoint {
             System.err.println("Error updating product states: " + e.getMessage());
         }
     }
+
     @Transactional
     public CustomProduct getProductWithPurchasers(Long id) {
-        CustomProduct product = entityManager.find(CustomProduct.class,id);
+        CustomProduct product = entityManager.find(CustomProduct.class, id);
         product.getPurchasedBy().size(); // triggers initialization
         return product;
     }
+
     public Product findProductFromItemAttribute(OrderItem orderItem) {
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
         Product product = catalogService.findProductById(productId);

@@ -672,30 +672,9 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
-            if(isArchived!=null && !isArchived)
-            {
-                jpql.append("WHERE p.del = 'N' ");
-            }
-            else if(isArchived==null)
-            {
-                jpql.append("WHERE p.del = 'N' ");
-            }
+
             // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
-            /*if(all)
-            {
-                TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
-                int res=queryToCount.getSingleResult().intValue();
-                jpql=result.append(jpql);
-                // Create the query with the final JPQL string
-                TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-                query.setFirstResult(offset*limit);     // e.g., offset = 20
-                query.setMaxResults(limit);// e.g., limit = 10
-                response.put("count",res);
-                response.put("products",query.getResultList());
-                return response;
-            }*/
-            // Initialize the JPQL query
 
            /* jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate >= CURRENT_TIMESTAMP ");*/
             // List to hold query parameters
