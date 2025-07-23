@@ -1367,7 +1367,11 @@ public class ProductController extends CatalogEndpoint {
         customProduct.setProductState(state);
         customProduct.setRejectionComment((String)(returnProduct.get("comment")));
         em.merge(customProduct);
-        return ResponseService.generateSuccessResponse("Product returned successfully",customProduct,HttpStatus.OK);
+        CustomProductWrapper wrapper=new CustomProductWrapper();
+        List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
+        List<Post> postList = customProduct.getPosts();
+        wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+        return ResponseService.generateSuccessResponse("Product returned successfully",wrapper,HttpStatus.OK);
     }
 
 

@@ -59,6 +59,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Date activeEndDate;
     @JsonProperty("go_live_date")
     protected Date activeGoLiveDate;
+    @JsonProperty("rejection_comment")
+    protected String rejectionComment;
     @JsonProperty("default_category_id")
     protected Long defaultCategoryId;
     @JsonProperty("archived")
@@ -468,6 +470,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     public void wrapDetails(CustomProduct customProduct, List<Post> postList, List<PostProjectionDTO>postProjectionDTOS, ProductReserveCategoryFeePostRefService feeService) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
+        this.rejectionComment=customProduct.getRejectionComment();
         this.feeService=feeService;
         this.activeStartDate=customProduct.getActiveStartDate();
         this.activeEndDate=customProduct.getActiveEndDate();
