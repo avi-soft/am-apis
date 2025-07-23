@@ -270,6 +270,7 @@ public class AdvertisementController {
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
             @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
             @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
+            @RequestParam(value = "id",required = false)Long id,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
@@ -299,8 +300,25 @@ public class AdvertisementController {
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
-
             List<AdvertisementWrapper> responses = new ArrayList<>();
+            if(id!=null)
+            {
+                Advertisement advertisement=entityManager.find(Advertisement.class,id);
+                if(advertisement!=null) {
+                    AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                    wrapper.wrapDetails(advertisement, null, null);
+                    responses.add(wrapper);
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("advertisements", response);
+                    response.put("totalItems", 1);
+                    response.put("totalPages", 1);
+                    response.put("currentPage", 1);
+                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
+                }
+                else
+                    return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
+            }
+
 
             for (Advertisement advertisement : advertisements) {
                 if (advertisement == null) {
@@ -531,7 +549,7 @@ public class AdvertisementController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     @DeleteMapping("/delete/{advertisementId}")
     @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable("advertisementId") String advertisementIdPath,
@@ -548,7 +566,19 @@ public class AdvertisementController {
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
 
-
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                String role  = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 4)
+                {
+                  if(advertisement.getUserId().equals(tokenUserId))
+                  {
+                      return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
+                  }
+                }
+            }
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);

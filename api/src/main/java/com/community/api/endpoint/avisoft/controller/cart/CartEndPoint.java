@@ -455,7 +455,6 @@ public class CartEndPoint extends BaseEndpoint {
             }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            ;
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
@@ -470,10 +469,12 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-//                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
-//                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
+//                      EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+                        EligibilityResult result=new EligibilityResult();
+                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);
+                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
-//                        products.add(productDetails);
+                       products.add(productDetails);
                         individualFee = null;
 
 // 1. Check for ALL category and ALL gender
