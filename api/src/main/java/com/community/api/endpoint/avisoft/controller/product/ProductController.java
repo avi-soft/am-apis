@@ -420,7 +420,16 @@ public class ProductController extends CatalogEndpoint {
             CustomProduct originalProduct = (CustomProduct) deepCopy(customProduct); // Deep clone before mutation
             Product product = catalogService.findProductById(customProduct.getId());
 
-
+            if (addProductDto.getProductState()!=null&&(addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4)) {
+                if (roleId == 4) {
+                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
+                }
+                long existingState = customProduct.getProductState().getProductStateId();
+                System.out.println(existingState+"existing state");
+                if (existingState != 1 && existingState != 2 && existingState != 9) {
+                    return ResponseService.generateErrorResponse("Action not allowed: Product must be in 'New', 'Modified', or 'Resubmitted' state to be approved or rejected",HttpStatus.BAD_REQUEST);
+                }
+            }
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(Constant.PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
@@ -518,15 +527,7 @@ public class ProductController extends CatalogEndpoint {
                 }
                 customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
             }
-            if (addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4) {
-                if (roleId == 4) {
-                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
-                }
-                long existingState = customProduct.getProductState().getProductStateId();
-                if (existingState != 1 && existingState != 2 && existingState != 9) {
-                    throw new IllegalArgumentException("Action not allowed: Product must be in 'New', 'Modified', or 'Resubmitted' state to be approved or rejected");
-                }
-            }
+
             List<Post> postList = new ArrayList<>();
             if (addProductDto.getPosts() != null) {
                 if (!addProductDto.getPosts().isEmpty()) {
