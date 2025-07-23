@@ -775,9 +775,9 @@ public class ProductController extends CatalogEndpoint {
                     modes.add(1);
                     communicationRequest.setModes(modes);
                     communicationRequest.setContentText(
-                            "Hello,\n\n" +
-                                    "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
-                                    "Changes: " + diff.toString() + "\n\n" +
+                            "Hi,\n\n" +
+                                    "Important schedule updates have been made to your purchased product {Product Title - \"" + product.getDisplayTemplate() + "\"}, " +
+                                    "including changes: " + diff.toString() + ".\n\n" +
                                     "To view the latest changes, please visit:\n" +
                                     "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
                                     "Thank you,\n" +
@@ -1347,7 +1347,7 @@ public class ProductController extends CatalogEndpoint {
     @Transactional
     @Authorize(value = {roleSuperAdmin,roleAdmin})
     @PutMapping("{productId}/return-product")
-    private ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
+    public ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
     {
         Product product=catalogService.findProductById(productId);
         if(product == null)

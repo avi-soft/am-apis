@@ -41,7 +41,7 @@ public class BackupService {
     @Autowired
     private RestTemplate restTemplate;
     private static final Long SCHEDULE_ID = 4L;
-    private static final String TARGET_IP = "192.168.0.107";
+    private static final String TARGET_IP = "192.168.20.106";
     private static final String BACKUP_ENDPOINT = "http://" + TARGET_IP + ":8081/run-backup";
     @Async
     @Transactional
