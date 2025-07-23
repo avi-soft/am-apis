@@ -10,13 +10,14 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "custom_product_rejection_status")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomProductRejectionStatus {
+public class CustomProductRejectionStatus implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
