@@ -13,6 +13,7 @@ import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
@@ -53,7 +54,9 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.GENDER_ALL;
 import static com.community.api.component.Constant.RESERVED_CATEGORY_ALL;
+import static java.util.Map.entry;
 
+@Slf4j
 @Service
 public class SharedUtilityService {
     public ReserveCategoryService reserveCategoryService;
@@ -2141,7 +2144,36 @@ public class SharedUtilityService {
             }
         }
 
-        return differences;
+        Map<String, String> fieldLabelMap = Map.ofEntries(
+                entry("platformFee", "Platform Fee"),
+                entry("activeStartDate", "Application Start Date"),
+                entry("activeEndDate", "Application End Date"),
+                entry("examDateFrom", "Exam Date Start Date"),
+                entry("examDateTo", "Exam Date End Date"),
+                entry("documentVerificationDate", "Document Verification Date"),
+                entry("goLiveDate", "Application Live Date"),
+                entry("answerKeyAvailableDate", "Answer Key Available Date"),
+                entry("resultDeclarationDate", "Result Declaration Date"),
+                entry("counsellingDate", "Counselling Date"),
+                entry("domicileRequired", "Domicile Required"),
+                entry("lateDateToPayFee", "Last Day to Pay Fee"),
+                entry("admitCardDateFrom", "Admit Card Start Date"),
+                entry("admitCardDateTo", "Admit card End Date"),
+                entry("correctionDateFrom", "Correction Date From"),
+                entry("correctionDateTo", "Correction Date To"),
+                entry("selectionCriteria", "Selection Criteria"),
+                entry("feeAdditionalComments", "Fee Additional Comments"),
+                entry("sector", "sector"),
+                entry("advertisement", "Advertisement"),
+                entry("posts", "Available Posts")
+        );
+
+        List<String> filtered = differences.stream()
+                .filter(fieldLabelMap::containsKey)
+                .map(fieldLabelMap::get)
+                .collect(Collectors.toList());
+
+        return filtered;
     }
 
 
