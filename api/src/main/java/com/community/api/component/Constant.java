@@ -364,7 +364,7 @@ public class Constant {
                     "    WHERE qd.custom_customer_id = :customerId " +
                     "), " +
                     "products_with_requirements AS (" +
-                    "    SELECT p.product_id " +
+                    "    SELECT DISTINCT p.product_id " +
                     "    FROM custom_product p " +
                     "    JOIN post_details post ON post.product_id = p.product_id " +
                     "    JOIN blc_product bp ON bp.product_id = p.product_id " +
