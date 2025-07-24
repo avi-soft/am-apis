@@ -37,6 +37,8 @@ import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -785,7 +787,6 @@ public class SharedUtilityService {
                         }
 
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
-                        System.out.println("heloooooooooooooooooooooooooooooooooooooooooo");
                         documentDetails.put("fileUrl", fileUrl);
 
                         // Get the document type name dynamically without modifying the actual entity
@@ -2123,8 +2124,7 @@ public class SharedUtilityService {
         return null;
     }
 
-    public  Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
-
+    public Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
         if (before == null || after == null || !before.getClass().equals(after.getClass())) {
             throw new IllegalArgumentException("Both objects must be non-null and of the same type");
         }
@@ -2132,78 +2132,133 @@ public class SharedUtilityService {
         Map<String, Object> differenceDataMap = new HashMap<>();
 
         // Active Dates
-        if (!Objects.equals(before.getActiveStartDate(), after.getActiveStartDate())) {
+        if (!Objects.equals(after.getActiveStartDate(), before.getActiveStartDate())) {
             differenceDataMap.put("Application Starting Date", after.getActiveStartDate());
         }
-        if (!Objects.equals(before.getActiveEndDate(), after.getActiveEndDate())) {
+        if (!Objects.equals(after.getActiveEndDate(), before.getActiveEndDate())) {
             differenceDataMap.put("Application Ending Date", after.getActiveEndDate());
         }
 
         // Admit Card Dates
-        if (!Objects.equals(before.getAdmitCardDateFrom(), after.getAdmitCardDateFrom())) {
-            differenceDataMap.put("Admit Card Starting Date", after.getAdmitCardDateFrom());
+        if (!Objects.equals(after.getAdmitCardDateFrom(), before.getAdmitCardDateFrom())) {
+            differenceDataMap.put("Admit Card Available From", after.getAdmitCardDateFrom());
         }
-        if (!Objects.equals(before.getAdmitCardDateTo(), after.getAdmitCardDateTo())) {
-            differenceDataMap.put("Admit Card Ending Date", after.getAdmitCardDateTo());
+        if (!Objects.equals(after.getAdmitCardDateTo(), before.getAdmitCardDateTo())) {
+            differenceDataMap.put("Admit Card Available Up-to", after.getAdmitCardDateTo());
         }
 
         // Exam Dates
-        if (!Objects.equals(before.getExamDateFrom(), after.getExamDateFrom())) {
+        if (!Objects.equals(after.getExamDateFrom(), before.getExamDateFrom())) {
             differenceDataMap.put("Exam Starting Date", after.getExamDateFrom());
         }
-        if (!Objects.equals(before.getExamDateTo(), after.getExamDateTo())) {
+        if (!Objects.equals(after.getExamDateTo(), before.getExamDateTo())) {
             differenceDataMap.put("Exam Ending Date", after.getExamDateTo());
         }
 
         // Modification Dates
-        if (!Objects.equals(before.getModificationDateFrom(), after.getModificationDateFrom())) {
+        if (!Objects.equals(after.getModificationDateFrom(), before.getModificationDateFrom())) {
             differenceDataMap.put("Correction Starting Date", after.getModificationDateFrom());
         }
-        if (!Objects.equals(before.getModificationDateTo(), after.getModificationDateTo())) {
+        if (!Objects.equals(after.getModificationDateTo(), before.getModificationDateTo())) {
             differenceDataMap.put("Correction Ending Date", after.getModificationDateTo());
         }
 
         // Last date to pay fee
-        if (!Objects.equals(before.getLateDateToPayFee(), after.getLateDateToPayFee())) {
+        if (!Objects.equals(after.getLateDateToPayFee(), before.getLateDateToPayFee())) {
             differenceDataMap.put("Last Day to Pay Fee Date", after.getLateDateToPayFee());
         }
 
         // Verification Dates
-        if (!Objects.equals(before.getTentativeVerificationFrom(), after.getTentativeVerificationFrom())) {
+        if (!Objects.equals(after.getTentativeVerificationFrom(), before.getTentativeVerificationFrom())) {
             differenceDataMap.put("Verification Starting Date", after.getTentativeVerificationFrom());
         }
-        if (!Objects.equals(before.getTentativeVerificationTo(), after.getTentativeVerificationTo())) {
+        if (!Objects.equals(after.getTentativeVerificationTo(), before.getTentativeVerificationTo())) {
             differenceDataMap.put("Verification Ending Date", after.getTentativeVerificationTo());
         }
 
         // Answer Key release date
-        if (!Objects.equals(before.getAnswerKeyAvailableDate(), after.getAnswerKeyAvailableDate())) {
+        if (!Objects.equals(after.getAnswerKeyAvailableDate(), before.getAnswerKeyAvailableDate())) {
             differenceDataMap.put("Answer Key Release Date", after.getAnswerKeyAvailableDate());
         }
 
         // Result Declaration date
-        if (!Objects.equals(before.getResultDeclarationDate(), after.getResultDeclarationDate())) {
+        if (!Objects.equals(after.getResultDeclarationDate(), before.getResultDeclarationDate())) {
             differenceDataMap.put("Result Declaration Date", after.getResultDeclarationDate());
         }
 
         // Exam Center available date
-        if (!Objects.equals(before.getExamCenterAvailableDate(), after.getExamCenterAvailableDate())) {
+        if (!Objects.equals(after.getExamCenterAvailableDate(), before.getExamCenterAvailableDate())) {
             differenceDataMap.put("Exam Center Availability Date", after.getExamCenterAvailableDate());
         }
 
         // Counselling date
-        if (!Objects.equals(before.getCounsellingDate(), after.getCounsellingDate())) {
+        if (!Objects.equals(after.getCounsellingDate(), before.getCounsellingDate())) {
             differenceDataMap.put("Counselling Date", after.getCounsellingDate());
         }
 
         // Number of vacancies
-        if (!Objects.equals(before.getTotalVacanciesInProduct(), after.getTotalVacanciesInProduct())) {
+        if (!Objects.equals(after.getTotalVacanciesInProduct(), before.getTotalVacanciesInProduct())) {
             differenceDataMap.put("Total Vacancies", after.getTotalVacanciesInProduct());
         }
 
         return differenceDataMap;
     }
 
+
+    public String generateUpdateEmailContent(CustomProduct updatedProduct, Map<String, Object> differencesMap) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
+                .withZone(ZoneId.of("Asia/Kolkata"));
+
+        if (differencesMap.isEmpty()) {
+            return "No changes were detected.";
+        }
+
+        StringBuilder text = new StringBuilder();
+        text.append("Hi,\n\n");
+        text.append("Important schedule updates have been made to your purchased product: ")
+                .append(updatedProduct.getDisplayTemplate())
+                .append("\n\nThe following changes have been made:\n");
+
+        for (Map.Entry<String, Object> entry : differencesMap.entrySet()) {
+            String fieldLabel = entry.getKey();
+            Object value = entry.getValue();
+            String formattedValue = formatValue(value, formatter);
+            text.append("- ").append(fieldLabel).append(": ").append(formattedValue).append("\n");
+        }
+
+        text.append("\nTo view the latest changes, please visit:\n");
+        text.append("https://dev-next-am-public-ui.vercel.app/product-details/")
+                .append(updatedProduct.getId()).append("\n\n");
+
+        text.append("Thank you,\nSystem Administrator");
+
+        return text.toString();
+    }
+
+
+    private String formatValue(Object value, DateTimeFormatter formatter) {
+        if (value == null) return "N/A";
+
+        if (value instanceof OffsetDateTime) {
+            return ((OffsetDateTime) value).format(formatter);
+        } else if (value instanceof ZonedDateTime) {
+            return ((ZonedDateTime) value).format(formatter);
+        } else if (value instanceof Date) {
+            ZonedDateTime zdt = ((Date) value).toInstant()
+                    .atZone(ZoneId.of("Asia/Kolkata")); // preserve +05:30
+            return zdt.format(formatter);
+        } else if (value instanceof String) {
+            try {
+                // Parse with offset preserved
+                OffsetDateTime odt = OffsetDateTime.parse((String) value);
+                return odt.format(formatter);
+            } catch (DateTimeParseException e) {
+                return value.toString(); // fallback
+            }
+        }
+
+        return value.toString();
+    }
 
 }
 
