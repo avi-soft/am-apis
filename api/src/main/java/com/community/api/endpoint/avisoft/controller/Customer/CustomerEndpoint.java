@@ -3261,7 +3261,7 @@ public class CustomerEndpoint {
         Double fee = null;
         String ageLimit = null;
 
-
+        System.out.println("limt is"+limit+"offset is"+offset);
         List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
                 .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
@@ -3269,8 +3269,15 @@ public class CustomerEndpoint {
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
                 .setParameter("limit", limit)
-                .setParameter("offset", offset)
+                .setParameter("offset", limit*offset)
                 .getResultList();
+
+        System.out.println(res.size());
+        System.out.println("Products");
+        for (BigInteger resl:res)
+        {
+            System.out.println(resl.intValue());
+        }
 
         BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(recosCount)
                 .setParameter("customerId", customCustomer.getId())
