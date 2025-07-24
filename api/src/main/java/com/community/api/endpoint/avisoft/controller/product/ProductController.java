@@ -810,8 +810,8 @@ public class ProductController extends CatalogEndpoint {
             }
 
             System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
-            List<String> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
-            System.out.println(diff);
+            Map<String, Object> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
+
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
@@ -838,7 +838,7 @@ public class ProductController extends CatalogEndpoint {
                     } else
                         communicate = false;
                 }
-                if (communicate) {
+                if (communicate && !diff.isEmpty()) {
                     CommunicationRequest communicationRequest = new CommunicationRequest();
                     CustomProduct customProductSession = getProductWithPurchasers(customProduct.getId());
                     communicationRequest.setUserIds(customProductSession.getPurchasedBy());
