@@ -810,7 +810,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
-            Map<String, Object> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
+            Map<String, Object> diff = sharedUtilityService.getDifferences(originalProduct, customProduct);
 
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);

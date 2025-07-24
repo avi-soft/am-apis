@@ -2124,8 +2124,7 @@ public class SharedUtilityService {
         return null;
     }
 
-    public  Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
-
+    public Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
         if (before == null || after == null || !before.getClass().equals(after.getClass())) {
             throw new IllegalArgumentException("Both objects must be non-null and of the same type");
         }
@@ -2133,77 +2132,78 @@ public class SharedUtilityService {
         Map<String, Object> differenceDataMap = new HashMap<>();
 
         // Active Dates
-        if (!Objects.equals(before.getActiveStartDate(), after.getActiveStartDate())) {
+        if (!Objects.equals(after.getActiveStartDate(), before.getActiveStartDate())) {
             differenceDataMap.put("Application Starting Date", after.getActiveStartDate());
         }
-        if (!Objects.equals(before.getActiveEndDate(), after.getActiveEndDate())) {
+        if (!Objects.equals(after.getActiveEndDate(), before.getActiveEndDate())) {
             differenceDataMap.put("Application Ending Date", after.getActiveEndDate());
         }
 
         // Admit Card Dates
-        if (!Objects.equals(before.getAdmitCardDateFrom(), after.getAdmitCardDateFrom())) {
+        if (!Objects.equals(after.getAdmitCardDateFrom(), before.getAdmitCardDateFrom())) {
             differenceDataMap.put("Admit Card Available From", after.getAdmitCardDateFrom());
         }
-        if (!Objects.equals(before.getAdmitCardDateTo(), after.getAdmitCardDateTo())) {
+        if (!Objects.equals(after.getAdmitCardDateTo(), before.getAdmitCardDateTo())) {
             differenceDataMap.put("Admit Card Available Up-to", after.getAdmitCardDateTo());
         }
 
         // Exam Dates
-        if (!Objects.equals(before.getExamDateFrom(), after.getExamDateFrom())) {
+        if (!Objects.equals(after.getExamDateFrom(), before.getExamDateFrom())) {
             differenceDataMap.put("Exam Starting Date", after.getExamDateFrom());
         }
-        if (!Objects.equals(before.getExamDateTo(), after.getExamDateTo())) {
+        if (!Objects.equals(after.getExamDateTo(), before.getExamDateTo())) {
             differenceDataMap.put("Exam Ending Date", after.getExamDateTo());
         }
 
         // Modification Dates
-        if (!Objects.equals(before.getModificationDateFrom(), after.getModificationDateFrom())) {
+        if (!Objects.equals(after.getModificationDateFrom(), before.getModificationDateFrom())) {
             differenceDataMap.put("Correction Starting Date", after.getModificationDateFrom());
         }
-        if (!Objects.equals(before.getModificationDateTo(), after.getModificationDateTo())) {
+        if (!Objects.equals(after.getModificationDateTo(), before.getModificationDateTo())) {
             differenceDataMap.put("Correction Ending Date", after.getModificationDateTo());
         }
 
         // Last date to pay fee
-        if (!Objects.equals(before.getLateDateToPayFee(), after.getLateDateToPayFee())) {
+        if (!Objects.equals(after.getLateDateToPayFee(), before.getLateDateToPayFee())) {
             differenceDataMap.put("Last Day to Pay Fee Date", after.getLateDateToPayFee());
         }
 
         // Verification Dates
-        if (!Objects.equals(before.getTentativeVerificationFrom(), after.getTentativeVerificationFrom())) {
+        if (!Objects.equals(after.getTentativeVerificationFrom(), before.getTentativeVerificationFrom())) {
             differenceDataMap.put("Verification Starting Date", after.getTentativeVerificationFrom());
         }
-        if (!Objects.equals(before.getTentativeVerificationTo(), after.getTentativeVerificationTo())) {
+        if (!Objects.equals(after.getTentativeVerificationTo(), before.getTentativeVerificationTo())) {
             differenceDataMap.put("Verification Ending Date", after.getTentativeVerificationTo());
         }
 
         // Answer Key release date
-        if (!Objects.equals(before.getAnswerKeyAvailableDate(), after.getAnswerKeyAvailableDate())) {
+        if (!Objects.equals(after.getAnswerKeyAvailableDate(), before.getAnswerKeyAvailableDate())) {
             differenceDataMap.put("Answer Key Release Date", after.getAnswerKeyAvailableDate());
         }
 
         // Result Declaration date
-        if (!Objects.equals(before.getResultDeclarationDate(), after.getResultDeclarationDate())) {
+        if (!Objects.equals(after.getResultDeclarationDate(), before.getResultDeclarationDate())) {
             differenceDataMap.put("Result Declaration Date", after.getResultDeclarationDate());
         }
 
         // Exam Center available date
-        if (!Objects.equals(before.getExamCenterAvailableDate(), after.getExamCenterAvailableDate())) {
+        if (!Objects.equals(after.getExamCenterAvailableDate(), before.getExamCenterAvailableDate())) {
             differenceDataMap.put("Exam Center Availability Date", after.getExamCenterAvailableDate());
         }
 
         // Counselling date
-        if (!Objects.equals(before.getCounsellingDate(), after.getCounsellingDate())) {
+        if (!Objects.equals(after.getCounsellingDate(), before.getCounsellingDate())) {
             differenceDataMap.put("Counselling Date", after.getCounsellingDate());
         }
 
         // Number of vacancies
-        if (!Objects.equals(before.getTotalVacanciesInProduct(), after.getTotalVacanciesInProduct())) {
+        if (!Objects.equals(after.getTotalVacanciesInProduct(), before.getTotalVacanciesInProduct())) {
             differenceDataMap.put("Total Vacancies", after.getTotalVacanciesInProduct());
         }
 
         return differenceDataMap;
     }
+
 
     public String generateUpdateEmailContent(CustomProduct updatedProduct, Map<String, Object> differencesMap) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
