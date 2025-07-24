@@ -433,7 +433,7 @@ public class Constant {
                     "SELECT DISTINCT product_id " +
                     "FROM (" +
                     "    SELECT product_id FROM products_with_requirements " +
-                    "    UNION ALL " +
+                    "    UNION " +
                     "    SELECT product_id FROM products_without_requirements " +
                     ") combined_products " +
                     "ORDER BY product_id DESC " +
