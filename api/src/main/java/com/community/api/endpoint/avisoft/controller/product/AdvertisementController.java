@@ -317,7 +317,7 @@ public class AdvertisementController {
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                     Map<String, Object> response = new HashMap<>();
-                    response.put("advertisements", response);
+                    response.put("advertisements", responses);
                     response.put("totalItems", 1);
                     response.put("totalPages", 1);
                     response.put("currentPage", 1);

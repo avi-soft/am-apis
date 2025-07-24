@@ -13,6 +13,7 @@ import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
@@ -53,7 +54,9 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.GENDER_ALL;
 import static com.community.api.component.Constant.RESERVED_CATEGORY_ALL;
+import static java.util.Map.entry;
 
+@Slf4j
 @Service
 public class SharedUtilityService {
     public ReserveCategoryService reserveCategoryService;
@@ -2119,29 +2122,86 @@ public class SharedUtilityService {
         }
         return null;
     }
-    public  List<String> getDifferences(Object before, Object after) {
+
+    public  Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
+
         if (before == null || after == null || !before.getClass().equals(after.getClass())) {
             throw new IllegalArgumentException("Both objects must be non-null and of the same type");
         }
 
-        List<String> differences = new ArrayList<>();
-        Class<?> clazz = before.getClass();
+        Map<String, Object> differenceDataMap = new HashMap<>();
 
-        for (Field field : clazz.getDeclaredFields()) {
-            field.setAccessible(true); // Allows access to private fields
-            try {
-                Object beforeValue = field.get(before);
-                Object afterValue = field.get(after);
-
-                if (!Objects.equals(beforeValue, afterValue)) {
-                    differences.add(field.getName());
-                }
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Unable to access field: " + field.getName(), e);
-            }
+        // Active Dates
+        if (!Objects.equals(before.getActiveStartDate(), after.getActiveStartDate())) {
+            differenceDataMap.put("Application Starting Date", after.getActiveStartDate());
+        }
+        if (!Objects.equals(before.getActiveEndDate(), after.getActiveEndDate())) {
+            differenceDataMap.put("Application Ending Date", after.getActiveEndDate());
         }
 
-        return differences;
+        // Admit Card Dates
+        if (!Objects.equals(before.getAdmitCardDateFrom(), after.getAdmitCardDateFrom())) {
+            differenceDataMap.put("Admit Card Starting Date", after.getAdmitCardDateFrom());
+        }
+        if (!Objects.equals(before.getAdmitCardDateTo(), after.getAdmitCardDateTo())) {
+            differenceDataMap.put("Admit Card Ending Date", after.getAdmitCardDateTo());
+        }
+
+        // Exam Dates
+        if (!Objects.equals(before.getExamDateFrom(), after.getExamDateFrom())) {
+            differenceDataMap.put("Exam Starting Date", after.getExamDateFrom());
+        }
+        if (!Objects.equals(before.getExamDateTo(), after.getExamDateTo())) {
+            differenceDataMap.put("Exam Ending Date", after.getExamDateTo());
+        }
+
+        // Modification Dates
+        if (!Objects.equals(before.getModificationDateFrom(), after.getModificationDateFrom())) {
+            differenceDataMap.put("Correction Starting Date", after.getModificationDateFrom());
+        }
+        if (!Objects.equals(before.getModificationDateTo(), after.getModificationDateTo())) {
+            differenceDataMap.put("Correction Ending Date", after.getModificationDateTo());
+        }
+
+        // Last date to pay fee
+        if (!Objects.equals(before.getLateDateToPayFee(), after.getLateDateToPayFee())) {
+            differenceDataMap.put("Last Day to Pay Fee Date", after.getLateDateToPayFee());
+        }
+
+        // Verification Dates
+        if (!Objects.equals(before.getTentativeVerificationFrom(), after.getTentativeVerificationFrom())) {
+            differenceDataMap.put("Verification Starting Date", after.getTentativeVerificationFrom());
+        }
+        if (!Objects.equals(before.getTentativeVerificationTo(), after.getTentativeVerificationTo())) {
+            differenceDataMap.put("Verification Ending Date", after.getTentativeVerificationTo());
+        }
+
+        // Answer Key release date
+        if (!Objects.equals(before.getAnswerKeyAvailableDate(), after.getAnswerKeyAvailableDate())) {
+            differenceDataMap.put("Answer Key Release Date", after.getAnswerKeyAvailableDate());
+        }
+
+        // Result Declaration date
+        if (!Objects.equals(before.getResultDeclarationDate(), after.getResultDeclarationDate())) {
+            differenceDataMap.put("Result Declaration Date", after.getResultDeclarationDate());
+        }
+
+        // Exam Center available date
+        if (!Objects.equals(before.getExamCenterAvailableDate(), after.getExamCenterAvailableDate())) {
+            differenceDataMap.put("Exam Center Availability Date", after.getExamCenterAvailableDate());
+        }
+
+        // Counselling date
+        if (!Objects.equals(before.getCounsellingDate(), after.getCounsellingDate())) {
+            differenceDataMap.put("Counselling Date", after.getCounsellingDate());
+        }
+
+        // Number of vacancies
+        if (!Objects.equals(before.getTotalVacanciesInProduct(), after.getTotalVacanciesInProduct())) {
+            differenceDataMap.put("Total Vacancies", after.getTotalVacanciesInProduct());
+        }
+
+        return differenceDataMap;
     }
 
 
