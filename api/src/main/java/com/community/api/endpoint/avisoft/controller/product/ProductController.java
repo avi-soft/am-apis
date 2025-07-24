@@ -808,6 +808,7 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
+
             System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
             List<String> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
             System.out.println(diff);
@@ -820,7 +821,6 @@ public class ProductController extends CatalogEndpoint {
                 Boolean communicate = true;
                 Long id = (Long) query.getSingleResult();
                 ProductEvents productEvents = null;
-
 
                 if (id == null) {
                     productEvents = new ProductEvents();
