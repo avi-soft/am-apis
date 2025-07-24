@@ -37,6 +37,8 @@ import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -785,7 +787,6 @@ public class SharedUtilityService {
                         }
 
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
-                        System.out.println("heloooooooooooooooooooooooooooooooooooooooooo");
                         documentDetails.put("fileUrl", fileUrl);
 
                         // Get the document type name dynamically without modifying the actual entity
@@ -2141,10 +2142,10 @@ public class SharedUtilityService {
 
         // Admit Card Dates
         if (!Objects.equals(before.getAdmitCardDateFrom(), after.getAdmitCardDateFrom())) {
-            differenceDataMap.put("Admit Card Starting Date", after.getAdmitCardDateFrom());
+            differenceDataMap.put("Admit Card Available From", after.getAdmitCardDateFrom());
         }
         if (!Objects.equals(before.getAdmitCardDateTo(), after.getAdmitCardDateTo())) {
-            differenceDataMap.put("Admit Card Ending Date", after.getAdmitCardDateTo());
+            differenceDataMap.put("Admit Card Available Up-to", after.getAdmitCardDateTo());
         }
 
         // Exam Dates
@@ -2204,6 +2205,60 @@ public class SharedUtilityService {
         return differenceDataMap;
     }
 
+    public String generateUpdateEmailContent(CustomProduct updatedProduct, Map<String, Object> differencesMap) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
+                .withZone(ZoneId.of("Asia/Kolkata"));
+
+        if (differencesMap.isEmpty()) {
+            return "No changes were detected.";
+        }
+
+        StringBuilder text = new StringBuilder();
+        text.append("Hi,\n\n");
+        text.append("Important schedule updates have been made to your purchased product: ")
+                .append(updatedProduct.getDisplayTemplate())
+                .append("\n\nThe following changes have been made:\n");
+
+        for (Map.Entry<String, Object> entry : differencesMap.entrySet()) {
+            String fieldLabel = entry.getKey();
+            Object value = entry.getValue();
+            String formattedValue = formatValue(value, formatter);
+            text.append("- ").append(fieldLabel).append(": ").append(formattedValue).append("\n");
+        }
+
+        text.append("\nTo view the latest changes, please visit:\n");
+        text.append("https://dev-next-am-public-ui.vercel.app/product-details/")
+                .append(updatedProduct.getId()).append("\n\n");
+
+        text.append("Thank you,\nSystem Administrator");
+
+        return text.toString();
+    }
+
+
+    private String formatValue(Object value, DateTimeFormatter formatter) {
+        if (value == null) return "N/A";
+
+        if (value instanceof OffsetDateTime) {
+            return ((OffsetDateTime) value).format(formatter);
+        } else if (value instanceof ZonedDateTime) {
+            return ((ZonedDateTime) value).format(formatter);
+        } else if (value instanceof Date) {
+            ZonedDateTime zdt = ((Date) value).toInstant()
+                    .atZone(ZoneId.of("Asia/Kolkata")); // preserve +05:30
+            return zdt.format(formatter);
+        } else if (value instanceof String) {
+            try {
+                // Parse with offset preserved
+                OffsetDateTime odt = OffsetDateTime.parse((String) value);
+                return odt.format(formatter);
+            } catch (DateTimeParseException e) {
+                return value.toString(); // fallback
+            }
+        }
+
+        return value.toString();
+    }
 
 }
 
