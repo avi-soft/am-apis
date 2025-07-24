@@ -809,7 +809,6 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
-            System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
             Map<String, Object> diff = sharedUtilityService.getDifferences(originalProduct, customProduct);
 
             entityManager.merge(customProduct);
@@ -822,22 +821,22 @@ public class ProductController extends CatalogEndpoint {
                 Long id = (Long) query.getSingleResult();
                 ProductEvents productEvents = null;
 
-//                if (id == null) {
-//                    productEvents = new ProductEvents();
-//                    productEvents.setLastUpdate(LocalDateTime.now());
-//                    productEvents.setSummaryOfUpdate(null);
-//                    productEvents.setProductId(productId);
-//
-//                } else {
-//                    productEvents = entityManager.find(ProductEvents.class, id);
-//                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
-//                        productEvents = new ProductEvents();
-//                        productEvents.setLastUpdate(LocalDateTime.now());
-//                        productEvents.setSummaryOfUpdate(null);
-//                        productEvents.setProductId(productId);
-//                    } else
-//                        communicate = false;
-//                }
+                if (id == null) {
+                    productEvents = new ProductEvents();
+                    productEvents.setLastUpdate(LocalDateTime.now());
+                    productEvents.setSummaryOfUpdate(null);
+                    productEvents.setProductId(productId);
+
+                } else {
+                    productEvents = entityManager.find(ProductEvents.class, id);
+                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
+                        productEvents = new ProductEvents();
+                        productEvents.setLastUpdate(LocalDateTime.now());
+                        productEvents.setSummaryOfUpdate(null);
+                        productEvents.setProductId(productId);
+                    } else
+                        communicate = false;
+                }
                 if (communicate && !diff.isEmpty()) {
                     CommunicationRequest communicationRequest = new CommunicationRequest();
                     CustomProduct customProductSession = getProductWithPurchasers(customProduct.getId());
@@ -847,7 +846,7 @@ public class ProductController extends CatalogEndpoint {
                     modes.add(1);
                     communicationRequest.setModes(modes);
                     communicationRequest.setContentText(sharedUtilityService.generateUpdateEmailContent(customProduct, diff));
-//                    entityManager.persist(productEvents);
+                    entityManager.persist(productEvents);
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
