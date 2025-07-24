@@ -2397,7 +2397,7 @@ public class ProductService {
                     if (!addProductDto.getActiveEndDate().before(addProductDto.getExamDateFrom())) {
                         throw new IllegalArgumentException("active end date have to be before of exam date from.");
                     }
-                } else if (customProduct.getLateDateToPayFee() != null) {
+                } else if (addProductDto.getLastDateToPayFee() != null) {
                     if (!addProductDto.getActiveEndDate().before(addProductDto.getLastDateToPayFee()) && !addProductDto.getActiveEndDate().equals(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("active end date must be before or equal to the last date to pay fee.");
                     }
