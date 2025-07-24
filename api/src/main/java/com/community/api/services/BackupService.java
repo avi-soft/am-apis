@@ -37,7 +37,6 @@ public class BackupService {
     @Value("${email.from}")
     private String fromEmail;
 
-
     @Autowired
     private RestTemplate restTemplate;
     private static final Long SCHEDULE_ID = 4L;
@@ -74,6 +73,7 @@ public class BackupService {
 
         return CompletableFuture.completedFuture(null);
     }
+
     @Async
     public void sendFailureMail(String scheduleName,String desc, LocalDateTime lastRun, LocalDateTime nextRun) {
         try {
