@@ -44,6 +44,7 @@ import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefServic
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
@@ -155,6 +156,8 @@ public class ProductController extends CatalogEndpoint {
     private PostExecutionService postExecutionService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private ServiceProviderServiceImpl serviceProviderService;
 
     public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService, GenderService genderService) {
 
@@ -805,6 +808,7 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
+
             System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
             List<String> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
             System.out.println(diff);
@@ -817,7 +821,6 @@ public class ProductController extends CatalogEndpoint {
                 Boolean communicate = true;
                 Long id = (Long) query.getSingleResult();
                 ProductEvents productEvents = null;
-
 
                 if (id == null) {
                     productEvents = new ProductEvents();
@@ -844,9 +847,9 @@ public class ProductController extends CatalogEndpoint {
                     modes.add(1);
                     communicationRequest.setModes(modes);
                     communicationRequest.setContentText(
-                            "Hello,\n\n" +
-                                    "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
-                                    "Changes: " + diff.toString() + "\n\n" +
+                            "Hi,\n\n" +
+                                    "Important schedule updates have been made to your purchased product {Product Title - \"" + product.getDisplayTemplate() + "\"}, " +
+                                    "including changes: " + diff.toString() + ".\n\n" +
                                     "To view the latest changes, please visit:\n" +
                                     "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
                                     "Thank you,\n" +
@@ -866,6 +869,14 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsEdited(false);
             }
             entityManager.merge(customProduct);
+
+            if(addProductDto.getProductState() != null && addProductDto.getProductState().equals(4L)) {
+                if(customProduct.getUserId() != null) {
+                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+                    serviceProviderActionController.sendRejectionMail(serviceProvider, customProduct, "Reject");
+                }
+            }
+
             if(resubmit)
             {
                 CustomProductState productState=entityManager.find(CustomProductState.class,9L);
@@ -1388,36 +1399,49 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @PersistenceContext
     private EntityManager em;
+
     @Authorize(value = {roleSuperAdmin,roleAdmin})
     @Transactional
     @PutMapping("{productId}/return-product")
     public ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
     {
-        CustomProduct customProduct=em.find(CustomProduct.class,productId);
-        if(customProduct == null)
-            return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
-        if(returnProduct.containsKey("comment")&&(((String)(returnProduct.get("comment"))).isEmpty()))
-        {
-            return ResponseService.generateErrorResponse("Comment is required while returning products",HttpStatus.NOT_FOUND);
-        }
-        if(customProduct.getProductState().getProductStateId().equals(8L))
-        {
-            return ResponseService.generateErrorResponse("Product has already been returned",HttpStatus.BAD_REQUEST);
-        }
-        if(customProduct.getProductState().getProductStateId()!=1&&customProduct.getProductState().getProductStateId()!=2)
-            return ResponseService.generateErrorResponse("Cannot return product as its state is "+customProduct.getProductState().getProductState(),HttpStatus.BAD_REQUEST);
+        try {
+            CustomProduct customProduct=em.find(CustomProduct.class,productId);
+            if(customProduct == null)
+                return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
+            if(returnProduct.containsKey("comment")&&(((String)(returnProduct.get("comment"))).isEmpty()))
+            {
+                return ResponseService.generateErrorResponse("Comment is required while returning products",HttpStatus.NOT_FOUND);
+            }
+            if(customProduct.getProductState().getProductStateId().equals(8L))
+            {
+                return ResponseService.generateErrorResponse("Product has already been returned",HttpStatus.BAD_REQUEST);
+            }
+            if(customProduct.getProductState().getProductStateId()!=1&&customProduct.getProductState().getProductStateId()!=2)
+                return ResponseService.generateErrorResponse("Cannot return product as its state is "+customProduct.getProductState().getProductState(),HttpStatus.BAD_REQUEST);
 
-        CustomProductState state=em.find(CustomProductState.class,8L);
-        customProduct.setProductState(state);
-        customProduct.setRejectionComment((String)(returnProduct.get("comment")));
-        em.merge(customProduct);
-        CustomProductWrapper wrapper=new CustomProductWrapper();
-        List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
-        List<Post> postList = customProduct.getPosts();
-        wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
-        return ResponseService.generateSuccessResponse("Product returned successfully",wrapper,HttpStatus.OK);
+            CustomProductState state=em.find(CustomProductState.class,8L);
+            customProduct.setProductState(state);
+            customProduct.setRejectionComment((String)(returnProduct.get("comment")));
+            em.merge(customProduct);
+
+            if(customProduct.getUserId() != null) {
+                ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+                serviceProviderActionController.sendRejectionMail(serviceProvider, customProduct, "Return");
+            }
+
+            CustomProductWrapper wrapper=new CustomProductWrapper();
+            List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
+            List<Post> postList = customProduct.getPosts();
+            wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+            return ResponseService.generateSuccessResponse("Product returned successfully",wrapper,HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
 
