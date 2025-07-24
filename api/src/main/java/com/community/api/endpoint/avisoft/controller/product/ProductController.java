@@ -19,6 +19,8 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.ProductEvents;
+import com.community.api.entity.QualificationEligibility;
+import com.community.api.entity.QualificationGroup;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
@@ -588,6 +590,7 @@ public class ProductController extends CatalogEndpoint {
 
             List<Post> postList = new ArrayList<>();
             if (addProductDto.getPosts() != null) {
+                System.out.println("hello");
                 if (!addProductDto.getPosts().isEmpty()) {
                     productService.validatePostRequirement(addProductDto, roleId, userId);
                     postList = postService.savePosts(addProductDto.getPosts(), product);
@@ -603,7 +606,23 @@ public class ProductController extends CatalogEndpoint {
                             ref.setPost(null);
                             entityManager.merge(ref);
                         }
-
+                        if(post.getQualificationEligibility()!=null)
+                        {
+                            System.out.println("hello1");
+                            for(QualificationGroup qualificationGroup:post.getQualificationEligibility())
+                            {
+                                for(QualificationEligibility qualificationEligibility:qualificationGroup.getQualificationGroups())
+                                {
+                                    System.out.println("hello2");
+                                    Query query=entityManager.createNativeQuery("UPDATE qualification_eligibility set post_id = null where qualification_eligibility_id = :id");
+                                    query.setParameter("id",qualificationEligibility.getQualificationEligibilityId());
+                                    query.executeUpdate();
+                                }
+                                entityManager.merge(qualificationGroup);
+                            }
+                            post.getQualificationEligibility().clear();
+                            entityManager.merge(post);
+                        }
                         // Clear the @ManyToMany relationship from Post
                         if (post.getAgeRequirement() != null) {
                             post.getAgeRequirement().clear();
@@ -769,6 +788,16 @@ public class ProductController extends CatalogEndpoint {
                         post.getAgeRequirement().clear();
                         entityManager.merge(post);
                     }
+                    if(post.getQualificationEligibility()!=null)
+                    {
+                        for(QualificationGroup qualificationGroup:post.getQualificationEligibility())
+                        {
+                            qualificationGroup.getQualificationGroups().clear();
+                            entityManager.merge(qualificationGroup);
+                        }
+                        post.getQualificationEligibility().clear();
+                        entityManager.merge(post);
+                    }
                     if (post.getReligion() != null) {
                         post.getReligion().clear();
                         entityManager.merge(post);
@@ -780,6 +809,8 @@ public class ProductController extends CatalogEndpoint {
                     entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
                 }
                 entityManager.flush();
+
+
                 if (addProductDto.getReservedCategory() != null) {
                     productService.deleteOldReserveCategoryMapping(customProduct);
                     productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
