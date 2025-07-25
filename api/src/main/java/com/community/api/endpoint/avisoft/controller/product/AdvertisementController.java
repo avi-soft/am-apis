@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
@@ -275,18 +276,7 @@ public class AdvertisementController {
             @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
         try {
-            if(preview) {
-                String jwtToken = authHeader.substring(7);
-                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                String roleName = roleService.findRoleName(roleId);
-                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-                if (roleName.equals(Constant.roleServiceProvider))
-                {
-                    if(creatorId!=null&&(!creatorId.equals(tokenUserId)))
-                        throw new IllegalArgumentException("Not authorized to preview advertisements");
-                    creatorId=tokenUserId;
-                }
-            }
+
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -296,7 +286,25 @@ public class AdvertisementController {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories,subCategories,creatorId,all);
-
+            if(preview) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                String roleName = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleName.equals(Constant.roleServiceProvider))
+                {
+                    if(!creatorId.equals(tokenUserId))
+                        return ResponseService.generateErrorResponse("Not authorized",HttpStatus.FORBIDDEN);
+                    if(id!=null) {
+                        Query query = entityManager.createNativeQuery("SELECT Count(advertisement_id) from advertisement where creator_user_id = :id and advertisement_id = :aid");
+                        query.setParameter("id", tokenUserId);
+                        query.setParameter("aid", id);
+                        BigInteger count = (BigInteger) query.getSingleResult();
+                        if (count.intValue() == 0)
+                            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                    }
+                }
+            }
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
@@ -306,10 +314,12 @@ public class AdvertisementController {
                 Advertisement advertisement=entityManager.find(Advertisement.class,id);
                 if(advertisement!=null) {
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                    if(advertisement.getArchived().equals('Y'))
+                        return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.NOT_FOUND);
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                     Map<String, Object> response = new HashMap<>();
-                    response.put("advertisements", response);
+                    response.put("advertisements", responses);
                     response.put("totalItems", 1);
                     response.put("totalPages", 1);
                     response.put("currentPage", 1);
@@ -558,13 +568,15 @@ public class AdvertisementController {
 
             Long advertisementId = Long.parseLong(advertisementIdPath);
 
-
+            jdbcTemplate.execute("CALL update_advertisement_product_counts()");
 
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
+            Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId);
+            if(advertisement==null)
+                return ResponseService.generateErrorResponse("Advertisement does not exist",HttpStatus.NOT_FOUND);
 
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
@@ -573,12 +585,20 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 4)
                 {
-                  if(advertisement.getUserId().equals(tokenUserId))
-                  {
-                      return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
-                  }
+                    System.out.println(advertisement.getUserId());
+                    System.out.println(tokenUserId);
+                    if(!advertisement.getUserId().equals(tokenUserId))
+                    {
+                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
+                    }
                 }
             }
+            if(advertisement.getProductCount()!=0)
+            {
+               return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
+            }
+
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
