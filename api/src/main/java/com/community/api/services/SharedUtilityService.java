@@ -2227,7 +2227,7 @@ public class SharedUtilityService {
         }
 
         text.append("\nTo view the latest changes, please visit:\n");
-        text.append("https://dev-next-am-public-ui.vercel.app/product-details/")
+        text.append("https://dev-next-am-public-ui.vercel.app/")
                 .append(updatedProduct.getId()).append("\n\n");
 
         text.append("Thank you,\nSystem Administrator");
