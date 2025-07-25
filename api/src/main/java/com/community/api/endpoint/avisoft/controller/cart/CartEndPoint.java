@@ -726,6 +726,8 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             options.put("amount", (totalAmt* 100));
+            if(totalAmt<=0)
+                return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);

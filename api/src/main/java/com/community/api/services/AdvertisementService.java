@@ -341,7 +341,7 @@ public class AdvertisementService {
             if(customProducts!=null && !customProducts.isEmpty())
             {
                 if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
-                    throw new IllegalArgumentException("Cannot edit advertisement start date once live");
+                    throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
