@@ -581,7 +581,9 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 4)
                 {
-                    if(advertisement.getUserId().equals(tokenUserId))
+                    System.out.println(advertisement.getUserId());
+                    System.out.println(tokenUserId);
+                    if(!advertisement.getUserId().equals(tokenUserId))
                     {
                         return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
                     }
