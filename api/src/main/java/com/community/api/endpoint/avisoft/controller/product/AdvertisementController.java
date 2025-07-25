@@ -574,11 +574,6 @@ public class AdvertisementController {
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId);
 
-            if(advertisement.getProductCount()!=0)
-            {
-               return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
-            }
-
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -586,12 +581,18 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 4)
                 {
-                  if(advertisement.getUserId().equals(tokenUserId))
-                  {
-                      return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
-                  }
+                    if(advertisement.getUserId().equals(tokenUserId))
+                    {
+                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
+                    }
                 }
             }
+            if(advertisement.getProductCount()!=0)
+            {
+               return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
+            }
+
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);

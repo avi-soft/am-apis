@@ -432,7 +432,7 @@ public class Constant {
                     "), " +
                     "all_products AS (" +
                     "    SELECT product_id FROM products_with_requirements " +
-                    "    UNION " +  // UNION removes duplicates between the two sets
+                    "    UNION " +
                     "    SELECT product_id FROM products_without_requirements " +
                     "), " +
                     "numbered_products AS (" +
