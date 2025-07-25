@@ -369,6 +369,7 @@ public class DocumentStorageService {
         newDocument.setCustom_customer(customCustomer);
         newDocument.setDocumentType(documentTypeObj);
         newDocument.setIsArchived(false);
+        newDocument.setCreatedDate(new Date());
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
