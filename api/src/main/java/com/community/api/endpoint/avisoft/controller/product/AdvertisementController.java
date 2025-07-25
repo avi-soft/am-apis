@@ -314,6 +314,8 @@ public class AdvertisementController {
                 Advertisement advertisement=entityManager.find(Advertisement.class,id);
                 if(advertisement!=null) {
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                    if(advertisement.getArchived().equals('Y'))
+                        return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.NOT_FOUND);
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                     Map<String, Object> response = new HashMap<>();
@@ -321,7 +323,7 @@ public class AdvertisementController {
                     response.put("totalItems", 1);
                     response.put("totalPages", 1);
                     response.put("currentPage", 1);
-                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",responses, HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
                 }
                 else
                     return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
