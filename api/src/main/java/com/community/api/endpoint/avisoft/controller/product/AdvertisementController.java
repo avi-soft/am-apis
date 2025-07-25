@@ -573,6 +573,8 @@ public class AdvertisementController {
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId);
+            if(advertisement==null)
+                return ResponseService.generateErrorResponse("Advertisement does not exist",HttpStatus.NOT_FOUND);
 
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
