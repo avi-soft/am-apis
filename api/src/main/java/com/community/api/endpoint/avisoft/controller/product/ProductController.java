@@ -558,7 +558,10 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getOtherInfo() != null) {
                 customProduct.setOtherInfo(addProductDto.getOtherInfo());
             }
-
+            if(addProductDto.getLastDateToPayFee()==null)
+            {
+                customProduct.setLateDateToPayFee(null);
+            }
             if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if (addProductDto.getIsMultiplePostSameFee().equals(true)) {
                    /* if(addProductDto.getPosts()!=null) {
