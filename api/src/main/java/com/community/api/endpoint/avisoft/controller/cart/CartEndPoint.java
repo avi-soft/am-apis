@@ -867,6 +867,7 @@ public class CartEndPoint extends BaseEndpoint {
             }
             return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
         } catch (RazorpayException razorpayException) {
+            razorpayException.printStackTrace();
             return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
 
