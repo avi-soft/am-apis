@@ -19,6 +19,8 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.ProductEvents;
+import com.community.api.entity.QualificationEligibility;
+import com.community.api.entity.QualificationGroup;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
@@ -556,7 +558,10 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getOtherInfo() != null) {
                 customProduct.setOtherInfo(addProductDto.getOtherInfo());
             }
-
+            if(addProductDto.getLastDateToPayFee()==null)
+            {
+                customProduct.setLateDateToPayFee(null);
+            }
             if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if (addProductDto.getIsMultiplePostSameFee().equals(true)) {
                    /* if(addProductDto.getPosts()!=null) {
@@ -588,6 +593,7 @@ public class ProductController extends CatalogEndpoint {
 
             List<Post> postList = new ArrayList<>();
             if (addProductDto.getPosts() != null) {
+                System.out.println("hello");
                 if (!addProductDto.getPosts().isEmpty()) {
                     productService.validatePostRequirement(addProductDto, roleId, userId);
                     postList = postService.savePosts(addProductDto.getPosts(), product);
@@ -603,7 +609,23 @@ public class ProductController extends CatalogEndpoint {
                             ref.setPost(null);
                             entityManager.merge(ref);
                         }
-
+                        if(post.getQualificationEligibility()!=null)
+                        {
+                            System.out.println("hello1");
+                            for(QualificationGroup qualificationGroup:post.getQualificationEligibility())
+                            {
+                                for(QualificationEligibility qualificationEligibility:qualificationGroup.getQualificationGroups())
+                                {
+                                    System.out.println("hello2");
+                                    Query query=entityManager.createNativeQuery("UPDATE qualification_eligibility set post_id = null where qualification_eligibility_id = :id");
+                                    query.setParameter("id",qualificationEligibility.getQualificationEligibilityId());
+                                    query.executeUpdate();
+                                }
+                                entityManager.merge(qualificationGroup);
+                            }
+                            post.getQualificationEligibility().clear();
+                            entityManager.merge(post);
+                        }
                         // Clear the @ManyToMany relationship from Post
                         if (post.getAgeRequirement() != null) {
                             post.getAgeRequirement().clear();
@@ -769,6 +791,16 @@ public class ProductController extends CatalogEndpoint {
                         post.getAgeRequirement().clear();
                         entityManager.merge(post);
                     }
+                    if(post.getQualificationEligibility()!=null)
+                    {
+                        for(QualificationGroup qualificationGroup:post.getQualificationEligibility())
+                        {
+                            qualificationGroup.getQualificationGroups().clear();
+                            entityManager.merge(qualificationGroup);
+                        }
+                        post.getQualificationEligibility().clear();
+                        entityManager.merge(post);
+                    }
                     if (post.getReligion() != null) {
                         post.getReligion().clear();
                         entityManager.merge(post);
@@ -780,6 +812,8 @@ public class ProductController extends CatalogEndpoint {
                     entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
                 }
                 entityManager.flush();
+
+
                 if (addProductDto.getReservedCategory() != null) {
                     productService.deleteOldReserveCategoryMapping(customProduct);
                     productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
@@ -1089,13 +1123,35 @@ public class ProductController extends CatalogEndpoint {
             }
 
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId); // Find the Custom Product
+            if(customProduct==null)
+                return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                String role  = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 4)
+                {
+                    if(!customProduct.getUserId().equals(tokenUserId))
+                    {
+                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.UNAUTHORIZED);
+                    }
+                    if(customProduct.getProductState().getProductStateId()==6||customProduct.getProductState().getProductStateId()==5)
+                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.UNAUTHORIZED);
+                }
+                else
+                {
+                    if(customProduct.getProductState().getProductStateId()==5)
+                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.UNAUTHORIZED);
 
+                }
+            }
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
-            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+          /*  if (!productService.deleteProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
-            }
+            }*/
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);
@@ -1111,6 +1167,7 @@ public class ProductController extends CatalogEndpoint {
             entityManager.merge(customProduct);
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
+            customProduct.setDel("Y");
 
             return ResponseService.generateSuccessResponse("PRODUCT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
 
