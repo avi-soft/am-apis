@@ -840,8 +840,7 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
-            System.out.println("admit card date is " + customProduct.getAdmitCardDateFrom());
-            Map<String, Object> diff = sharedUtilityService.getDifferences(customProduct, originalProduct);
+            Map<String, Object> diff = sharedUtilityService.getDifferences(originalProduct, customProduct);
 
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
@@ -877,17 +876,8 @@ public class ProductController extends CatalogEndpoint {
                     List<Integer> modes = new ArrayList<>();
                     modes.add(1);
                     communicationRequest.setModes(modes);
-                    communicationRequest.setContentText(
-                            "Hi,\n\n" +
-                                    "Important schedule updates have been made to your purchased product {Product Title - \"" + product.getDisplayTemplate() + "\"}, " +
-                                    "including changes: " + diff.toString() + ".\n\n" +
-                                    "To view the latest changes, please visit:\n" +
-                                    "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
-                                    "Thank you,\n" +
-                                    "System Administrator"
-                    );
+                    communicationRequest.setContentText(sharedUtilityService.generateUpdateEmailContent(customProduct, diff));
                     entityManager.persist(productEvents);
-                    System.out.println("Calling email trigger");
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
