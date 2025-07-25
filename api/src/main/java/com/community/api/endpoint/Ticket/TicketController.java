@@ -764,6 +764,7 @@ public class TicketController {
 
     }
 
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @DeleteMapping("/delete/{ticketId}")
     public ResponseEntity<?> deleteTicket(@PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
         try {
@@ -784,11 +785,7 @@ public class TicketController {
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
-
-            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, files, ticketId, authHeader);
-            if (ticket == null || ticket.getArchived()) {
-                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
-            }
+            return ResponseService.generateSuccessResponse("TICKET ARCHIVED SUCCESSFULLY", ticket, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
