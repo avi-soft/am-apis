@@ -801,6 +801,7 @@ public class SharedUtilityService {
 
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                         documentDetails.put("fileUrl", fileUrl);
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Get the document type name dynamically without modifying the actual entity
                         String documentTypeName = document.getDocumentType().getDocument_type_name();
