@@ -1123,13 +1123,35 @@ public class ProductController extends CatalogEndpoint {
             }
 
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId); // Find the Custom Product
+            if(customProduct==null)
+                return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                String role  = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 4)
+                {
+                    if(!customProduct.getUserId().equals(tokenUserId))
+                    {
+                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.UNAUTHORIZED);
+                    }
+                    if(customProduct.getProductState().getProductStateId()==6||customProduct.getProductState().getProductStateId()==5)
+                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.UNAUTHORIZED);
+                }
+                else
+                {
+                    if(customProduct.getProductState().getProductStateId()==5)
+                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.UNAUTHORIZED);
 
+                }
+            }
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
-            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+          /*  if (!productService.deleteProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
-            }
+            }*/
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);
@@ -1145,6 +1167,7 @@ public class ProductController extends CatalogEndpoint {
             entityManager.merge(customProduct);
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
+            customProduct.setDel("Y");
 
             return ResponseService.generateSuccessResponse("PRODUCT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
 
