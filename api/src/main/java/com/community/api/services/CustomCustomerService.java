@@ -546,7 +546,7 @@ public class CustomCustomerService {
                         documentDetails.put("documentId", document.getDocumentId());
                         documentDetails.put("name", document.getName());
                         documentDetails.put("filePath", document.getFilePath());
-
+                        documentDetails.put("created_date", document.getCreatedDate());
                         // Add qualification details if applicable
                         if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
                             documentDetails.put("qualification_detail_id", qualificationDetailId);
@@ -586,7 +586,6 @@ public class CustomCustomerService {
                         documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
                         documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
                         documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
-                        documentDetails.put("created_date", document.getCreatedDate());
 
                         documentDetails.put("documentType", documentTypeResponse);
                         documentDetails.put("fileUrl", fileUrl);
