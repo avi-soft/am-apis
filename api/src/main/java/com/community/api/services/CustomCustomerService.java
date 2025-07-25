@@ -377,6 +377,7 @@ public class CustomCustomerService {
                         existingDocument.setDocumentType(null);
                         existingDocument.setFilePath(null);
                         existingDocument.setName(null);
+                        existingDocument.setCreatedDate(null);
                         em.persist(existingDocument);
                         documentsToSave.add(existingDocument);
 
@@ -585,6 +586,7 @@ public class CustomCustomerService {
                         documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
                         documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
                         documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         documentDetails.put("documentType", documentTypeResponse);
                         documentDetails.put("fileUrl", fileUrl);

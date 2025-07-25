@@ -9,7 +9,22 @@ import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.BlackListedTokens;
+import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.CustomerAddressDTO;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.Institution;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Post;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.SubjectDetail;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
@@ -25,7 +40,6 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Hex;
 
@@ -37,7 +51,6 @@ import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
@@ -56,7 +69,6 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.GENDER_ALL;
 import static com.community.api.component.Constant.RESERVED_CATEGORY_ALL;
-import static java.util.Map.entry;
 
 @Slf4j
 @Service
@@ -489,6 +501,7 @@ public class SharedUtilityService {
                         }
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                         documentDetails.put("fileUrl", fileUrl);
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Get the document type name dynamically without modifying the actual entity
                         String documentTypeName = document.getDocumentType().getDocument_type_name();
@@ -788,6 +801,7 @@ public class SharedUtilityService {
 
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                         documentDetails.put("fileUrl", fileUrl);
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Get the document type name dynamically without modifying the actual entity
                         String documentTypeName = document.getDocumentType().getDocument_type_name();
@@ -2078,7 +2092,7 @@ public class SharedUtilityService {
         return Hex.encodeHexString(hashBytes);
     }
 
-    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
+    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory, String rerserveCategoryOthers, Integer roleId, Long userId, String sourceName)
     {
         if(foundedCategory.equalsIgnoreCase("Others"))
         {
