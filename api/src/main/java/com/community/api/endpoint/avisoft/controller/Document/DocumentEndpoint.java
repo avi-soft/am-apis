@@ -280,9 +280,9 @@ public class DocumentEndpoint {
     @PostMapping("/download")
     public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
         try {
-            String fileUrl1 = (String) loginDetails.get("fileUrl");
-            String fileName1 = fileUrl1.substring(fileUrl1.lastIndexOf('/') + 1);
-            String filePath = decrypt(fileName1);
+            String fileUrl1 = (String) loginDetails.get("filePath");
+            String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
+            String filePath = decrypt(token);
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
 
             System.out.println(filePath);
