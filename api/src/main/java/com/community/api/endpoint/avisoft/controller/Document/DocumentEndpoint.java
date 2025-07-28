@@ -28,7 +28,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
+
 import java.util.Base64;
+
+import java.util.Date;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -206,8 +210,9 @@ public class DocumentEndpoint {
                                 String fileUrl = null;
                                     fileUrl = fileService.getFileUrl(filePath, request);
                                 String document_name = documentStorageService.findRoleName(serviceProviderDocument.getDocumentType());
+                                Date created_date = serviceProviderDocument.getUploadedDate();
 
-                                return new DocumentResponse(fileName, fileUrl, document_name);
+                                return new DocumentResponse(fileName, fileUrl, document_name, created_date);
                             })
                             .collect(Collectors.toList());
                     return responseService.generateSuccessResponse("Documents retrieved successfully", documentResponses, HttpStatus.OK);
@@ -239,8 +244,8 @@ public class DocumentEndpoint {
                             String fileUrl = fileService.getFileUrl(filePath, request);
 
                             String document_name = documentStorageService.findRoleName(document.getDocumentType());
-
-                            return new DocumentResponse(fileName, fileUrl, document_name);
+                            Date created_date = document.getCreatedDate();
+                            return new DocumentResponse(fileName, fileUrl, document_name, created_date);
                         })
                         .collect(Collectors.toList());
                 return responseService.generateSuccessResponse("Documents retrieved successfully", documentResponses, HttpStatus.OK);
@@ -323,15 +328,18 @@ public class DocumentEndpoint {
 
         private String fileName;
         private String fileUrl;
-
         private String document_name;
+        private Date created_date;
 
-
-        public DocumentResponse(String fileName, String fileUrl, String document_name) {
+        public DocumentResponse(String fileName, String fileUrl, String document_name, Date createdDate) {
             this.fileName = fileName;
             this.fileUrl = fileUrl;
             this.document_name = document_name;
+            this.created_date = createdDate;
+        }
 
+        public Date getCreatedDate() {
+            return created_date;
         }
 
         public String getFileName() {

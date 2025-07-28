@@ -377,6 +377,7 @@ public class CustomCustomerService {
                         existingDocument.setDocumentType(null);
                         existingDocument.setFilePath(null);
                         existingDocument.setName(null);
+                        existingDocument.setCreatedDate(null);
                         em.persist(existingDocument);
                         documentsToSave.add(existingDocument);
 
@@ -545,6 +546,7 @@ public class CustomCustomerService {
                         documentDetails.put("documentId", document.getDocumentId());
                         documentDetails.put("name", document.getName());
                         documentDetails.put("filePath", document.getFilePath());
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Add qualification details if applicable
                         if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {

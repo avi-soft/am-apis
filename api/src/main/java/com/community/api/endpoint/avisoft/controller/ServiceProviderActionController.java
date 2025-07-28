@@ -1380,10 +1380,6 @@ public class ServiceProviderActionController {
                                     </ul>
                                 </div>
                                 
-                                <div style="text-align: center; margin-top: 30px;">
-                                    <a href="https://dev-am-service-provider.vercel.app/get-product" style="background-color: #3498db; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Product Details</a>
-                                </div>
-                                
                                 <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
                                     <p style="margin: 5px 0;">Thank you for using our platform</p>
                                     <p style="margin: 5px 0;">System Administrator • %tF</p>

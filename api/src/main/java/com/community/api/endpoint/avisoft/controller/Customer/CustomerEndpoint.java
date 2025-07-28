@@ -1710,18 +1710,15 @@ public class CustomerEndpoint {
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest, @RequestParam(required = false) Long ticketId) {
         try {
-            System.out.println("checkpoint1");
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
-            System.out.println("checkpoint2");
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            System.out.println("checkpoint3");
             if (role.getRole_name().equals(roleServiceProvider) && ticketId != null) {
                 CustomServiceProviderTicket ticket = em.find(CustomServiceProviderTicket.class, ticketId);
                 if (ticket == null)
@@ -1730,7 +1727,6 @@ public class CustomerEndpoint {
                 if (!ticket.getAssignee().equals(tokenUserId) || !order.getCustomer().getId().equals(customerId) || (ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW) || ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             } else if (role.getRole_name().equals(roleServiceProvider)) {
-                System.out.println("checkpoint4");
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
                 if (serviceProvider == null)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
