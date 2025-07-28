@@ -243,8 +243,8 @@ public class TicketController {
         try {
 
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByTicketId(ticketId);
-            if (ticket == null) {
-                return ResponseService.generateErrorResponse("NO TICKETS FOUND", HttpStatus.NOT_FOUND);
+            if (ticket == null || ticket.getArchived()) {
+                return ResponseService.generateErrorResponse("NO TICKETS FOUND.", HttpStatus.NOT_FOUND);
             }
 
             Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
@@ -451,7 +451,7 @@ public class TicketController {
 
             CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, files, ticketId, authHeader);
             if (ticket == null || ticket.getArchived()) {
-                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO TICKETS FOUND.", HttpStatus.NOT_FOUND);
             }
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
@@ -501,7 +501,7 @@ public class TicketController {
             dataMap.put("ticket_pending_before_update", assignee.getTicketPending());
             dataMap.put("ticket_completed_before_update", assignee.getTicketCompleted().intValue());
 
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(5L);
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(5L);
             ticket.setTicketState(ticketState);
             entityManager.merge(ticket);
 
@@ -543,14 +543,14 @@ public class TicketController {
                 if (createTicketDto.getTicketState() <= 0) {
                     return ResponseService.generateErrorResponse("TICKET STATE CANNOT BE NULL OR <= 0", HttpStatus.NOT_FOUND);
                 }
-                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+                ticketState = ticketStateService.getTicketStateByTicketStateId(createTicketDto.getTicketState());
 
                 if (ticketState == null) {
                     return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
             } else {
                 // Default state.
-                ticketState = ticketStateService.getTicketStateByTicketId(1L);
+                ticketState = ticketStateService.getTicketStateByTicketStateId(1L);
 
                 if (ticketState == null) {
                     return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
@@ -764,8 +764,8 @@ public class TicketController {
 
     }
 
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @DeleteMapping("/delete/{ticketId}")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> deleteTicket(@PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
         try {
 
@@ -777,13 +777,26 @@ public class TicketController {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role tokenRole = roleService.getRoleByRoleId(roleId);
-            String roleNameToken = tokenRole.getRole_name();
+
+            if(!tokenRole.getRole_name().equals(Constant.ADMIN) && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN)) {
+                throw new IllegalArgumentException("Forbidden Access");
+            }
+
+            ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(tokenUserId);
+            if(serviceProvider == null) {
+                throw new IllegalArgumentException("No Admin or SuperAdmin found with this userId.");
+            } else if (serviceProvider.getIsArchived()) {
+                throw new IllegalArgumentException("Admin or SuperAdmin is suspended.");
+            }
 
             if (ticketId == null) {
                 throw new IllegalArgumentException("Ticket Id not provided");
             }
-
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+            if(ticket.getArchived()) {
+                throw new IllegalArgumentException("Ticket already Archived");
+            }
+            serviceProviderTicketService.deleteTicketLogic(ticket);
 
             return ResponseService.generateSuccessResponse("TICKET ARCHIVED SUCCESSFULLY", ticket, HttpStatus.OK);
 
