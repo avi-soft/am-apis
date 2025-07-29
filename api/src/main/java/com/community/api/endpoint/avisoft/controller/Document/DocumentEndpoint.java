@@ -262,7 +262,6 @@ public class DocumentEndpoint {
     private static final String AES_ALGORITHM = "AES";
     public static String decrypt(String encryptedData) throws Exception {
         try {
-
             // Decode the URL-safe Base64 string
             byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
 
