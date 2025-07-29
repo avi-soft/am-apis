@@ -60,8 +60,6 @@ public class DocumentEndpoint {
     @Autowired
     private DocumentStorageService documentStorageService;
 
-    @Value(("${secret.key}"))
-    private static String key;
 
     @Autowired
     private RoleService roleService;
@@ -261,66 +259,78 @@ public class DocumentEndpoint {
             return responseService.generateErrorResponse("Error retrieving Documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    private static final String AES_ALGORITHM = "AES";
     public static String decrypt(String encryptedData) throws Exception {
-        // Decode the URL-safe Base64 string
-        byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
-
-        // Initialize the SecretKeySpec and Cipher for decryption
-        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
-
-        // Decrypt the data
-        byte[] decryptedData = cipher.doFinal(decodedData);
-        System.out.println("i am returning");
-        // Convert the decrypted data back to a String
-        return new String(decryptedData);
-
-    }
-    @PostMapping("/download")
-    public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
         try {
-            String fileUrl1 = (String) loginDetails.get("fileUrl");
-            String fileName1 = fileUrl1.substring(fileUrl1.lastIndexOf('/') + 1);
-            String filePath = decrypt(fileName1);
-            String fileUrl = fileService.getDownloadFileUrl(filePath, request);
 
-            System.out.println(filePath);
+            // Decode the URL-safe Base64 string
+            byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
 
-            URI uri = URI.create(fileUrl);
-            URL url = uri.toURL();
+            // Initialize the SecretKeySpec and Cipher for decryption
+            SecretKeySpec secretKey = new SecretKeySpec(Constant.KEY.getBytes(), AES_ALGORITHM ); //@TODO-remove key from constants
+            Cipher cipher = Cipher.getInstance(AES_ALGORITHM );
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
 
+            // Decrypt the data
+            byte[] decryptedData = cipher.doFinal(decodedData);
+            System.out.println("i am returning");
+            // Convert the decrypted data back to a String
+            return new String(decryptedData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+
+        }
+    }
+
+    @PostMapping("/download")
+    public ResponseEntity<?> downloadFile(
+            @RequestBody Map<String, Object> loginDetails,
+            HttpServletResponse response
+    ) {
+        try {
+            String fileUrl1 = (String) loginDetails.get("filePath");
+            String encryptedFileName = fileUrl1.substring(fileUrl1.lastIndexOf('/') + 1);
+            String filePath = decrypt(encryptedFileName);
+
+            // Extract "Aadhaar_Card_Backside" (the folder name before the filename)
+            String[] pathParts = filePath.split("\\\\");
+            String folderName = pathParts[pathParts.length - 2]; // Gets the second-last part
+            String downloadFileName = folderName + ".jpg"; // Or use the original extension
+
+            System.out.println("Final filename: " + downloadFileName);
+
+            // Download logic
+            URL url = new URI(fileUrl1).toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
 
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                response.setContentType("application/octet-stream");
-
-                String fileName = url.getPath().substring(url.getPath().lastIndexOf('/') + 1);
-                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-                response.setContentLength(connection.getContentLength());
-
-                try (InputStream inputStream = connection.getInputStream();
-                     OutputStream outputStream = response.getOutputStream()) {
-                    IOUtils.copy(inputStream, outputStream);
-                    outputStream.flush();
-                }
-            } else {
-                return responseService.generateErrorResponse("Error downloading file: " + connection.getResponseMessage(), HttpStatus.BAD_REQUEST);
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
             }
-        } catch (IllegalArgumentException e) {
-            return responseService.generateErrorResponse("Invalid file URL: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IOException e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+
+            // Set Content-Disposition with the custom filename
+            response.setContentType(connection.getContentType());
+            response.setHeader(
+                    "Content-Disposition",
+                    "attachment; filename=\"" + downloadFileName + "\""
+            );
+
+            // Stream the file to response
+            try (InputStream in = connection.getInputStream();
+                 OutputStream out = response.getOutputStream()) {
+                IOUtils.copy(in, out);
+            }
+
+            return ResponseEntity.ok().build();
+
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(
+                    "Error downloading file: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
-
-        return null;
     }
 
 
