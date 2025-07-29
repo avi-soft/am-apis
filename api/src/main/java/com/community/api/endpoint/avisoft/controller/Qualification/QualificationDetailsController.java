@@ -8,13 +8,16 @@ import com.community.api.services.QualificationDetailsService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityManager;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -171,7 +174,8 @@ public class QualificationDetailsController
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
         }
     }
-
+    @Autowired
+    EntityManager entityManager;
     @PutMapping("/update/{id}/{qualificationDetailId}")
     public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers,@RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers,@RequestParam(value = "institutionOthers", required = false) String institutionOthers,@RequestHeader(value = "Authorization") String authHeader, @RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
@@ -199,6 +203,10 @@ public class QualificationDetailsController
 //            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
+            if(!qualificationDetailsToUpdate.getSubject_ids().contains(54L))
+            {
+                qualificationDetailsToUpdate.setOtherSubjects(new ArrayList<String>());
+            }
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is updated successfully for "+ role, qualificationDetailsToUpdate);
         }
         catch (CustomerDoesNotExistsException e)
