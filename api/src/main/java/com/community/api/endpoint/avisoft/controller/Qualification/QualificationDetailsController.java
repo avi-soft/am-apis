@@ -16,6 +16,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -176,6 +177,7 @@ public class QualificationDetailsController
     }
     @Autowired
     EntityManager entityManager;
+    @Transactional
     @PutMapping("/update/{id}/{qualificationDetailId}")
     public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers,@RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers,@RequestParam(value = "institutionOthers", required = false) String institutionOthers,@RequestHeader(value = "Authorization") String authHeader, @RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
@@ -207,6 +209,11 @@ public class QualificationDetailsController
             {
                 qualificationDetailsToUpdate.setOtherSubjects(new ArrayList<String>());
             }
+            else
+            {
+                qualificationDetailsToUpdate.setOtherSubjects(qualification.getOtherSubjects());
+            }
+            entityManager.merge(qualificationDetailsToUpdate);
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is updated successfully for "+ role, qualificationDetailsToUpdate);
         }
         catch (CustomerDoesNotExistsException e)
