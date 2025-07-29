@@ -1162,13 +1162,8 @@ public class SharedUtilityService {
                     }
 
                     qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
-                    if(qualificationDetail.getSubject_ids().contains(54L)) {
-                        qualificationInfo.put("otherSubjects", qualificationDetail.getOtherSubjects());
-                    }
-                    else
-                    {
-                        qualificationInfo.put("otherSubjects", new ArrayList<>());
-                    }
+                    qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
+
                     Map<String, Object> filteredDocument = null;
                     Document document= qualificationDetail.getQualificationDocument();
                     if(document==null)
