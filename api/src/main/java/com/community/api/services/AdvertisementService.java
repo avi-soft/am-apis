@@ -343,8 +343,12 @@ public class AdvertisementService {
             {
                 if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
-                if(advertisementDto.getNotificationStartDate().before(new Date()))
-                    throw new IllegalArgumentException("Notification start date cannot be in past");
+                Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
+                Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
+
+                if (notificationStart.before(today)) {
+                    throw new IllegalArgumentException("Notification start date cannot be in the past");
+                }
             }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());

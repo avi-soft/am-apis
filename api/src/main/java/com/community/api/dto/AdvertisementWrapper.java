@@ -92,6 +92,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
+        this.productCount=advertisement.getProductCount();
     }
 
     public void wrapDetails(Advertisement advertisement, List<CustomProductWrapper> wrapper, HttpServletRequest httpServletRequest) {
