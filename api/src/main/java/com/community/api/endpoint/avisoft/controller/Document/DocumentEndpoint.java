@@ -13,10 +13,13 @@ import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
@@ -25,11 +28,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
+
+import java.util.Base64;
+
 import java.util.Date;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static io.jsonwebtoken.JwsHeader.ALGORITHM;
+
 
 @RestController
 @RequestMapping(value = "/document-type")
@@ -49,6 +59,9 @@ public class DocumentEndpoint {
 
     @Autowired
     private DocumentStorageService documentStorageService;
+
+    @Value(("${secret.key}"))
+    private static String key;
 
     @Autowired
     private RoleService roleService;
@@ -248,12 +261,31 @@ public class DocumentEndpoint {
             return responseService.generateErrorResponse("Error retrieving Documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    public static String decrypt(String encryptedData) throws Exception {
+        // Decode the URL-safe Base64 string
+        byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
 
+        // Initialize the SecretKeySpec and Cipher for decryption
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+        // Decrypt the data
+        byte[] decryptedData = cipher.doFinal(decodedData);
+        System.out.println("i am returning");
+        // Convert the decrypted data back to a String
+        return new String(decryptedData);
+
+    }
     @PostMapping("/download")
     public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
         try {
-            String filePath = (String) loginDetails.get("filePath");
+            String fileUrl1 = (String) loginDetails.get("filePath");
+            String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
+            String filePath = decrypt(token);
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
+
+            System.out.println(filePath);
 
             URI uri = URI.create(fileUrl);
             URL url = uri.toURL();

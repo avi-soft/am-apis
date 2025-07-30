@@ -726,6 +726,8 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             options.put("amount", (totalAmt* 100));
+            if(totalAmt<=0)
+                return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
@@ -867,6 +869,7 @@ public class CartEndPoint extends BaseEndpoint {
             }
             return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
         } catch (RazorpayException razorpayException) {
+            razorpayException.printStackTrace();
             return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
 

@@ -547,6 +547,7 @@ public class CustomCustomerService {
                         documentDetails.put("name", document.getName());
                         documentDetails.put("filePath", document.getFilePath());
                         documentDetails.put("created_date", document.getCreatedDate());
+
                         // Add qualification details if applicable
                         if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
                             documentDetails.put("qualification_detail_id", qualificationDetailId);

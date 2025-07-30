@@ -326,6 +326,7 @@ public class AdvertisementService {
 
     @Transactional
     public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto,Long advertisementId) throws Exception {
+        jdbcTemplate.execute("CALL update_advertisement_product_counts()");
         Date notificationStartDate=null;
         Date notificationEndDate=null;
         Advertisement advertisementToUpdate= entityManager.find(Advertisement.class,advertisementId);
@@ -333,17 +334,28 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        if(advertisementDto.getNotificationStartDate()==null||advertisementDto.getNotificationEndDate()==null)
+            throw new IllegalArgumentException("Both the Notification start date and end date cannot be null");
+        Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
+        Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
+
+        if (notificationStart.before(today)) {
+            throw new IllegalArgumentException("Notification start date cannot be in the past");
+        }
         if(advertisementToUpdate.getArchived().equals('Y'))
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
+        if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+            throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
-                    throw new IllegalArgumentException("Cannot edit advertisement start date once live");
+                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+                    throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
+
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
         if(Objects.nonNull(advertisementDto.getTitle()))
         {
