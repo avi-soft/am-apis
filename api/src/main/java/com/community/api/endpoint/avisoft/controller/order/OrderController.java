@@ -863,7 +863,7 @@ public class OrderController {
             // Updating archived ticket logic.
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
             if(ticket != null) {
-                serviceProviderTicketService.deleteTicket(ticket);
+                serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);

@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -100,6 +101,8 @@ public class ServiceProviderTicketService {
     private OrderDTOService orderDTOService;
     @Autowired
     private CustomerService customerService;
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     // auto-assigner scheduled to execute at 7:30 AM
     @Scheduled(cron = "0 30 7 * * ?")
@@ -1475,7 +1478,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket deleteTicketLogic(CustomServiceProviderTicket ticket) throws Exception {
+    public CustomServiceProviderTicket deleteTicketLogic(CustomServiceProviderTicket ticket, ServiceProviderEntity tokenServiceProvider) throws Exception {
         try {
             if (ticket == null) {
                 throw new IllegalArgumentException("Ticket is null");
@@ -1499,20 +1502,14 @@ public class ServiceProviderTicketService {
 
                 CustomTicketState updatedTicketState = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_IN_PROGRESS);
                 parentTicket.setTicketState(updatedTicketState);
-                deleteTicket(ticket);
+                deleteTicket(ticket, tokenServiceProvider);
 
             } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                 // find the review ticket associated with this miscellaneous ticket
                 List<CustomServiceProviderTicket> linkedTickets = fetchChildTicketByTicketId(ticket.getTicketId());
 
-                if(linkedTickets != null && !linkedTickets.isEmpty()) {
-                    for (CustomServiceProviderTicket linkTicket : linkedTickets) {
-                        deleteTicket(linkTicket);
-                    }
-                }
-
                 // archive this ticket as well
-                deleteTicket(ticket);
+                deleteTicket(ticket, tokenServiceProvider);
             } else {
                 throw new IllegalArgumentException("Ticket contains Invalid Ticket Type.");
             }
@@ -1520,7 +1517,7 @@ public class ServiceProviderTicketService {
             return ticket;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            throw new Exception(illegalArgumentException.getMessage());
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
@@ -1528,16 +1525,21 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket) throws Exception {
+    public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket, ServiceProviderEntity tokenServiceProvider) throws Exception {
         try {
             if (ticket == null) {
                 throw new IllegalArgumentException("Ticket is null");
             }
+
+            Role tokenRole = roleService.getRoleByRoleId(tokenServiceProvider.getRole());
+            if(tokenRole == null) {
+                throw new IllegalArgumentException("Could not found token role.");
+            }
+
             // find all the review ticket which are associated with this ticket and archive them as well.
             List<CustomServiceProviderTicket> childTickets = fetchChildTicketByTicketId(ticket.getTicketId());
             if (childTickets != null) {
                 for (CustomServiceProviderTicket childTicket : childTickets) {
-                    childTicket.setArchived(true);
                     if (childTicket.getAssignee() != null && childTicket.getAssigneeRole() != null) {
 
                         ServiceProviderEntity assigneeServiceProvider = serviceProviderService.getServiceProviderById(childTicket.getAssignee());
@@ -1553,9 +1555,15 @@ public class ServiceProviderTicketService {
                         } else {
                             assigneeServiceProvider.setTicketPending(assigneeServiceProvider.getTicketPending() - 1);
                         }
+                        serviceProviderActionController.sendArchiveTicketMail(assigneeServiceProvider, tokenServiceProvider, childTicket);
                     } else { // Returned ticket case also handled here.
                         log.info("child ticket with id: {} has no assignee to update its ticket stats.", childTicket.getTicketId());
                     }
+                    log.info("child ticket id: {}", childTicket.getTicketId());
+                    childTicket.setArchived(true);
+                    childTicket.setModifierId(tokenServiceProvider.getService_provider_id());
+                    childTicket.setModifierRole(tokenRole);
+                    childTicket.setModifiedDate(new Date());
                     entityManager.merge(childTicket);
                 }
             }
@@ -1576,10 +1584,15 @@ public class ServiceProviderTicketService {
                 } else {
                     assigneeServiceProvider.setTicketPending(assigneeServiceProvider.getTicketPending() - 1);
                 }
+                serviceProviderActionController.sendArchiveTicketMail(assigneeServiceProvider, tokenServiceProvider, ticket);
             } else { // Returned ticket case also handled here.
                 log.info("Ticket with id: {} has no assignee to update its ticket stats.", ticket.getTicketId());
             }
+
             ticket.setArchived(true);
+            ticket.setModifierRole(tokenRole);
+            ticket.setModifierId(tokenServiceProvider.getService_provider_id());
+            ticket.setModifiedDate(new Date());
             return entityManager.merge(ticket);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

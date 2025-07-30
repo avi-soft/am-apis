@@ -793,10 +793,14 @@ public class TicketController {
                 throw new IllegalArgumentException("Ticket Id not provided");
             }
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+            if(ticket == null) {
+                throw new IllegalArgumentException("Ticket not Found.");
+            }
+
             if(ticket.getArchived()) {
                 throw new IllegalArgumentException("Ticket already Archived");
             }
-            serviceProviderTicketService.deleteTicketLogic(ticket);
+            serviceProviderTicketService.deleteTicketLogic(ticket, serviceProvider);
 
             return ResponseService.generateSuccessResponse("TICKET ARCHIVED SUCCESSFULLY", ticket, HttpStatus.OK);
 
