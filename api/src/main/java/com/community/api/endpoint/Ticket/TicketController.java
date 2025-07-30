@@ -253,7 +253,7 @@ public class TicketController {
             Role tokenRole = roleService.getRoleByRoleId(roleId);
 
             if(ticket.getArchived() && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN) && !tokenRole.getRole_name().equals(Constant.ADMIN) ) {
-                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.UNAUTHORIZED);
             }
 
             Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
