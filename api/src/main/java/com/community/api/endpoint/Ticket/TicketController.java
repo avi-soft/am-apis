@@ -243,8 +243,17 @@ public class TicketController {
         try {
 
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByTicketId(ticketId);
-            if (ticket == null || ticket.getArchived()) {
+            if (ticket == null) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND.", HttpStatus.NOT_FOUND);
+            }
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role tokenRole = roleService.getRoleByRoleId(roleId);
+
+            if(ticket.getArchived() && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN) && !tokenRole.getRole_name().equals(Constant.ADMIN) ) {
+                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.NOT_FOUND);
             }
 
             Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
