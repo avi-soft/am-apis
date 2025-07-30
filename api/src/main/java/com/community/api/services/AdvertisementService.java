@@ -343,6 +343,8 @@ public class AdvertisementService {
             {
                 if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
+                if(advertisementDto.getNotificationStartDate().before(new Date()))
+                    throw new IllegalArgumentException("Notification start date cannot be in past");
             }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
