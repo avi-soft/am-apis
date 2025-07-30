@@ -334,8 +334,18 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        if(advertisementDto.getNotificationStartDate()==null||advertisementDto.getNotificationEndDate()==null)
+            throw new IllegalArgumentException("Both the Notification start date and end date cannot be null");
+        Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
+        Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
+
+        if (notificationStart.before(today)) {
+            throw new IllegalArgumentException("Notification start date cannot be in the past");
+        }
         if(advertisementToUpdate.getArchived().equals('Y'))
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
+        if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+            throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
@@ -343,14 +353,9 @@ public class AdvertisementService {
             {
                 if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
-                Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
-                Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
-
-                if (notificationStart.before(today)) {
-                    throw new IllegalArgumentException("Notification start date cannot be in the past");
-                }
             }
         }
+
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
         if(Objects.nonNull(advertisementDto.getTitle()))
         {
