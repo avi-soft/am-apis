@@ -851,6 +851,8 @@ public class OrderController {
 
             if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
                 throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
+            } else if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_COMPLETED.getOrderStateId()) ) {
+                throw new IllegalArgumentException("Order cannot be cancelled when order is completed.");
             }
 
             OrderItem orderItem = order.getOrderItems().get(0);
