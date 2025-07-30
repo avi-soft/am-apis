@@ -326,6 +326,7 @@ public class AdvertisementService {
 
     @Transactional
     public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto,Long advertisementId) throws Exception {
+        jdbcTemplate.execute("CALL update_advertisement_product_counts()");
         Date notificationStartDate=null;
         Date notificationEndDate=null;
         Advertisement advertisementToUpdate= entityManager.find(Advertisement.class,advertisementId);
@@ -340,7 +341,7 @@ public class AdvertisementService {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
+                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
