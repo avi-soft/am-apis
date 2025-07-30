@@ -346,14 +346,14 @@ public class AdvertisementService {
         }
         if(advertisementToUpdate.getArchived().equals('Y'))
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
-        if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+        if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
             throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+                if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
