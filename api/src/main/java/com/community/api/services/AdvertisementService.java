@@ -336,22 +336,24 @@ public class AdvertisementService {
         }
         if(advertisementDto.getNotificationStartDate()==null||advertisementDto.getNotificationEndDate()==null)
             throw new IllegalArgumentException("Both the Notification start date and end date cannot be null");
-        Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
-        Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
+        if(advertisementDto.getNewNotificationStartDate()!=null) {
+            Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
+            Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNewNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
 
-        if (notificationStart.before(today)) {
-            throw new IllegalArgumentException("Notification start date cannot be in the past");
+            if (notificationStart.before(today)) {
+                throw new IllegalArgumentException("Notification start date cannot be in the past");
+            }
         }
         if(advertisementToUpdate.getArchived().equals('Y'))
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
-        if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+        if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
             throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+                if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
@@ -422,12 +424,16 @@ public class AdvertisementService {
             notificationStartDate=advertisementToUpdate.getNotificationStartDate();
         }
 
-        if(notificationStartDate.after(new Date())) {
+     /*   if(notificationStartDate.after(new Date())) {
             throw new IllegalArgumentException("Notification Start Date cannot be of future");
+        }*/
+        if(advertisementDto.getNewNotificationStartDate()!=null)
+        {
+            advertisementToUpdate.setNotificationStartDate(advertisementDto.getNewNotificationStartDate());
         }
-
-        advertisementToUpdate.setNotificationStartDate(notificationStartDate);
-
+       /* else
+            advertisementToUpdate.setNotificationStartDate(notificationStartDate);
+*/
         if (Objects.nonNull(advertisementDto.getNotificationEndDate())) {
             String formattedDate = dateFormat.format(advertisementDto.getNotificationEndDate());
             dateFormat.parse(formattedDate);
