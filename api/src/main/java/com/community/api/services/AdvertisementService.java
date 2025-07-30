@@ -127,9 +127,9 @@ public class AdvertisementService {
             String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
-            if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
+       /*     if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
                 throw new IllegalArgumentException("Notification Start Date cannot be of future");
-            }
+            }*/
             if(addAdvertisementDto.getNotificationEndDate() == null) {
                 addAdvertisementDto.setNotificationEndDate(null);
             } else {
