@@ -615,7 +615,7 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            Boolean bypass=false;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
@@ -726,8 +726,10 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             options.put("amount", (totalAmt* 100));
-            if(totalAmt<=0)
-                return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);
+            if(totalAmt<=0) {
+                /*return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);*/
+                bypass = true;
+            }
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
@@ -842,9 +844,26 @@ public class CartEndPoint extends BaseEndpoint {
                         entityManager.persist(razorpayDetails);
                         //
 
-                    } else
+                    }else if(bypass)
+                    {
+                        individualOrder.setOrderNumber("N/A");
+                        OrderStatus orderStatus = new OrderStatus("NEW", null);
+                        individualOrder.setStatus(orderStatus);
+
+                        //creating razorpay order
+                        RazorpayDetails razorpayDetails=new RazorpayDetails();
+                        razorpayDetails.setOrderId(null);
+                        razorpayDetails.setRazorpayOrderId("N/A");
+                        razorpayDetails.setTimeStamp(LocalDateTime.now());
+                        razorpayDetails.setStatus("N/A");
+                        entityManager.persist(razorpayDetails);
+                    }
+                    else
                         return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
-                    orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
+                    if(bypass)
+                        orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
+                    else
+                        orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
                     orderState.setModifiedDate(new Date());
                     orderState.setModifierUserId(customerId);
