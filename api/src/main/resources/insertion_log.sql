@@ -1753,6 +1753,9 @@ END IF;
 --  -- 12th Standard Streams (qualification_id = 2)
 IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
 
+        ALTER TABLE public.qualification_stream
+        ADD CONSTRAINT qualification_stream_unique UNIQUE (qualification_id, stream_id);
+
         -- Insert values if the table is empty
 INSERT INTO qualification_stream (qualification_id, stream_id)
 -- 10th stream id 1 which is implicit
@@ -1973,6 +1976,10 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
       ) AS tmp(stream_id, subject_id)
       WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
       ON CONFLICT DO NOTHING;
+
+      ALTER TABLE public.stream_subject
+      ADD CONSTRAINT stream_subject_unique UNIQUE (stream_id, subject_id);
+
 --
 --
 -- IF NOT EXISTS (SELECT 1 FROM typing_text LIMIT 1) THEN
@@ -2168,6 +2175,9 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
             (31, 1), (31, 2), (31, 4),
             (32, 1), (32, 2), (32, 4), (32, 3), (32, 8), (32, 9), (32, 10), (32, 11), (32, 12), (32, 13), (32, 14), (32, 15), (32, 16), (32, 17), (32, 18), (32, 19), (32, 20), (32, 21), (32, 22),
            (33,1),(33,2),(33,4),(34,1),(34,2),(34,4),(35,1),(35,2),(35,4),(36,1),(36,2),(36,4),(37,3),(38,1),(38,2),(38,4);
+
+      ALTER TABLE public.document_file_types
+      ADD CONSTRAINT uq_document_file_types UNIQUE (document_type_id, file_type_id);
     END IF;
 --
    IF (SELECT COUNT(*) FROM board_university) = 0 THEN
