@@ -442,7 +442,7 @@ public class AdvertisementService {
         else {
             notificationEndDate=advertisementToUpdate.getNotificationEndDate();
         }
-        if(advertisementDto.getNewNotificationStartDate().after(notificationEndDate))
+        if(advertisementDto.getNewNotificationStartDate()!=null&&advertisementDto.getNewNotificationStartDate().after(notificationEndDate))
         {
             throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
         }
