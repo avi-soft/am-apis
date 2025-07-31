@@ -25,6 +25,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -64,7 +65,9 @@ public class DocumentEndpoint {
     @Autowired
     private DocumentStorageService documentStorageService;
 
+
     private static String key="2025202220202512";
+
 
     @Autowired
     private RoleService roleService;
@@ -264,26 +267,36 @@ public class DocumentEndpoint {
             return responseService.generateErrorResponse("Error retrieving Documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    private static final String AES_ALGORITHM = "AES";
     public static String decrypt(String encryptedData) throws Exception {
-        // Decode the URL-safe Base64 string
-        byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
+        try {
+            // Decode the URL-safe Base64 string
+            byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
 
-        // Initialize the SecretKeySpec and Cipher for decryption
-        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            // Initialize the SecretKeySpec and Cipher for decryption
+            SecretKeySpec secretKey = new SecretKeySpec(Constant.KEY.getBytes(), AES_ALGORITHM ); //@TODO-remove key from constants
+            Cipher cipher = Cipher.getInstance(AES_ALGORITHM );
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
 
-        // Decrypt the data
-        byte[] decryptedData = cipher.doFinal(decodedData);
-        System.out.println("i am returning");
-        // Convert the decrypted data back to a String
-        return new String(decryptedData);
+            // Decrypt the data
+            byte[] decryptedData = cipher.doFinal(decodedData);
+            System.out.println("i am returning");
+            // Convert the decrypted data back to a String
+            return new String(decryptedData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
 
+        }
     }
     @Autowired
     JwtUtil jwtUtil;
+    @Transactional
     @PostMapping("/download")
-    public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> downloadFile(
+            @RequestBody Map<String, Object> loginDetails,
+            HttpServletResponse response,HttpServletRequest request
+    ) {
         try {
             String fileUrl1 = (String) loginDetails.get("filePath");
             String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
@@ -299,6 +312,7 @@ public class DocumentEndpoint {
             } else {
                 throw new IllegalArgumentException("Invalid file path format, ID not found");
             }
+
             String ip = request.getHeader("X-Forwarded-For");
 // Set roleId = 5
             int roleId = 5;
@@ -319,7 +333,14 @@ public class DocumentEndpoint {
             );
             query.setParameter("uid", id);
             query.setParameter("role", roleId);
-
+            String encryptedFileName = filePath.substring(fileUrl1.lastIndexOf('/') + 1);
+            // Extract "Aadhaar_Card_Backside" (the folder name before the filename)
+            String[] pathParts = filePath.split("\\\\");
+            String folderName = pathParts[pathParts.length - 2]; // Gets the second-last part
+            String downloadFileName = folderName + ".jpg";
+            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+            downloadFileName=customCustomer.getFirstName()+" "+customCustomer.getLastName()+" "+downloadFileName;
+            System.out.println("fileName"+downloadFileName);
             List<ShortAccessToken> resultList = query.getResultList();
 
             if (resultList.isEmpty()) {
@@ -340,38 +361,36 @@ public class DocumentEndpoint {
 
             URI uri = URI.create(securedFileUrl);
             URL url = uri.toURL();
-
+            // Download logic
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
 
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                response.setContentType("application/octet-stream");
-
-                String fileName = url.getPath().substring(url.getPath().lastIndexOf('/') + 1);
-                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-                response.setContentLength(connection.getContentLength());
-
-                try (InputStream inputStream = connection.getInputStream();
-                     OutputStream outputStream = response.getOutputStream()) {
-                    IOUtils.copy(inputStream, outputStream);
-                    outputStream.flush();
-                }
-            } else {
-                return responseService.generateErrorResponse("Error downloading file: " + connection.getResponseMessage(), HttpStatus.BAD_REQUEST);
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
             }
-        } catch (IllegalArgumentException e) {
-            return responseService.generateErrorResponse("Invalid file URL: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IOException e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+
+            // Set Content-Disposition with the custom filename
+            response.setContentType(connection.getContentType());
+            response.setHeader(
+                    "Content-Disposition",
+                    "attachment; filename=\"" + downloadFileName + "\""
+            );
+
+            // Stream the file to response
+            try (InputStream in = connection.getInputStream();
+                 OutputStream out = response.getOutputStream()) {
+                IOUtils.copy(in, out);
+            }
+
+            return ResponseEntity.ok().build();
+
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(
+                    "Error downloading file: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
-
-        return null;
     }
 
 
