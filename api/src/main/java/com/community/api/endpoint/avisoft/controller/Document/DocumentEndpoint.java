@@ -6,6 +6,7 @@ import com.community.api.dto.DocumentTypeDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.Role;
+import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import java.util.Date;
@@ -36,6 +38,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static io.jsonwebtoken.JwsHeader.ALGORITHM;
@@ -277,17 +281,65 @@ public class DocumentEndpoint {
         return new String(decryptedData);
 
     }
+    @Autowired
+    JwtUtil jwtUtil;
     @PostMapping("/download")
     public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
         try {
             String fileUrl1 = (String) loginDetails.get("filePath");
             String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
             String filePath = decrypt(token);
+// Example: avisoftdocument\CUSTOMER\6416\Disability_Certificate\imresizer-1731964770170 (1) (1).jpg
+
+// Extract ID from filePath
+            Long id = null;
+            java.util.regex.Pattern pattern = Pattern.compile("CUSTOMER[\\\\/](\\d+)[\\\\/]");
+            Matcher matcher = pattern.matcher(filePath);
+            if (matcher.find()) {
+                id = Long.parseLong(matcher.group(1));
+            } else {
+                throw new IllegalArgumentException("Invalid file path format, ID not found");
+            }
+            String ip = request.getHeader("X-Forwarded-For");
+// Set roleId = 5
+            int roleId = 5;
+
+// Generate short-lived token
+            String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
+
+// Get the download URL
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
 
+// Append token as query parameter
+            String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8.toString());
+            System.out.println("Now url is"+securedFileUrl);
+
+            TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                    "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                    ShortAccessToken.class
+            );
+            query.setParameter("uid", id);
+            query.setParameter("role", roleId);
+
+            List<ShortAccessToken> resultList = query.getResultList();
+
+            if (resultList.isEmpty()) {
+                ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                        .userId(id)
+                        .token(token)
+                        .role(roleId)
+                        .expired(false)
+                        .build();
+                entityManager.persist(shortAccessToken);
+            } else {
+                ShortAccessToken shortAccessToken = resultList.get(0);
+                shortAccessToken.setToken(token);
+                shortAccessToken.setExpired(false);
+                entityManager.merge(shortAccessToken);
+            }
             System.out.println(filePath);
 
-            URI uri = URI.create(fileUrl);
+            URI uri = URI.create(securedFileUrl);
             URL url = uri.toURL();
 
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
