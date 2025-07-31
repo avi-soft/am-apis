@@ -530,6 +530,10 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setFeeAdditionalComments(addProductDto.getFeeAdditionalComments());
             customProduct.setExamDateFrom(originalProduct.getExamDateFrom());
             customProduct.setExamDateTo(originalProduct.getExamDateTo());
+            customProduct.setResultDeclarationDate(originalProduct.getResultDeclarationDate());
+            customProduct.setAnswerKeyAvailableDate(originalProduct.getAnswerKeyAvailableDate());
+            customProduct.setCounsellingDate(originalProduct.getCounsellingDate());
+            customProduct.setExamCenterAvailableDate(originalProduct.getExamCenterAvailableDate());
             if (addProductDto.getProductState() == null) {
                 // Validate dates fields.
                 productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
@@ -538,8 +542,12 @@ public class ProductController extends CatalogEndpoint {
                 productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
 
                 productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetExamCenterAvailableDate(addProductDto, customProduct, currentDate);
                 productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
                 productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetAnswerKeyAvailableDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetResultDeclarationDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetCounsellingDate(addProductDto, customProduct, currentDate);
             }
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
@@ -561,6 +569,18 @@ public class ProductController extends CatalogEndpoint {
             if(addProductDto.getLastDateToPayFee()==null)
             {
                 customProduct.setLateDateToPayFee(null);
+            }
+            if(addProductDto.getAnswerKeyAvailableDate() == null) {
+                customProduct.setAnswerKeyAvailableDate(null);
+            }
+            if(addProductDto.getResultDeclarationDate() == null) {
+                customProduct.setResultDeclarationDate(null);
+            }
+            if(addProductDto.getCounsellingDate() == null) {
+                customProduct.setCounsellingDate(null);
+            }
+            if(addProductDto.getExamCenterAvailableDate() == null) {
+                customProduct.setExamCenterAvailableDate(null);
             }
             if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if (addProductDto.getIsMultiplePostSameFee().equals(true)) {
