@@ -730,9 +730,14 @@ public class CartEndPoint extends BaseEndpoint {
                 /*return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);*/
                 bypass = true;
             }
-            options.put("currency", "INR");
-            options.put("receipt", customer.getEmailAddress());
-            com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
+            else {
+                options.put("currency", "INR");
+                options.put("receipt", customer.getEmailAddress());
+            }
+            com.razorpay.Order razorpayOrder=null;
+            if(!bypass) {
+                razorpayOrder = razorpayCLient.orders.create(options);
+            }
             for (OrderItem orderItem : cart.getOrderItems()) {
                 if (orderItemIds.contains(orderItem.getId())) {
                     Product product = findProductFromItemAttribute(orderItem);
@@ -852,7 +857,7 @@ public class CartEndPoint extends BaseEndpoint {
 
                         //creating razorpay order
                         RazorpayDetails razorpayDetails=new RazorpayDetails();
-                        razorpayDetails.setOrderId(null);
+                        razorpayDetails.setOrderId(individualOrder.getId());
                         razorpayDetails.setRazorpayOrderId("N/A");
                         razorpayDetails.setTimeStamp(LocalDateTime.now());
                         razorpayDetails.setStatus("N/A");
@@ -886,7 +891,14 @@ public class CartEndPoint extends BaseEndpoint {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customerId, customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
             }
-            return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
+            if(bypass)
+            {
+                for(Long orderItemId:orderItemIds)
+                    cartService.removeItemFromCart(cart,orderItemId);
+                return ResponseService.generateSuccessResponse("Order Placed successfully", orderDTOS, HttpStatus.OK);
+            }
+            else
+                return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
         } catch (RazorpayException razorpayException) {
             razorpayException.printStackTrace();
             return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
