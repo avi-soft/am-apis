@@ -1162,13 +1162,8 @@ public class SharedUtilityService {
                     }
 
                     qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
-                    if(qualificationDetail.getSubject_ids().contains(54L)) {
-                        qualificationInfo.put("otherSubjects", qualificationDetail.getOtherSubjects());
-                    }
-                    else
-                    {
-                        qualificationInfo.put("otherSubjects", new ArrayList<>());
-                    }
+                    qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
+
                     Map<String, Object> filteredDocument = null;
                     Document document= qualificationDetail.getQualificationDocument();
                     if(document==null)
@@ -2225,7 +2220,10 @@ public class SharedUtilityService {
 
 
     public String generateUpdateEmailContent(CustomProduct updatedProduct, Map<String, Object> differencesMap) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
+        DateTimeFormatter formatterDateTime = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
+                .withZone(ZoneId.of("Asia/Kolkata"));
+
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 .withZone(ZoneId.of("Asia/Kolkata"));
 
         if (differencesMap.isEmpty()) {
@@ -2241,7 +2239,12 @@ public class SharedUtilityService {
         for (Map.Entry<String, Object> entry : differencesMap.entrySet()) {
             String fieldLabel = entry.getKey();
             Object value = entry.getValue();
-            String formattedValue = formatValue(value, formatter);
+            String formattedValue = null;
+            if(fieldLabel.equals("Last Day to Pay Fee Date") || fieldLabel.equals("Application Starting Date") || fieldLabel.equals("Application Ending Date")) {
+                formattedValue = formatValue(value, formatterDateTime);
+            } else {
+                formattedValue = formatValue(value, formatterDate);
+            }
             text.append("- ").append(fieldLabel).append(": ").append(formattedValue).append("\n");
         }
 
@@ -2257,6 +2260,7 @@ public class SharedUtilityService {
 
     private String formatValue(Object value, DateTimeFormatter formatter) {
         if (value == null) return "N/A";
+        // only application start date , close date and last day to pay fee.
 
         if (value instanceof OffsetDateTime) {
             return ((OffsetDateTime) value).format(formatter);

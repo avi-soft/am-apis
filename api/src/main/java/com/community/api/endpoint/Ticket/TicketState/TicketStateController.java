@@ -14,9 +14,6 @@ import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.ServiceProviderDocument;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,9 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -80,7 +75,7 @@ public class TicketStateController {
     @GetMapping("/get-ticket-state-by-ticket-state-id/{ticketStateId}")
     public ResponseEntity<?> getTicketStateByTicketStateId(@PathVariable Long ticketStateId) {
         try {
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(ticketStateId);
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(ticketStateId);
             if (ticketState == null) {
                 return ResponseService.generateErrorResponse("NO TICKET STATE FOUND", HttpStatus.NOT_FOUND);
             }
@@ -139,7 +134,7 @@ public class TicketStateController {
             }
 
             ticketTypeService.getTicketTypeByTicketTypeId(ticketTypeId); // checks whether the id is valid or not.
-            ticketStateService.getTicketStateByTicketId(ticketStateIdFrom); // checks whether the id is valid or not.
+            ticketStateService.getTicketStateByTicketStateId(ticketStateIdFrom); // checks whether the id is valid or not.
 
             Query query = entityManager.createNativeQuery(Constant.GET_TICKET_STATE_LINKED_WITH_TICKET_STATE);
             query.setParameter("ticketStateIdFrom", ticketStateIdFrom);
@@ -155,7 +150,7 @@ public class TicketStateController {
 
             List<CustomTicketState> listOfStates = new ArrayList<>();
             for (Long stateId : resultListLong) {
-                CustomTicketState customTicketState = ticketStateService.getTicketStateByTicketId(stateId);
+                CustomTicketState customTicketState = ticketStateService.getTicketStateByTicketStateId(stateId);
                 listOfStates.add(customTicketState);
             }
             return ResponseService.generateSuccessResponse("State List : ", listOfStates, HttpStatus.OK);

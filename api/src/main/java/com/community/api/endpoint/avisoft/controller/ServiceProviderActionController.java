@@ -13,6 +13,7 @@ import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomMode;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.FileType;
 import com.community.api.services.DocumentStorageService;
@@ -1333,6 +1334,7 @@ public class ServiceProviderActionController {
         }
     }
 
+    // Todo- Mail for reject and return ticket functionality.
     @Async
     public void sendRejectionMail(ServiceProviderEntity serviceProvider, CustomProduct customProduct, String status) {
         try {
@@ -1408,6 +1410,87 @@ public class ServiceProviderActionController {
 
         } catch (MessagingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    // TODO- Mail for arching ticket functionality.
+    public void sendArchiveTicketMail(ServiceProviderEntity serviceProvider, ServiceProviderEntity tokenServiceProvider, CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+
+            String adminName;
+
+            if (tokenServiceProvider.getFirst_name() != null && !tokenServiceProvider.getFirst_name().trim().isEmpty()) {
+                if (tokenServiceProvider.getLast_name() != null && !tokenServiceProvider.getLast_name().trim().isEmpty()) {
+                    adminName = tokenServiceProvider.getFirst_name().trim() + " " + tokenServiceProvider.getLast_name().trim();
+                } else {
+                    adminName = tokenServiceProvider.getFirst_name().trim();
+                }
+            } else {
+                adminName = "-";
+            }
+
+            String subject = "Ticket Archived Notification";
+            String imageUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828843.png"; // archive icon
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src="%s" alt="Archive Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #34495e; margin: 10px 0; font-size: 24px;">Ticket Archived</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">The following ticket has been archived by the system administrator</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #2980b9; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                    <p style="margin: 8px 0 0;">Archived By: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Thank you for your continued service</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    ticket.getTicketId(),
+                    adminName,
+                    LocalDate.now()
+            );
+
+            // Prepare and send email
+            sendEmail(htmlContent, subject, serviceProvider);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
+    @Async
+    public void sendEmail(String htmlContent, String subject, ServiceProviderEntity serviceProvider) {
+        try {
+            // Prepare and send email
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(serviceProvider.getPrimary_email());
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // HTML content
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException messagingException) {
+            exceptionHandlingService.handleException(messagingException);
+            throw new RuntimeException(messagingException);
         }
     }
 }

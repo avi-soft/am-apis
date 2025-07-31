@@ -3075,6 +3075,470 @@ public class ProductService {
         }
     }
 
+    public Boolean validateAndSetExamCenterAvailableDate (AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+        try {
+            if (addProductDto.getExamCenterAvailableDate() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getExamCenterAvailableDate()));
+
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getExamCenterAvailableDate()))
+                    {
+                        throw new IllegalArgumentException("Exam Center Available cannot be past of current date.");
+                    }
+                }
+
+                if (addProductDto.getActiveEndDate() != null) {
+                    dateFormat.parse(dateFormat.format(addProductDto.getExamCenterAvailableDate()));
+                    if (!addProductDto.getExamCenterAvailableDate().after(addProductDto.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Exam Center Available date must be after active end date.");
+                    }
+                } else {
+                    if (!addProductDto.getExamCenterAvailableDate().after(customProduct.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Exam Center Available date must be after active end date.");
+                    }
+                }
+                validateExamCenterAvailableDateAgainstOtherDates(addProductDto, customProduct);
+                customProduct.setExamCenterAvailableDate(addProductDto.getExamCenterAvailableDate());
+            } else {
+                customProduct.setExamCenterAvailableDate(null);
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new Exception("Parse exception caught while validating go live date: " + parseException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    // Helper method to centralize validation logic for Exam Center Available date
+    private void validateExamCenterAvailableDateAgainstOtherDates (AddProductDto addProductDto, CustomProduct customProduct) {
+        // Validation against Admit card dates (BEFORE)
+        if (addProductDto.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(addProductDto.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after Admit card date to.");
+            }
+        } else if (customProduct.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(customProduct.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after Admit card date to.");
+            }
+        }
+
+        // Validation against modification dates
+        if (addProductDto.getModificationDateTo() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(addProductDto.getModificationDateTo())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after modification date to.");
+            }
+        } else if (customProduct.getModificationDateTo() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(customProduct.getModificationDateTo())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after modification date.");
+            }
+        }
+
+        // Validation against fee payment dates
+        if (addProductDto.getLastDateToPayFee() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(addProductDto.getLastDateToPayFee())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after last date to pay fee.");
+            }
+        } else if (customProduct.getLateDateToPayFee() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(customProduct.getLateDateToPayFee())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after last date to pay fee.");
+            }
+        }
+
+        // Validation against active end dates
+        if (addProductDto.getActiveEndDate() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(addProductDto.getActiveEndDate())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after active end date.");
+            }
+        } else if (customProduct.getActiveEndDate() != null) {
+            if (!addProductDto.getExamCenterAvailableDate().after(customProduct.getActiveEndDate())) {
+                throw new IllegalArgumentException("Exam Center Available Date must be after active end date.");
+            }
+        }
+
+        // Validation against exam dates (AFTER)
+        if (addProductDto.getExamDateFrom() != null) {
+            if(addProductDto.getExamCenterAvailableDate()!=null)
+            {
+                if (!addProductDto.getExamCenterAvailableDate().before(addProductDto.getExamDateFrom())) {
+                    throw new IllegalArgumentException("Exam Center Available Date must be before or equal of exam date from.");
+                }
+            }
+        }
+    }
+
+    public Boolean validateAndSetAnswerKeyAvailableDate (AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+        try {
+            if (addProductDto.getAnswerKeyAvailableDate() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getAnswerKeyAvailableDate()));
+
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getAnswerKeyAvailableDate()))
+                    {
+                        throw new IllegalArgumentException("Answer Key Available cannot be past of current date.");
+                    }
+                }
+
+                if (addProductDto.getActiveEndDate() != null) {
+                    dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
+                    if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Answer Key Available date must be after active end date.");
+                    }
+                } else {
+                    if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Answer Key Available date must be after active end date.");
+                    }
+                }
+                validateAnswerKeyAvailableDateAgainstOtherDates(addProductDto, customProduct);
+                customProduct.setAnswerKeyAvailableDate(addProductDto.getAnswerKeyAvailableDate());
+            } else {
+                customProduct.setAnswerKeyAvailableDate(null);
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new Exception("Parse exception caught while validating go live date: " + parseException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    // Helper method to centralize validation logic for Exam Center Available date
+    private void validateAnswerKeyAvailableDateAgainstOtherDates(AddProductDto addProductDto, CustomProduct customProduct) {
+
+        // Validation against Exam dates (BEFORE)
+        if (addProductDto.getExamDateTo() != null) {
+                if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getExamDateTo())) {
+                    throw new IllegalArgumentException("Answer Key Available date must be before or equal of exam date to.");
+                }
+        } else if (customProduct.getExamDateTo() != null) {
+                if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getExamDateTo())) {
+                    throw new IllegalArgumentException("Answer Key Available date must be before or equal of exam date to.");
+                }
+        }
+
+        // Validation against Admit card dates
+        if (addProductDto.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Answer Key Available date must be after Admit Card date to.");
+            }
+        } else if (customProduct.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Answer Key Available date must be after Admit Card date to.");
+            }
+        }
+
+        // Validation against Exam Center Available date
+        if (addProductDto.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Answer Key Available date must be after Exam Center Available date.");
+            }
+        } else if (customProduct.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Answer Key Available date must be after Exam Center Available date.");
+            }
+        }
+
+        // Validation against modification dates
+        if (addProductDto.getModificationDateTo() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getModificationDateTo())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after modification date to.");
+            }
+        } else if (customProduct.getModificationDateTo() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getModificationDateTo())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after modification date.");
+            }
+        }
+
+        // Validation against fee payment dates
+        if (addProductDto.getLastDateToPayFee() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getLastDateToPayFee())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after last date to pay fee.");
+            }
+        } else if (customProduct.getLateDateToPayFee() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getLateDateToPayFee())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after last date to pay fee.");
+            }
+        }
+
+        // Validation against active end dates
+        if (addProductDto.getActiveEndDate() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(addProductDto.getActiveEndDate())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after active end date.");
+            }
+        } else if (customProduct.getActiveEndDate() != null) {
+            if (!addProductDto.getAnswerKeyAvailableDate().after(customProduct.getActiveEndDate())) {
+                throw new IllegalArgumentException("Answer Key Available Date must be after active end date.");
+            }
+        }
+    }
+
+    public Boolean validateAndSetResultDeclarationDate (AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+        try {
+            if (addProductDto.getResultDeclarationDate() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getResultDeclarationDate()));
+
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getResultDeclarationDate()))
+                    {
+                        throw new IllegalArgumentException("Result Declaration date cannot be past of current date.");
+                    }
+                }
+
+                if (addProductDto.getActiveEndDate() != null) {
+                    dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
+                    if (!addProductDto.getResultDeclarationDate().after(addProductDto.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Result Declaration date must be after active end date.");
+                    }
+                } else {
+                    if (!addProductDto.getResultDeclarationDate().after(customProduct.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Answer Key Available date must be after active end date.");
+                    }
+                }
+                validateResultDeclarationDateAgainstOtherDates(addProductDto, customProduct);
+                customProduct.setResultDeclarationDate(addProductDto.getResultDeclarationDate());
+            } else {
+                customProduct.setResultDeclarationDate(null);
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new Exception("Parse exception caught while validating go live date: " + parseException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    // Helper method to centralize validation logic for Exam Center Available date
+    private void validateResultDeclarationDateAgainstOtherDates (AddProductDto addProductDto, CustomProduct customProduct) {
+
+        // Validation against Answer Key Available (BEFORE)
+        if (addProductDto.getAnswerKeyAvailableDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getAnswerKeyAvailableDate())) {
+                throw new IllegalArgumentException("Result Declaration date must be after or equal of Answer Key Available date.");
+            }
+        } else if (customProduct.getAnswerKeyAvailableDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getAnswerKeyAvailableDate())) {
+                throw new IllegalArgumentException("Result Declaration date must be after or equal of Answer Key Available date.");
+            }
+        }
+
+        // Validation against Exam dates (BEFORE)
+        if (addProductDto.getExamDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getExamDateTo())) {
+                throw new IllegalArgumentException("Result Declaration date must be after or equal of exam date to.");
+            }
+        } else if (customProduct.getExamDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getExamDateTo())) {
+                throw new IllegalArgumentException("Result Declaration date must be after or equal of exam date to.");
+            }
+        }
+
+        // Validation against Admit card dates
+        if (addProductDto.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Result Declaration date must be after Admit Card date to.");
+            }
+        } else if (customProduct.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Result Declaration date must be after Admit Card date to.");
+            }
+        }
+
+        // Validation against Exam Center Available date
+        if (addProductDto.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Result Declaration date must be after Exam Center Available date.");
+            }
+        } else if (customProduct.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Result Declaration date must be after Exam Center Available date.");
+            }
+        }
+
+        // Validation against modification dates
+        if (addProductDto.getModificationDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getModificationDateTo())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after modification date to.");
+            }
+        } else if (customProduct.getModificationDateTo() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getModificationDateTo())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after modification date.");
+            }
+        }
+
+        // Validation against fee payment dates
+        if (addProductDto.getLastDateToPayFee() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getLastDateToPayFee())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after last date to pay fee.");
+            }
+        } else if (customProduct.getLateDateToPayFee() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getLateDateToPayFee())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after last date to pay fee.");
+            }
+        }
+
+        // Validation against active end dates
+        if (addProductDto.getActiveEndDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(addProductDto.getActiveEndDate())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after active end date.");
+            }
+        } else if (customProduct.getActiveEndDate() != null) {
+            if (!addProductDto.getResultDeclarationDate().after(customProduct.getActiveEndDate())) {
+                throw new IllegalArgumentException("Result Declaration Date must be after active end date.");
+            }
+        }
+    }
+
+    public Boolean validateAndSetCounsellingDate (AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+        try {
+            if (addProductDto.getCounsellingDate() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getCounsellingDate()));
+
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getCounsellingDate()))
+                    {
+                        throw new IllegalArgumentException("Counselling date cannot be past of current date.");
+                    }
+                }
+
+                if (addProductDto.getActiveEndDate() != null) {
+                    dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
+                    if (!addProductDto.getCounsellingDate().after(addProductDto.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Counselling date must be after active end date.");
+                    }
+                } else {
+                    if (!addProductDto.getCounsellingDate().after(customProduct.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Counselling date must be after active end date.");
+                    }
+                }
+                validateCounsellingDateAgainstOtherDates(addProductDto, customProduct);
+                customProduct.setCounsellingDate(addProductDto.getCounsellingDate());
+            } else {
+                customProduct.setCounsellingDate(null);
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new Exception("Parse exception caught while validating go live date: " + parseException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    // Helper method to centralize validation logic for Exam Center Available date
+    private void validateCounsellingDateAgainstOtherDates (AddProductDto addProductDto, CustomProduct customProduct) {
+
+        // Validation against Result Declaration (BEFORE)
+        if (addProductDto.getResultDeclarationDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getResultDeclarationDate())) {
+                throw new IllegalArgumentException("Counselling date must be after Result Declaration date.");
+            }
+        } else if (customProduct.getResultDeclarationDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getResultDeclarationDate())) {
+                throw new IllegalArgumentException("Counselling date must be after Result Declaration date.");
+            }
+        }
+
+        // Validation against Answer Key Available (BEFORE)
+        if (addProductDto.getAnswerKeyAvailableDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getAnswerKeyAvailableDate())) {
+                throw new IllegalArgumentException("Counselling date must be after of Answer Key Available date.");
+            }
+        } else if (customProduct.getAnswerKeyAvailableDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getAnswerKeyAvailableDate())) {
+                throw new IllegalArgumentException("Counselling date must be after of Answer Key Available date.");
+            }
+        }
+
+        // Validation against Exam dates (BEFORE)
+        if (addProductDto.getExamDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getExamDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after of exam date to.");
+            }
+        } else if (customProduct.getExamDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getExamDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after of exam date to.");
+            }
+        }
+
+        // Validation against Admit card dates
+        if (addProductDto.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after Admit Card date to.");
+            }
+        } else if (customProduct.getAdmitCardDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getAdmitCardDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after Admit Card date to.");
+            }
+        }
+
+        // Validation against Exam Center Available date
+        if (addProductDto.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Counselling date must be after Exam Center Available date.");
+            }
+        } else if (customProduct.getExamCenterAvailableDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getExamCenterAvailableDate())) {
+                throw new IllegalArgumentException("Counselling date must be after Exam Center Available date.");
+            }
+        }
+
+        // Validation against modification dates
+        if (addProductDto.getModificationDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getModificationDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after modification date to.");
+            }
+        } else if (customProduct.getModificationDateTo() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getModificationDateTo())) {
+                throw new IllegalArgumentException("Counselling date must be after modification date.");
+            }
+        }
+
+        // Validation against fee payment dates
+        if (addProductDto.getLastDateToPayFee() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getLastDateToPayFee())) {
+                throw new IllegalArgumentException("Counselling date must be after last date to pay fee.");
+            }
+        } else if (customProduct.getLateDateToPayFee() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getLateDateToPayFee())) {
+                throw new IllegalArgumentException("Counselling date must be after last date to pay fee.");
+            }
+        }
+
+        // Validation against active end dates
+        if (addProductDto.getActiveEndDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(addProductDto.getActiveEndDate())) {
+                throw new IllegalArgumentException("Counselling date must be after active end date.");
+            }
+        } else if (customProduct.getActiveEndDate() != null) {
+            if (!addProductDto.getCounsellingDate().after(customProduct.getActiveEndDate())) {
+                throw new IllegalArgumentException("Counselling date must be after active end date.");
+            }
+        }
+    }
+
     public boolean validateProductState(AddProductDto addProductDto, CustomProduct customProduct, String authHeader) throws Exception {
         try {
             if (addProductDto.getProductState() != null) {
