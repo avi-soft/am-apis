@@ -64,8 +64,7 @@ public class DocumentEndpoint {
     @Autowired
     private DocumentStorageService documentStorageService;
 
-    @Value(("${secret.key}"))
-    private static String key;
+    private static String key="2025202220202512";
 
     @Autowired
     private RoleService roleService;
