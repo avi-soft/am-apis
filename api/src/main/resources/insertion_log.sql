@@ -1977,9 +1977,10 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
       WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
       ON CONFLICT DO NOTHING;
 
+IF NOT EXISTS (SELECT 1 FROM stream_subject LIMIT 1)THEN
       ALTER TABLE public.stream_subject
       ADD CONSTRAINT stream_subject_unique UNIQUE (stream_id, subject_id);
-
+END IF;
 --
 --
 -- IF NOT EXISTS (SELECT 1 FROM typing_text LIMIT 1) THEN
