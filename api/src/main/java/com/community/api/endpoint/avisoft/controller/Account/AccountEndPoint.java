@@ -781,7 +781,7 @@ public class AccountEndPoint {
             token = jwtUtil.generateShortLivedToken(id,5, ip);
         }
         else
-            token = jwtUtil.generateShortLivedToken(id,5, ip);
+            token = jwtUtil.generateShortLivedToken(userId,roleId, ip);
 
         TypedQuery<ShortAccessToken> query = em.createQuery(
                 "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
