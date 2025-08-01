@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Document;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.DocumentTypeDto;
@@ -291,6 +292,7 @@ public class DocumentEndpoint {
     }
     @Autowired
     JwtUtil jwtUtil;
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider})
     @Transactional
     @PostMapping("/download")
     public ResponseEntity<?> downloadFile(
@@ -365,7 +367,8 @@ public class DocumentEndpoint {
             // Download logic
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-
+            connection.setRequestProperty("response-content-disposition",
+                    "attachment; filename=\"" + downloadFileName + "\"");
             if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
             }
@@ -378,7 +381,7 @@ public class DocumentEndpoint {
             );
 
             // Stream the file to response
-            try (InputStream in = connection.getInputStream();
+            try (InputStream in = new URL(securedFileUrl).openStream();  // Use the original fileUrl, not securedFileUrl
                  OutputStream out = response.getOutputStream()) {
                 IOUtils.copy(in, out);
             }
