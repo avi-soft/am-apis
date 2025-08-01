@@ -20,6 +20,7 @@ import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.TwilioService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
@@ -108,12 +109,14 @@ public class OtpEndpoint {
     public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpServletRequest request, HttpSession session, @RequestHeader(value = "Authorization", required = false) String authHeader) throws UnsupportedEncodingException {
         try {
 
+            // TODO- @RAMAN NEED TO SEE THIS ON MONDAY AND TEST WHOLE FUNCTIONALITY.
             if(authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 String ipAddress = request.getRemoteAddr();
-                log.info("dfhshflashdfklhasklfhsalhdf-----------------------------------");
-                jwtTokenUtil.validateToken(jwtToken, null, null);
+                String userAgent = request.getHeader("User-Agent");
+                jwtTokenUtil.validateArchived(jwtToken, ipAddress, userAgent);
             }
+
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
                 return responseService.generateErrorResponse(ApiConstants.MOBILE_NUMBER_NULL_OR_EMPTY, HttpStatus.NOT_ACCEPTABLE);
             }
@@ -160,6 +163,9 @@ public class OtpEndpoint {
             } else {
                 return responseService.generateErrorResponse(ApiConstants.RATE_LIMIT_EXCEEDED, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
             }
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         } catch (PersistenceException persistenceException) {
             exceptionHandling.handleException(persistenceException);
             return ResponseService.generateErrorResponse("Error sending otp: " + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
