@@ -98,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 token = token.trim();
                 String jwtToken = token.substring(7);
                 if (sharedUtilityService.isBlackListed(jwtToken)) {
-                    handleException(response, 403, "Your account is suspended please contact support.");
+                    handleException(response, 401, "Your account is suspended please contact support.");
                 }
             }
 

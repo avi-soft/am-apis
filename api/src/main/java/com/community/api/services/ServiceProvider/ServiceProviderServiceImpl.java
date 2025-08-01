@@ -29,7 +29,6 @@ import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderInfraService;
 import com.community.api.services.ServiceProviderLanguageService;
 import com.community.api.services.ServiceProviderReRankingEligibilityService;
-import com.community.api.services.ServiceProviderReRankingScoreService;
 import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
@@ -1674,7 +1673,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1682,7 +1681,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1873,7 +1872,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
 
             if (existingServiceProvider == null) {
-                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.BAD_REQUEST);
 
             }
             Integer role = existingServiceProvider.getRole();

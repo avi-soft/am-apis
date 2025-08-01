@@ -316,9 +316,9 @@ public class CustomerEndpoint {
                     Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
                     Long userId = jwtTokenUtil.extractId(authToken);
                     if (roleUpdating != 5 || !userId.equals(customerId))
-                        return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 } else {
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 }
             }
             if (customCustomer == null) {
@@ -1789,7 +1789,7 @@ public class CustomerEndpoint {
                 tokenUserId = jwtTokenUtil.extractId(extAuth);
             }
             if (extUpdate && (roleId != 1 && roleId != 2 && roleId != 5) && (extAuth == null || extAuth.isEmpty())) {
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
 
             String role = null;
@@ -1819,7 +1819,7 @@ public class CustomerEndpoint {
             }
 
             if (!customerId.equals(tokenUserId) && (roleId != 1 && roleId != 2)) {
-                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.FORBIDDEN);
             }
 
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).

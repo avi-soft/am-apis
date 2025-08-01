@@ -1024,15 +1024,15 @@ public class ServiceProviderController {
             actionReq = action + "ed";
         else
             actionReq = action + "d";
-        for (Long customerId : ids) {
-            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+        for (Long serviceProviderId : ids) {
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
 
             if (serviceProvider == null) {
-                skippedIds.put(customerId, "SP Not Found");
+                skippedIds.put(serviceProviderId, "SP Not Found");
                 continue;
             }
             if (serviceProvider.getRole() == 1) {
-                skippedIds.put(customerId, "Action not Authorized");
+                skippedIds.put(serviceProviderId, "Action not Authorized");
                 continue;
             }
             if (action.equals(Constant.ACTION_APPROVE)) {
@@ -1041,12 +1041,12 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
                 if (serviceProvider.getApproved().equals(true)) {
-                    skippedIds.put(customerId, "User Already approved");
+                    skippedIds.put(serviceProviderId, "User Already approved");
                     ++actionCount;
                     continue;
                 }
                 if (!serviceProvider.getCompleted()) {
-                    skippedIds.put(customerId, "Profile not completed");
+                    skippedIds.put(serviceProviderId, "Profile not completed");
                     continue;
                 }
                 serviceProvider.setApproved(true);
@@ -1081,12 +1081,12 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
                 if (serviceProvider.getRejected() != null && serviceProvider.getRejected().equals(true)) {
-                    skippedIds.put(customerId, "User Already rejected");
+                    skippedIds.put(serviceProviderId, "User Already rejected");
                     ++actionCount;
                     continue;
                 }
                 if (serviceProvider.getRejected() != null && serviceProvider.getApproved()) {
-                    skippedIds.put(customerId, "Cannot reject,User is approved");
+                    skippedIds.put(serviceProviderId, "Cannot reject,User is approved");
                     ++actionCount;
                     continue;
                 }
@@ -1102,7 +1102,7 @@ public class ServiceProviderController {
             //checking valid permissions
             else if (action.equals(Constant.ACTION_SUSPEND)) {
                 if (serviceProvider.getIsArchived().equals(true)) {
-                    skippedIds.put(customerId, "User Already Suspended");
+                    skippedIds.put(serviceProviderId, "User Already Suspended");
                     ++actionCount;
                     continue;
                 }
@@ -1115,7 +1115,7 @@ public class ServiceProviderController {
                 serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
             } else {
                 if (serviceProvider.getIsArchived().equals(false)) {
-                    skippedIds.put(customerId, "User Already Activate");
+                    skippedIds.put(serviceProviderId, "User Already Activate");
                     ++actionCount;
                     continue;
                 }
@@ -1135,7 +1135,7 @@ public class ServiceProviderController {
                 sharedUtilityService.removeToken(serviceProvider.getToken());
             }
 
-            actionedIds.add(customerId);
+            actionedIds.add(serviceProviderId);
             ++successCount;
             entityManager.merge(serviceProvider);
 
@@ -1232,7 +1232,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NotAuthorizedException notAuthorizedException) {
             exceptionHandlingService.handleException(notAuthorizedException);
-            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

@@ -570,7 +570,7 @@ public class AccountEndPoint {
                 }
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customer.getId());
                 if(customCustomer.getArchived())
-                    return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.FORBIDDEN);
                 if (passwordEncoder.matches(password, customer.getPassword())) {
 
                     String tokenKey = "authToken_" + customCustomer.getMobileNumber();
@@ -692,7 +692,7 @@ public class AccountEndPoint {
             Integer role = (Integer) loginDetails.get("role");
 
             if (mobileNumber == null || password == null || role == null) {
-                return responseService.generateErrorResponse("number/password number cannot be empty", HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("number/password number cannot be empty", HttpStatus.FORBIDDEN);
 
             }
             if (countryCode == null) {
@@ -706,7 +706,7 @@ public class AccountEndPoint {
                 CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode);
                 System.out.println("archived:"+existingCustomer.getArchived());
                 if(existingCustomer.getArchived().equals(true))
-                    return ResponseService.generateErrorResponse("Your account is suspended please contact suppot",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Your account is suspended please contact suppot",HttpStatus.FORBIDDEN);
                 if (existingCustomer != null) {
                     Customer customer = customerService.readCustomerById(existingCustomer.getId());
                     if (passwordEncoder.matches(password, existingCustomer.getPassword())) {
@@ -737,7 +737,7 @@ public class AccountEndPoint {
                         }
 
                     } else {
-                        return responseService.generateErrorResponse("Incorrect Password" , HttpStatus.UNAUTHORIZED);
+                        return responseService.generateErrorResponse("Incorrect Password" , HttpStatus.FORBIDDEN);
 
                     }
                 } else {
