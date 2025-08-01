@@ -127,9 +127,9 @@ public class AdvertisementService {
             String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
-            if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
+       /*     if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
                 throw new IllegalArgumentException("Notification Start Date cannot be of future");
-            }
+            }*/
             if(addAdvertisementDto.getNotificationEndDate() == null) {
                 addAdvertisementDto.setNotificationEndDate(null);
             } else {
@@ -326,6 +326,7 @@ public class AdvertisementService {
 
     @Transactional
     public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto,Long advertisementId) throws Exception {
+        jdbcTemplate.execute("CALL update_advertisement_product_counts()");
         Date notificationStartDate=null;
         Date notificationEndDate=null;
         Advertisement advertisementToUpdate= entityManager.find(Advertisement.class,advertisementId);
@@ -333,17 +334,30 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        if(advertisementDto.getNotificationStartDate()==null||advertisementDto.getNotificationEndDate()==null)
+            throw new IllegalArgumentException("Both the Notification start date and end date cannot be null");
+        if(advertisementDto.getNewNotificationStartDate()!=null) {
+            Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
+            Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNewNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
+
+            if (notificationStart.before(today)) {
+                throw new IllegalArgumentException("Notification start date cannot be in the past");
+            }
+        }
         if(advertisementToUpdate.getArchived().equals('Y'))
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
+        if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+            throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
-                    throw new IllegalArgumentException("Cannot edit advertisement start date once live");
+                if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+                    throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
+
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
         if(Objects.nonNull(advertisementDto.getTitle()))
         {
@@ -410,12 +424,16 @@ public class AdvertisementService {
             notificationStartDate=advertisementToUpdate.getNotificationStartDate();
         }
 
-        if(notificationStartDate.after(new Date())) {
+     /*   if(notificationStartDate.after(new Date())) {
             throw new IllegalArgumentException("Notification Start Date cannot be of future");
+        }*/
+        if(advertisementDto.getNewNotificationStartDate()!=null)
+        {
+            advertisementToUpdate.setNotificationStartDate(advertisementDto.getNewNotificationStartDate());
         }
-
-        advertisementToUpdate.setNotificationStartDate(notificationStartDate);
-
+       /* else
+            advertisementToUpdate.setNotificationStartDate(notificationStartDate);
+*/
         if (Objects.nonNull(advertisementDto.getNotificationEndDate())) {
             String formattedDate = dateFormat.format(advertisementDto.getNotificationEndDate());
             dateFormat.parse(formattedDate);
@@ -424,7 +442,10 @@ public class AdvertisementService {
         else {
             notificationEndDate=advertisementToUpdate.getNotificationEndDate();
         }
-
+        if(advertisementDto.getNewNotificationStartDate()!=null&&advertisementDto.getNewNotificationStartDate().after(notificationEndDate))
+        {
+            throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
+        }
         if (notificationEndDate != null && notificationEndDate.before(notificationStartDate)) {
             throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
         }

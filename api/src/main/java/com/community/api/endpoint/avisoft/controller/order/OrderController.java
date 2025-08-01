@@ -13,7 +13,6 @@ import com.community.api.dto.OrderStateGroupDto;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
-import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -83,7 +82,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 @Slf4j
 @RequestMapping(value = "/orders", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -628,7 +626,7 @@ public class OrderController {
             query.setParameter("orderId", orderId);
 
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L);
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(1L);
             CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L);
             createTicketDto.setTicketType(1L);
             createTicketDto.setTicketState(1L);
@@ -853,6 +851,8 @@ public class OrderController {
 
             if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
                 throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
+            } else if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_COMPLETED.getOrderStateId()) ) {
+                throw new IllegalArgumentException("Order cannot be cancelled when order is completed.");
             }
 
             OrderItem orderItem = order.getOrderItems().get(0);
@@ -865,7 +865,7 @@ public class OrderController {
             // Updating archived ticket logic.
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
             if(ticket != null) {
-                serviceProviderTicketService.deleteTicket(ticket);
+                serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);

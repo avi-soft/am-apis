@@ -6,7 +6,16 @@ import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.FormDataOnly;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.ActionLog;
+import com.community.api.entity.CommunicationContent;
+import com.community.api.entity.ContentFile;
+import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomMode;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.FileType;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.EmailService;
 import com.community.api.services.FileService;
@@ -14,60 +23,79 @@ import com.community.api.services.PrivilegeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.twilio.rest.proxy.v1.service.ShortCodeUpdater;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
-import org.broadleafcommerce.common.persistence.Status;
-import org.broadleafcommerce.core.catalog.domain.Category;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
 import org.hibernate.jpa.QueryHints;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @RestController
 @RequestMapping("/service-provider-actions")
 public class ServiceProviderActionController {
 
     @Autowired
+    private final JwtUtil jwtTokenUtil;
+    @Autowired
+    private final RoleService roleService;
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
+    @Autowired
+    HttpServletRequest request;
+    @Autowired
     private DocumentStorageService fileUploadService;
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
-    ExceptionHandlingService exceptionHandlingService;
-
-    @Autowired
     private EmailService emailService;
-
-
     @Autowired
     private FileService fileService;
-    @Autowired
-    private final JwtUtil jwtTokenUtil;
-
-    @Autowired
-    private final RoleService roleService;
-
     @Autowired
     private PrivilegeService privilegeService;
 
     @Autowired
-    HttpServletRequest request;
+    @Qualifier("blMailSender")
+    private JavaMailSender mailSender;
+
+    @Value("${email.from}")
+    private String fromEmail;
 
     public ServiceProviderActionController(JwtUtil jwtTokenUtil, RoleService roleService) {
         this.jwtTokenUtil = jwtTokenUtil;
@@ -78,17 +106,17 @@ public class ServiceProviderActionController {
 //    private WhatsappService whatsappService; //  need to implement this later
 
 
-    @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
             @FormDataOnly CommunicationRequest request,
             @RequestParam Integer role,
-            @RequestHeader(value = "Authorization") String authHeader){
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            if(role==null)
-                return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
-            if(roleService.findRoleName(role)==null)
-                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.BAD_REQUEST);
+            if (role == null)
+                return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
+            if (roleService.findRoleName(role) == null)
+                return ResponseService.generateErrorResponse("Invalid role specified", HttpStatus.BAD_REQUEST);
             // Validate service provider
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -134,12 +162,12 @@ public class ServiceProviderActionController {
             for (Long customerId : customerIdsList) {
                 if (roleId >= role)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-                if (role!= 1 && role != 5) {
+                if (role != 1 && role != 5) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
-                    if (serviceProviderEntity == null||serviceProviderEntity.getRole()!=role) {
+                    if (serviceProviderEntity == null || serviceProviderEntity.getRole() != role) {
                         if (role == 2)
                             return ResponseService.generateErrorResponse("Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
-                        if (role== 3)
+                        if (role == 3)
                             return ResponseService.generateErrorResponse("Service Provider Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
                         if (role == 4)
                             return ResponseService.generateErrorResponse("Service Provider with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
@@ -377,8 +405,7 @@ public class ServiceProviderActionController {
                         HttpStatus.OK
                 );
 
-            }else
-            {
+            } else {
                 List<ServiceProviderEntity> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(ServiceProviderEntity.class, id))
                         .filter(Objects::nonNull)
@@ -489,11 +516,9 @@ public class ServiceProviderActionController {
 
 
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
@@ -566,13 +591,10 @@ public class ServiceProviderActionController {
                 contentFile.setCommunicationContent(content);
                 fileUploadService.uploadFileOnFileServer(file, "Communications", "", "SERVICE_PROVIDER");
                 contentFiles.add(contentFile);
-            }
-            catch (IllegalArgumentException e)
-            {
+            } catch (IllegalArgumentException e) {
                 exceptionHandlingService.handleException(e);
                 throw new IllegalArgumentException(e.getMessage());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 exceptionHandlingService.handleException(e);
                 throw new RuntimeException("Failed to process file: " + file.getOriginalFilename(), e);
             }
@@ -591,7 +613,7 @@ public class ServiceProviderActionController {
         }
         if (file.getSize() > Constant.MAX_REFERRER_FILE_SIZE) {
             String maxFileSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_REFERRER_FILE_SIZE);
-            throw new IllegalArgumentException("File size should be below "+ maxFileSize);
+            throw new IllegalArgumentException("File size should be below " + maxFileSize);
         }
         // Construct the file path
         String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications" + purpose;
@@ -671,15 +693,13 @@ public class ServiceProviderActionController {
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
-        if(actionLog.getCustomersWithEmail()!=null||actionLog.getCustomersWithoutEmail()!=null) {
+        if (actionLog.getCustomersWithEmail() != null || actionLog.getCustomersWithoutEmail() != null) {
             List<Long> customerIds = Stream.concat(
                     actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId),
                     actionLog.getCustomersWithoutEmail().stream().map(CustomCustomer::getId)
             ).collect(Collectors.toList());
             dto.put("customerIds", customerIds);
-        }
-        else
-        {
+        } else {
             List<Long> customerIds = Stream.concat(
                     actionLog.getSpwithEmail().stream().map(ServiceProviderEntity::getService_provider_id),
                     actionLog.getSpWithoutEmail().stream().map(ServiceProviderEntity::getService_provider_id)
@@ -687,18 +707,16 @@ public class ServiceProviderActionController {
             dto.put("userIds", customerIds);
         }
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
-        if(actionLog.getServiceProvider()!=null)
-        {
+        if (actionLog.getServiceProvider() != null) {
             dto.put("serviceProviderId", actionLog.getServiceProvider().getService_provider_id());
         }
-        if(actionLog.getAdmin()!=null)
-        {
+        if (actionLog.getAdmin() != null) {
             dto.put("adminId", actionLog.getAdmin().getService_provider_id());
         }
-        dto.put("roleId",actionLog.getRole().getRole_id());
+        dto.put("roleId", actionLog.getRole().getRole_id());
         dto.put("actionTimestamp", actionLog.getActionTimestamp());
         dto.put("modes", actionLog.getCustomModes().stream().map(CustomMode::getCustomModeId).collect(Collectors.toList()));
-        dto.put("content",actionLog.getContent());
+        dto.put("content", actionLog.getContent());
         return dto;
     }
 
@@ -727,13 +745,12 @@ public class ServiceProviderActionController {
                 }
 
                 jpql = """
-            SELECT DISTINCT al FROM ActionLog al
-            LEFT JOIN FETCH al.content c
-            WHERE al.serviceProvider.service_provider_id = :userId
-            ORDER BY al.actionTimestamp DESC
-            """;
-            }
-            else if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdmin) ||
+                        SELECT DISTINCT al FROM ActionLog al
+                        LEFT JOIN FETCH al.content c
+                        WHERE al.serviceProvider.service_provider_id = :userId
+                        ORDER BY al.actionTimestamp DESC
+                        """;
+            } else if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdmin) ||
                     roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleSuperAdmin) ||
                     roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdminServiceProvider)) {
                 CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, userId);
@@ -742,13 +759,12 @@ public class ServiceProviderActionController {
                 }
 
                 jpql = """
-            SELECT DISTINCT al FROM ActionLog al
-            LEFT JOIN FETCH al.content c
-            WHERE al.admin.admin_id = :userId
-            ORDER BY al.actionTimestamp DESC
-            """;
-            }
-            else {
+                        SELECT DISTINCT al FROM ActionLog al
+                        LEFT JOIN FETCH al.content c
+                        WHERE al.admin.admin_id = :userId
+                        ORDER BY al.actionTimestamp DESC
+                        """;
+            } else {
                 return ResponseService.generateErrorResponse("Invalid role", HttpStatus.FORBIDDEN);
             }
 
@@ -775,13 +791,13 @@ public class ServiceProviderActionController {
             // Count total records for pagination
             String countJpql = roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER) ?
                     """
-                    SELECT COUNT(DISTINCT al) FROM ActionLog al
-                    WHERE al.serviceProvider.service_provider_id = :userId
-                    """ :
+                            SELECT COUNT(DISTINCT al) FROM ActionLog al
+                            WHERE al.serviceProvider.service_provider_id = :userId
+                            """ :
                     """
-                    SELECT COUNT(DISTINCT al) FROM ActionLog al
-                    WHERE al.admin.admin_id = :userId
-                    """;
+                            SELECT COUNT(DISTINCT al) FROM ActionLog al
+                            WHERE al.admin.admin_id = :userId
+                            """;
 
             Long totalRecords = entityManager.createQuery(countJpql, Long.class)
                     .setParameter("userId", userId)
@@ -800,8 +816,7 @@ public class ServiceProviderActionController {
                     response,
                     HttpStatus.OK
             );
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new RuntimeException("Failed to retrieve communication history", e);
         }
@@ -852,9 +867,9 @@ public class ServiceProviderActionController {
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
                     recipientInfo.put("userId", customer.getId());
-                    String name=(customer.getFirstName()!=null ?customer.getFirstName() : "") + " " + (customer.getLastName()!=null ? customer.getLastName():"");
-                    recipientInfo.put("name",name.trim());
-                    recipientInfo.put("emailAddress", customer.getEmailAddress()!=null ? customer.getEmailAddress():"");
+                    String name = (customer.getFirstName() != null ? customer.getFirstName() : "") + " " + (customer.getLastName() != null ? customer.getLastName() : "");
+                    recipientInfo.put("name", name.trim());
+                    recipientInfo.put("emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : "");
                     return recipientInfo;
                 })
                 .collect(Collectors.toList());
@@ -893,20 +908,21 @@ public class ServiceProviderActionController {
             throw new Exception("ERRORS WHILE VALIDATING AUTHORIZATION: " + exception.getMessage() + "\n");
         }
     }
+
     @Async
-  /*  @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)*/
+    /*  @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)*/
     @Transactional
     public ResponseEntity<?> communicateWithCustomersDummy(
             @FormDataOnly CommunicationRequest request,
             @RequestParam Integer role,
             @RequestHeader(value = "Authorization") String authHeader,
-            @RequestParam(value = "bypass",defaultValue = "false")Boolean bypass){
+            @RequestParam(value = "bypass", defaultValue = "false") Boolean bypass) {
         try {
             System.out.println("I have been called");
-            if(role==null)
-                return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
-            if(roleService.findRoleName(role)==null)
-                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.BAD_REQUEST);
+            if (role == null)
+                return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
+            if (roleService.findRoleName(role) == null)
+                return ResponseService.generateErrorResponse("Invalid role specified", HttpStatus.BAD_REQUEST);
             // Validate service provider
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -950,14 +966,14 @@ public class ServiceProviderActionController {
                 return ResponseService.generateErrorResponse("You have to select atleast one user to communicate with", HttpStatus.BAD_REQUEST);
             }
             for (Long customerId : customerIdsList) {
-                if (roleId >= role&&!bypass)
+                if (roleId >= role && !bypass)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-                if (role!= 1 && role != 5) {
+                if (role != 1 && role != 5) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
-                    if (serviceProviderEntity == null||serviceProviderEntity.getRole()!=role) {
+                    if (serviceProviderEntity == null || serviceProviderEntity.getRole() != role) {
                         if (role == 2)
                             return ResponseService.generateErrorResponse("Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
-                        if (role== 3)
+                        if (role == 3)
                             return ResponseService.generateErrorResponse("Service Provider Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
                         if (role == 4)
                             return ResponseService.generateErrorResponse("Service Provider with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
@@ -1086,7 +1102,7 @@ public class ServiceProviderActionController {
                     .collect(Collectors.toList());
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
-            System.out.println("Role is"+role);
+            System.out.println("Role is" + role);
             if (role == 5) {
                 List<CustomCustomer> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(CustomCustomer.class, id))
@@ -1195,8 +1211,7 @@ public class ServiceProviderActionController {
                         HttpStatus.OK
                 );
 
-            }else
-            {
+            } else {
                 List<ServiceProviderEntity> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(ServiceProviderEntity.class, id))
                         .filter(Objects::nonNull)
@@ -1307,17 +1322,175 @@ public class ServiceProviderActionController {
 
 
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Failed to process communication: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
+        }
+    }
+
+    // Todo- Mail for reject and return ticket functionality.
+    @Async
+    public void sendRejectionMail(ServiceProviderEntity serviceProvider, CustomProduct customProduct, String status) {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+            String imageUrl = null;
+            String rejectionMessage = null;
+            if(customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_RESUBMIT)) {
+                rejectionMessage = customProduct.getRejectionComment();
+                imageUrl = "https://png.pngtree.com/png-vector/20220111/ourmid/pngtree-returned-concept-returned-miscellaneous-vector-png-image_15673670.png";
+            } else if(customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_REJECTED)) {
+                rejectionMessage = customProduct.getRejectionStatus().getRejectionStatus();
+                imageUrl = "https://freepngimg.com/thumb/categories/1838.png";
+            } else {
+                rejectionMessage = "n/a";
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String subject = status + " Product Alert";
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src=%s alt="Rejected Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #e74c3c; margin: 10px 0; font-size: 24px;">Product Submission %s</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">We regret to inform you that your product has not been approved</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #e74c3c; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Product Title: <strong>%s</strong></p>
+                                    <p style="margin: 8px 0 0;">Reason for %s: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="margin: 30px 0 20px;">
+                                    <p style="margin: 0 0 15px;">If you believe this was a mistake or you wish to correct the issues:</p>
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        <li style="margin-bottom: 8px;">Review your submission thoroughly.</li>
+                                        <li style="margin-bottom: 8px;">Ensure all mandatory fields and documents are complete.</li>
+                                        <li style="margin-bottom: 8px;">Reach out to our support team if needed.</li>
+                                    </ul>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Thank you for using our platform</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    status,
+                    customProduct.getDisplayTemplate(),
+                    status,
+                    rejectionMessage,
+                    LocalDate.now()
+            );
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(serviceProvider.getPrimary_email());
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // true = isHtml
+
+            mailSender.send(mimeMessage);
+
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // TODO- Mail for arching ticket functionality.
+    public void sendArchiveTicketMail(ServiceProviderEntity serviceProvider, ServiceProviderEntity tokenServiceProvider, CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+
+            String adminName;
+
+            if (tokenServiceProvider.getFirst_name() != null && !tokenServiceProvider.getFirst_name().trim().isEmpty()) {
+                if (tokenServiceProvider.getLast_name() != null && !tokenServiceProvider.getLast_name().trim().isEmpty()) {
+                    adminName = tokenServiceProvider.getFirst_name().trim() + " " + tokenServiceProvider.getLast_name().trim();
+                } else {
+                    adminName = tokenServiceProvider.getFirst_name().trim();
+                }
+            } else {
+                adminName = "-";
+            }
+
+            String subject = "Ticket Archived Notification";
+            String imageUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828843.png"; // archive icon
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src="%s" alt="Archive Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #34495e; margin: 10px 0; font-size: 24px;">Ticket Archived</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">The following ticket has been archived by the system administrator</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #2980b9; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                    <p style="margin: 8px 0 0;">Archived By: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Thank you for your continued service</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    ticket.getTicketId(),
+                    adminName,
+                    LocalDate.now()
+            );
+
+            // Prepare and send email
+            sendEmail(htmlContent, subject, serviceProvider);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
+    @Async
+    public void sendEmail(String htmlContent, String subject, ServiceProviderEntity serviceProvider) {
+        try {
+            // Prepare and send email
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(serviceProvider.getPrimary_email());
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // HTML content
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException messagingException) {
+            exceptionHandlingService.handleException(messagingException);
+            throw new RuntimeException(messagingException);
         }
     }
 }

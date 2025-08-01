@@ -455,7 +455,6 @@ public class CartEndPoint extends BaseEndpoint {
             }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            ;
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
@@ -470,10 +469,12 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-//                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
-//                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
+//                      EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+                        EligibilityResult result=new EligibilityResult();
+                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);
+                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
-//                        products.add(productDetails);
+                       products.add(productDetails);
                         individualFee = null;
 
 // 1. Check for ALL category and ALL gender
@@ -614,7 +615,7 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            Boolean bypass=false;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
@@ -725,9 +726,18 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             options.put("amount", (totalAmt* 100));
-            options.put("currency", "INR");
-            options.put("receipt", customer.getEmailAddress());
-            com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
+            if(totalAmt<=0) {
+                /*return ResponseService.generateErrorResponse("Razorpay cannot trigger order generation as amount is <= 0",HttpStatus.UNPROCESSABLE_ENTITY);*/
+                bypass = true;
+            }
+            else {
+                options.put("currency", "INR");
+                options.put("receipt", customer.getEmailAddress());
+            }
+            com.razorpay.Order razorpayOrder=null;
+            if(!bypass) {
+                razorpayOrder = razorpayCLient.orders.create(options);
+            }
             for (OrderItem orderItem : cart.getOrderItems()) {
                 if (orderItemIds.contains(orderItem.getId())) {
                     Product product = findProductFromItemAttribute(orderItem);
@@ -839,9 +849,26 @@ public class CartEndPoint extends BaseEndpoint {
                         entityManager.persist(razorpayDetails);
                         //
 
-                    } else
+                    }else if(bypass)
+                    {
+                        individualOrder.setOrderNumber("N/A");
+                        OrderStatus orderStatus = new OrderStatus("NEW", null);
+                        individualOrder.setStatus(orderStatus);
+
+                        //creating razorpay order
+                        RazorpayDetails razorpayDetails=new RazorpayDetails();
+                        razorpayDetails.setOrderId(individualOrder.getId());
+                        razorpayDetails.setRazorpayOrderId("N/A");
+                        razorpayDetails.setTimeStamp(LocalDateTime.now());
+                        razorpayDetails.setStatus("N/A");
+                        entityManager.persist(razorpayDetails);
+                    }
+                    else
                         return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
-                    orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
+                    if(bypass)
+                        orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
+                    else
+                        orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
                     orderState.setModifiedDate(new Date());
                     orderState.setModifierUserId(customerId);
@@ -864,8 +891,16 @@ public class CartEndPoint extends BaseEndpoint {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customerId, customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
             }
-            return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
+            if(bypass)
+            {
+                for(Long orderItemId:orderItemIds)
+                    cartService.removeItemFromCart(cart,orderItemId);
+                return ResponseService.generateSuccessResponse("Order Placed successfully", orderDTOS, HttpStatus.OK);
+            }
+            else
+                return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
         } catch (RazorpayException razorpayException) {
+            razorpayException.printStackTrace();
             return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
 

@@ -221,6 +221,9 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "soft_delete", columnDefinition = "VARCHAR DEFAULT 'N'")
     private String del;
 
+    @Column(name = "rejection_comment")
+    private String rejectionComment;
+
     @ElementCollection
     @CollectionTable(name = "product_purchasers",
             joinColumns = @JoinColumn(name = "product_id"))
