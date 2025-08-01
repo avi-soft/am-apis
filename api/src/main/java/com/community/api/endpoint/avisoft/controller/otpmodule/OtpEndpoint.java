@@ -105,8 +105,15 @@ public class OtpEndpoint {
 
     @PostMapping(value = "/send-otp", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session, @RequestHeader(value = "Authorization", required = false) String authHeader) throws UnsupportedEncodingException {
+    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpServletRequest request, HttpSession session, @RequestHeader(value = "Authorization", required = false) String authHeader) throws UnsupportedEncodingException {
         try {
+
+            if(authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                String ipAddress = request.getRemoteAddr();
+                log.info("dfhshflashdfklhasklfhsalhdf-----------------------------------");
+                jwtTokenUtil.validateToken(jwtToken, null, null);
+            }
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
                 return responseService.generateErrorResponse(ApiConstants.MOBILE_NUMBER_NULL_OR_EMPTY, HttpStatus.NOT_ACCEPTABLE);
             }
@@ -154,10 +161,11 @@ public class OtpEndpoint {
                 return responseService.generateErrorResponse(ApiConstants.RATE_LIMIT_EXCEEDED, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
             }
         } catch (PersistenceException persistenceException) {
-            return ResponseService.generateErrorResponse("Error sending otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Some error occurred" + e.getMessage(), HttpStatus.BAD_REQUEST);
+            exceptionHandling.handleException(persistenceException);
+            return ResponseService.generateErrorResponse("Error sending otp: " + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            return responseService.generateErrorResponse("Some error occurred: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
