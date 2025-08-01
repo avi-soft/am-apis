@@ -1735,14 +1735,14 @@ public class CustomerEndpoint {
                 query.setParameter("cid", customCustomer.getId());
                 query.setParameter("sid", serviceProvider.getService_provider_id());
                 if (((BigInteger) query.getSingleResult()).intValue() == 0)
-                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 System.out.println(((BigInteger) query.getSingleResult()).intValue());
             }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
             if (customCustomer.getArchived() != null) {
-                if (customCustomer.getArchived().equals(true)) {
+                if (customCustomer.getArchived().equals(true) && !role.getRole_name().equals(SUPER_ADMIN) && !role.getRole_name().equals(ADMIN) && !role.getRole_name().equals(SERVICE_PROVIDER)) {
                     return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
                 }
             }
