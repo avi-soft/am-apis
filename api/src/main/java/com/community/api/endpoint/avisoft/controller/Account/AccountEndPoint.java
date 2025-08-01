@@ -776,7 +776,7 @@ public class AccountEndPoint {
             ip = ip.split(",")[0];
         }
         String token=null;
-        if(roleId!=null&&(roleId==1||roleId==2))
+        if(id!=null&&(roleId==1||roleId==2))
         {
             token = jwtUtil.generateShortLivedToken(id,5, ip);
         }
