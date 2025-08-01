@@ -898,7 +898,7 @@ public class CustomerEndpoint {
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
                         if (result > 0) {
-                            errorMessages.put("adharNumber", "Aadhar number already in use.");
+                            errorMessages.put("adharNumber", "Aadhaar number already in use.");
                             details.remove("adharNumber");
                         }
                     }
@@ -908,7 +908,7 @@ public class CustomerEndpoint {
                     Integer result = ((Number) query.getSingleResult()).intValue();
                     System.out.println("result" + result);
                     if (result > 0) {
-                        errorMessages.put("adharNumber", "Aadhar number already in use!!");
+                        errorMessages.put("adharNumber", "Aadhaar number already in use!!");
                         details.remove("adharNumber");
                     }
                 }
