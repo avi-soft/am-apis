@@ -469,9 +469,9 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-//                      EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
-                        EligibilityResult result=new EligibilityResult();
-                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);
+                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+                       /* EligibilityResult result=new EligibilityResult();
+                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);*/
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
                        products.add(productDetails);
