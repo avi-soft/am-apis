@@ -9,6 +9,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.mchange.rmi.NotAuthorizedException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -336,8 +338,6 @@ public class JwtUtil {
             throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "Token is expired and cannot be used.");
         } catch (MalformedJwtException | SignatureException e) {
             exceptionHandling.handleException(e);
-            System.out.println("3111");
-            System.out.println("p2");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid JWT token", e);
         } catch (Exception e) {
             exceptionHandling.handleException(e);

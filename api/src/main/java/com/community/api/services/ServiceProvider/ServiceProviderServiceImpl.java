@@ -1692,12 +1692,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
         if (serviceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         if (passwordEncoder.matches(password, serviceProvider.getPassword())) {
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenServiceProvider_" + serviceProvider.getMobileNumber();
-
 
             String existingToken = serviceProvider.getToken();
 
@@ -1718,10 +1717,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 Map<String, Object> responseBody = createAuthResponse(newToken, serviceProviderResponse).getBody();
 
-
                 return ResponseEntity.ok(responseBody);
-
-
             }
         } else {
             return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
@@ -1873,7 +1869,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if (existingServiceProvider == null) {
                 return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.BAD_REQUEST);
-
             }
             Integer role = existingServiceProvider.getRole();
             String storedOtp = existingServiceProvider.getOtp();

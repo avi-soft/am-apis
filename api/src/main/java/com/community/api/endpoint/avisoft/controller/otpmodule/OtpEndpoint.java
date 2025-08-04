@@ -115,6 +115,11 @@ public class OtpEndpoint {
                 String ipAddress = request.getRemoteAddr();
                 String userAgent = request.getHeader("User-Agent");
                 jwtTokenUtil.validateArchived(jwtToken, ipAddress, userAgent);
+
+                int role = jwtTokenUtil.extractRoleId(jwtToken);
+                if (roleService.findRoleName(role).equals(Constant.roleUser)) {
+                    return responseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
+                }
             }
 
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
@@ -179,6 +184,19 @@ public class OtpEndpoint {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
         try {
+
+            if(authHeadReq != null) {
+                String jwtToken = authHeadReq.substring(7);
+                String ipAddress = request.getRemoteAddr();
+                String userAgent = request.getHeader("User-Agent");
+                jwtTokenUtil.validateArchived(jwtToken, ipAddress, userAgent);
+
+                int role = jwtTokenUtil.extractRoleId(jwtToken);
+                if (roleService.findRoleName(role).equals(Constant.roleUser)) {
+                    return responseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
+                }
+            }
+
             String authHeader = Constant.BEARER_CONST;
             loginDetails = sanitizerService.sanitizeInputMap(loginDetails);
 
@@ -272,11 +290,15 @@ public class OtpEndpoint {
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         } catch (PersistenceException persistenceException) {
+            exceptionHandling.handleException(persistenceException);
             return ResponseService.generateErrorResponse("Error verifying otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            return responseService.generateErrorResponse("Otp verification error:" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
