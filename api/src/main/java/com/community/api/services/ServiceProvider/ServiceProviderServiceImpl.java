@@ -37,12 +37,14 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Not;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -1837,7 +1839,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) {
+    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) throws NotAuthorizedException {
         try {
             String username = (String) serviceProviderDetails.get("username");
             String otpEntered = (String) serviceProviderDetails.get("otpEntered");
@@ -1869,6 +1871,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if (existingServiceProvider == null) {
                 return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.BAD_REQUEST);
+            }
+
+            if(existingServiceProvider.getIsArchived()) {
+                throw new NotAuthorizedException("Your account is suspended please contact support");
             }
             Integer role = existingServiceProvider.getRole();
             String storedOtp = existingServiceProvider.getOtp();
@@ -1916,6 +1922,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             }
 
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            throw new NotAuthorizedException(notAuthorizedException.getMessage());
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

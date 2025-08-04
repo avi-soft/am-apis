@@ -110,7 +110,7 @@ public class OtpEndpoint {
         try {
 
             // TODO- @RAMAN NEED TO SEE THIS ON MONDAY AND TEST WHOLE FUNCTIONALITY.
-            if(authHeader != null) {
+            if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 String ipAddress = request.getRemoteAddr();
                 String userAgent = request.getHeader("User-Agent");
@@ -185,7 +185,7 @@ public class OtpEndpoint {
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
         try {
 
-            if(authHeadReq != null) {
+            if (authHeadReq != null) {
                 String jwtToken = authHeadReq.substring(7);
                 String ipAddress = request.getRemoteAddr();
                 String userAgent = request.getHeader("User-Agent");
@@ -242,6 +242,10 @@ public class OtpEndpoint {
 
                 if (existingCustomer == null) {
                     return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                }
+
+                if (existingCustomer.getArchived()) {
+                    throw new NotAuthorizedException();
                 }
 
                 String storedOtp = existingCustomer.getOtp();
