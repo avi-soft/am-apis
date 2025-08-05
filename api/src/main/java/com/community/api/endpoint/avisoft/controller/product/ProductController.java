@@ -482,7 +482,7 @@ public class ProductController extends CatalogEndpoint {
 
             if (addProductDto.getProductState()!=null&&(addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4)) {
                 if (roleId == 4) {
-                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.FORBIDDEN);
                 }
                 long existingState = customProduct.getProductState().getProductStateId();
                 System.out.println(existingState+"existing state");
@@ -875,22 +875,22 @@ public class ProductController extends CatalogEndpoint {
                 Long id = (Long) query.getSingleResult();
                 ProductEvents productEvents = null;
 
-                if (id == null) {
-                    productEvents = new ProductEvents();
-                    productEvents.setLastUpdate(LocalDateTime.now());
-                    productEvents.setSummaryOfUpdate(null);
-                    productEvents.setProductId(productId);
-
-                } else {
-                    productEvents = entityManager.find(ProductEvents.class, id);
-                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
-                        productEvents = new ProductEvents();
-                        productEvents.setLastUpdate(LocalDateTime.now());
-                        productEvents.setSummaryOfUpdate(null);
-                        productEvents.setProductId(productId);
-                    } else
-                        communicate = false;
-                }
+//                if (id == null) {
+//                    productEvents = new ProductEvents();
+//                    productEvents.setLastUpdate(LocalDateTime.now());
+//                    productEvents.setSummaryOfUpdate(null);
+//                    productEvents.setProductId(productId);
+//
+//                } else {
+//                    productEvents = entityManager.find(ProductEvents.class, id);
+//                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
+//                        productEvents = new ProductEvents();
+//                        productEvents.setLastUpdate(LocalDateTime.now());
+//                        productEvents.setSummaryOfUpdate(null);
+//                        productEvents.setProductId(productId);
+//                    } else
+//                        communicate = false;
+//                }
                 if (communicate && !diff.isEmpty()) {
                     CommunicationRequest communicationRequest = new CommunicationRequest();
                     CustomProduct customProductSession = getProductWithPurchasers(customProduct.getId());
@@ -900,7 +900,7 @@ public class ProductController extends CatalogEndpoint {
                     modes.add(1);
                     communicationRequest.setModes(modes);
                     communicationRequest.setContentText(sharedUtilityService.generateUpdateEmailContent(customProduct, diff));
-                    entityManager.persist(productEvents);
+//                    entityManager.persist(productEvents);
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
@@ -1154,15 +1154,15 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(!customProduct.getUserId().equals(tokenUserId))
                     {
-                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.FORBIDDEN);
                     }
                     if(customProduct.getProductState().getProductStateId()==6||customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.FORBIDDEN);
                 }
                 else
                 {
                     if(customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.FORBIDDEN);
 
                 }
             }

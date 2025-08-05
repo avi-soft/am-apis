@@ -537,5 +537,8 @@ public class Constant {
                     ") " +
                     "SELECT COUNT(*) " +
                     "FROM all_products";
+
+
+    public   static String KEY="2025202220202512";
     //add constants above this query//*******************************************************************************
 }

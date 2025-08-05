@@ -29,7 +29,6 @@ import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderInfraService;
 import com.community.api.services.ServiceProviderLanguageService;
 import com.community.api.services.ServiceProviderReRankingEligibilityService;
-import com.community.api.services.ServiceProviderReRankingScoreService;
 import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
@@ -38,12 +37,14 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Not;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -1674,7 +1675,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1682,7 +1683,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1693,12 +1694,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
         if (serviceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         if (passwordEncoder.matches(password, serviceProvider.getPassword())) {
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenServiceProvider_" + serviceProvider.getMobileNumber();
-
 
             String existingToken = serviceProvider.getToken();
 
@@ -1719,10 +1719,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 Map<String, Object> responseBody = createAuthResponse(newToken, serviceProviderResponse).getBody();
 
-
                 return ResponseEntity.ok(responseBody);
-
-
             }
         } else {
             return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
@@ -1842,7 +1839,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) {
+    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) throws NotAuthorizedException {
         try {
             String username = (String) serviceProviderDetails.get("username");
             String otpEntered = (String) serviceProviderDetails.get("otpEntered");
@@ -1873,8 +1870,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
 
             if (existingServiceProvider == null) {
-                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.BAD_REQUEST);
+            }
 
+            if(existingServiceProvider.getIsArchived()) {
+                throw new NotAuthorizedException("Your account is suspended please contact support");
             }
             Integer role = existingServiceProvider.getRole();
             String storedOtp = existingServiceProvider.getOtp();
@@ -1922,6 +1922,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             }
 
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            throw new NotAuthorizedException(notAuthorizedException.getMessage());
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
