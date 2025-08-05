@@ -197,7 +197,7 @@ public class CartService {
     private EligibilityResult checkSingleQualificationEligibility(List<QualificationDetails> customerQualifications, QualificationGroup eligibility, CustomCustomer customer) {
         EligibilityResult result = new EligibilityResult();
 
-        for (QualificationDetails qualification : customerQualifications) {
+        for (QualificationDetails qualification : customerQualifications) { 
             EligibilityResult qualResult = checkQualificationMatch(qualification, eligibility, customer);
 
             if (qualResult.getStatus() == EligibilityStatus.ELIGIBLE) {
