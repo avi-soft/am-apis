@@ -488,6 +488,10 @@ public class QualificationDetailsService {
                 break;
             }
         }
+        if(qualification.getCourse_duration_in_months()==null||qualification.getCourse_duration_in_months().toString().isEmpty())
+        {
+            qualificationDetailsToUpdate.setCourse_duration_in_months(null);
+        }
         if (qualificationDetailsToUpdate == null) {
             throw new EntityDoesNotExistsException("Qualification details with id " + qualificationId + " does not exists");
         }
