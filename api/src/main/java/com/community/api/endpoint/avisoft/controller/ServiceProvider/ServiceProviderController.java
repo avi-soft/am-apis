@@ -42,6 +42,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -610,6 +611,7 @@ public class ServiceProviderController {
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(required = false) Long ticketId,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
 
         try {
@@ -621,7 +623,7 @@ public class ServiceProviderController {
             Map<String, String[]> uri = request.getParameterMap();
             if (role != null && (role <= roleId && roleId != 5))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            System.out.println("bypassed");
+
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -709,7 +711,6 @@ public class ServiceProviderController {
                 finalResponse.put("currentPage", currentPage);
                 String message = resultList.isEmpty() ? "No Details Found" : "Details found";
                 return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
-
             }
 
             // Handle search by full name (split into first and last names)
@@ -757,12 +758,20 @@ public class ServiceProviderController {
             List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
 
             finalList.sort((a, b) -> {
-                Object idA = a.get("service_provider_id");
-                Object idB = b.get("service_provider_id");
-                if (idA instanceof Number && idB instanceof Number) {
-                    return Long.compare(((Number) idA).longValue(), ((Number) idB).longValue());
+                Date dateA = (Date) a.get("updated_date");
+                Date dateB = (Date) b.get("updated_date");
+
+                if (dateA == null && dateB == null) return 0;
+
+                if ("ASC".equalsIgnoreCase(sortOrder)) {
+                    if (dateA == null) return -1; // nulls first
+                    if (dateB == null) return 1;
+                    return dateA.compareTo(dateB);
+                } else {
+                    if (dateA == null) return 1; // nulls last
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
                 }
-                return 0;
             });
 
             int totalItems = finalList.size();
@@ -771,7 +780,6 @@ public class ServiceProviderController {
 
             int fromIndex = Math.min(offset * limit, totalItems);
             int toIndex = Math.min(fromIndex + limit, totalItems);
-
 
             List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
