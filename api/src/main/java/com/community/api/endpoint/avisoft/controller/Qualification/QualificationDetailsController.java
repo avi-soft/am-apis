@@ -205,7 +205,7 @@ public class QualificationDetailsController
 //            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
-            if(!qualificationDetailsToUpdate.getSubject_ids().contains(54L))
+            if(qualificationDetailsToUpdate.getSubject_ids() != null && !qualificationDetailsToUpdate.getSubject_ids().contains(54L))
             {
                 qualificationDetailsToUpdate.setOtherSubjects(new ArrayList<String>());
             }
