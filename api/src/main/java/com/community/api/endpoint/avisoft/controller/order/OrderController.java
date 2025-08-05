@@ -201,7 +201,7 @@ public class OrderController {
             if (customCustomer == null) throw new NotFoundException("Customer with the provided Id not found");
 
             if (!tokenUserId.equals(customerId)) {
-                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
             }
 
             if (customCustomer.getNumberOfOrders() == 0)

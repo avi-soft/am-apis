@@ -482,7 +482,7 @@ public class ProductController extends CatalogEndpoint {
 
             if (addProductDto.getProductState()!=null&&(addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4)) {
                 if (roleId == 4) {
-                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.FORBIDDEN);
                 }
                 long existingState = customProduct.getProductState().getProductStateId();
                 System.out.println(existingState+"existing state");
@@ -1154,15 +1154,15 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(!customProduct.getUserId().equals(tokenUserId))
                     {
-                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.FORBIDDEN);
                     }
                     if(customProduct.getProductState().getProductStateId()==6||customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.FORBIDDEN);
                 }
                 else
                 {
                     if(customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.FORBIDDEN);
 
                 }
             }

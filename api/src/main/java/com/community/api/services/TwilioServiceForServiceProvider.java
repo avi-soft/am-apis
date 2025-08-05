@@ -7,6 +7,8 @@ import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import java.util.Random;
 @Service
 public class TwilioServiceForServiceProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(TwilioServiceForServiceProvider.class);
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
 
@@ -43,7 +46,6 @@ public class TwilioServiceForServiceProvider {
 
     @Transactional
     public ResponseEntity<?> sendOtpToMobile(String mobileNumber, String countryCode) {
-
         if (mobileNumber == null || mobileNumber.isEmpty()) {
             return ResponseEntity.badRequest().body("Mobile number cannot be null or empty");
         }
