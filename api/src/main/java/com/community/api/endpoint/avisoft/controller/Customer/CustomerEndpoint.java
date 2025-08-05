@@ -2740,10 +2740,10 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false, defaultValue = "DESC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false, defaultValue = "DESC") String sortOrder) throws Exception {
         /* try {*/
-        if (!sort.equals("DESC") && !sort.equals("ASC"))
-            return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
+        if (!sortOrder.equals("DESC") && !sortOrder.equals("ASC"))
+            return ResponseService.generateErrorResponse("Invalid sortOrder filter", HttpStatus.BAD_REQUEST);
         List<Long> refereeId = null;
         if (ref != null)
             refereeId = ref;
@@ -2817,8 +2817,8 @@ public class CustomerEndpoint {
         if (refids.isEmpty())
             refids = null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
-        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
+        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
         Set<BigInteger> uniqueResults = new HashSet<>();
 
         // Add all elements from both result sets
@@ -3129,7 +3129,7 @@ public class CustomerEndpoint {
                 }
             }
         }
-        if (sort.equals("ASC"))
+        if (sortOrder.equals("ASC"))
             customerList.sort(Comparator.comparing(CustomerBasicDetailsDto::getUpdatedDate));
         else
             customerList.sort(Comparator.comparing(CustomerBasicDetailsDto::getUpdatedDate).reversed());
