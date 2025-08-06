@@ -3129,10 +3129,22 @@ public class CustomerEndpoint {
                 }
             }
         }
-        if (sortOrder.equals("ASC"))
-            customerList.sort(Comparator.comparing(CustomerBasicDetailsDto::getUpdatedDate));
-        else
-            customerList.sort(Comparator.comparing(CustomerBasicDetailsDto::getUpdatedDate).reversed());
+        if ("ASC".equalsIgnoreCase(sortOrder)) {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsFirst(Comparator.naturalOrder())
+                    )
+            );
+        } else {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    )
+            );
+        }
+
         int totalItems = customerList.size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
 
