@@ -1651,6 +1651,8 @@ public class CustomerEndpoint {
             } else {
                 em.merge(customCustomer);
             }
+            customCustomer.setModifiedByRole(roleId);
+            customCustomer.setModifiedById(tokenUserId);
             entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
@@ -1828,7 +1830,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)) {
+            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
                 return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
             }
 

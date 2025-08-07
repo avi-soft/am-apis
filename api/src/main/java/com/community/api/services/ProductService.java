@@ -793,12 +793,12 @@ public class ProductService {
             // Filter for exact date match, ignoring time portion
             if (startRange != null) {
                 jpql.append("AND p.defaultSku.activeStartDate IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeStartDate) = FUNCTION('DATE', :startRange) ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeStartDate) >= FUNCTION('DATE', :startRange) ");
             }
 
             if (endRange != null) {
                 jpql.append("AND p.defaultSku.activeEndDate IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeEndDate) = FUNCTION('DATE', :endRange) ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeEndDate) <= FUNCTION('DATE', :endRange) ");
             }
             if(states!=null&&!states.contains(7L)) {
                 if (Boolean.TRUE.equals(isExpired)) {
