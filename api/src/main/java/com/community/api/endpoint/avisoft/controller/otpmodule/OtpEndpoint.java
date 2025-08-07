@@ -280,8 +280,10 @@ public class OtpEndpoint {
             }
         } catch (PersistenceException persistenceException)
         {
+            persistenceException.printStackTrace();
             return ResponseService.generateErrorResponse("Error verifying otp:"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (Exception e) {
+            e.printStackTrace();
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

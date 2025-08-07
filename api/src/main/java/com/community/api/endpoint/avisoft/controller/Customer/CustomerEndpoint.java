@@ -1828,7 +1828,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)) {
+            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
                 return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
             }
 
