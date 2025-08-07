@@ -1780,18 +1780,26 @@ public class CustomerEndpoint {
             }
 
             String jwtToken = authHeader.substring(7);
-            Integer roleId;
-            Long tokenUserId;
-
-            if (extAuth == null || extAuth.isEmpty()) {
-                roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            } else {
-                roleId = jwtTokenUtil.extractRoleId(extAuth);
-                tokenUserId = jwtTokenUtil.extractId(extAuth);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId=jwtTokenUtil.extractId(jwtToken);
+            if(roleId==5&&!userId.equals(customerId))
+            {
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            if (extUpdate && (roleId != 1 && roleId != 2 && roleId != 5) && (extAuth == null || extAuth.isEmpty())) {
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            if((extUpdate!=null&&extUpdate)&&roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
             }
 
             String role = null;
@@ -1820,7 +1828,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(tokenUserId) && (roleId != 1 && roleId != 2)) {
+            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)) {
                 return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
             }
 
