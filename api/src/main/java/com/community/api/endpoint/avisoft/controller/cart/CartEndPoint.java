@@ -296,7 +296,7 @@ public class CartEndPoint extends BaseEndpoint {
                     customer.getPassword() == null ||
                     customCustomer.getGender() == null) {
                 return ResponseService.generateErrorResponse(
-                        "All fields must be completed: First Name, Last Name, Primary Email, Username, Password, Gender and Category are required before setting up the cart.",
+                        "Please complete your account setup and fill out the 'My Profile' section before setting up the cart.",
                         HttpStatus.BAD_REQUEST
                 );
             }

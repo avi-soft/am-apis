@@ -6,6 +6,7 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.ExternalUseToken;
 import com.community.api.entity.ServiceProviderReRankingEligibility;
 import com.community.api.entity.ServiceProviderReRankingScore;
 import com.community.api.entity.ServiceProviderTestStatus;
@@ -227,6 +228,23 @@ public class OtpEndpoint {
                         String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                         session.setAttribute(tokenKey, newToken);
                         authHeader = authHeadReq;
+                        String jwtToken = authHeader.substring(7);
+                        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                        Long userId=jwtTokenUtil.extractId(jwtToken);
+                        if(roleId==4) {
+                            ExternalUseToken externalUseToken=em.find(ExternalUseToken.class,userId);
+                            if(externalUseToken==null) {
+                                externalUseToken = new ExternalUseToken();
+                                externalUseToken.setToken(newToken);
+                                externalUseToken.setSpId(userId);
+                                em.persist(externalUseToken);
+                            }
+                            else
+                            {
+                                externalUseToken.setToken(newToken);
+                                em.merge(externalUseToken);
+                            }
+                        }
                         ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
                     }
