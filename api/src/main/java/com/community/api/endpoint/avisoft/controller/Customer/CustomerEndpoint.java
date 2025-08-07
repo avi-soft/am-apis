@@ -258,7 +258,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             Boolean externalUpdate = false;
             Boolean isValidDate = null;
@@ -269,7 +269,19 @@ public class CustomerEndpoint {
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Map<String, String> errorMessages = new LinkedHashMap<>();
-
+            CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if(roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            }
             details = sanitizerService.sanitizeInputMap(details);
 
             String dobStr = (String)details.get("dob");
@@ -309,18 +321,8 @@ public class CustomerEndpoint {
                 return ResponseService.generateSuccessResponse("Customer service is not initialized.", "customerService", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
 
-            if ((roleId == 3 || roleId == 4) || (roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
-                if (authToken != null && !authToken.isEmpty()) {
-                    Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
-                    Long userId = jwtTokenUtil.extractId(authToken);
-                    if (roleUpdating != 5 || !userId.equals(customerId))
-                        return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                } else {
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                }
-            }
+
             if (customCustomer == null) {
                 return ResponseService.generateSuccessResponse("No data found for this customerId", "customerId", HttpStatus.NOT_FOUND);
             }
