@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -793,20 +794,21 @@ public class ProductService {
             // Filter for exact date match, ignoring time portion
             if (startRange != null) {
                 jpql.append("AND p.defaultSku.activeStartDate IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeStartDate) = FUNCTION('DATE', :startRange) ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeStartDate) >= FUNCTION('DATE', :startRange) ");
             }
 
             if (endRange != null) {
                 jpql.append("AND p.defaultSku.activeEndDate IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeEndDate) = FUNCTION('DATE', :endRange) ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeEndDate) <= FUNCTION('DATE', :endRange) ");
             }
-
-            if (Boolean.TRUE.equals(isExpired)) {
-                // Only expired products
-                jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
-            } else if(Boolean.FALSE.equals(isExpired)) {
-                // Only non-expired products
-                jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
+            if(states!=null&&!states.contains(7L)) {
+                if (Boolean.TRUE.equals(isExpired)) {
+                    // Only expired products
+                    jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
+                } else if (Boolean.FALSE.equals(isExpired)) {
+                    // Only non-expired products
+                    jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
+                }
             }
             jpql.append("AND p.del = 'N' ");
             jpql.append("ORDER BY p.createdDate DESC ");
@@ -886,7 +888,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds,Boolean isArchived) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds,Boolean isArchived, String sortOrder) {
         try {
             Role role = null;
             if (roleId != null) {
@@ -934,6 +936,23 @@ public class ProductService {
             List<CustomProduct> nonArchivedProducts = allProducts.stream()
                     .filter(p -> p != null && ((Status) p).getArchived() != 'Y')
                     .collect(Collectors.toList());
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                nonArchivedProducts.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                nonArchivedProducts.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
+
             int totalItems = nonArchivedProducts.size();
             int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / limit) : 0;
             if (page >= totalPages && page > 0 && totalItems > 0) {

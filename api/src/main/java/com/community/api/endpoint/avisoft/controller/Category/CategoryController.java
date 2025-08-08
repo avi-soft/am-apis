@@ -149,7 +149,7 @@ public class CategoryController extends CatalogEndpoint {
     public ResponseEntity<?> getCategories(
             HttpServletRequest request,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -225,7 +225,7 @@ public class CategoryController extends CatalogEndpoint {
             HttpServletRequest request,
             @RequestParam(value = "category", required = false) List<Long> parentCategories,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit) {
+            @RequestParam(defaultValue = "30") int limit) {
 
         try {
             if (catalogService == null) {
@@ -292,7 +292,7 @@ public class CategoryController extends CatalogEndpoint {
             HttpServletRequest request,
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestParam(value = "ext",required = false,defaultValue = "false") Boolean ext,
             @RequestHeader(value = "Authorization",required = false) String authHeader) {
         try {
@@ -528,7 +528,7 @@ public class CategoryController extends CatalogEndpoint {
     public ResponseEntity<?> getCategoriesInfo(
             HttpServletRequest request,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit,
+            @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(value = "ext",defaultValue ="false",required = false)Boolean ext) {
         try {
             if(ext)

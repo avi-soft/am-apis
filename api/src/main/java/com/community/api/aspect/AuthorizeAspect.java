@@ -43,7 +43,7 @@ public class AuthorizeAspect {
     private ExceptionHandlingImplement exceptionHandling;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = Constant.BEARER_CONST;;
+    private static final String BEARER_PREFIX = Constant.BEARER_CONST;
     private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
 
     // Pointcut to match methods annotated with @Authorize
@@ -85,6 +85,7 @@ public class AuthorizeAspect {
             return false;
         }
         String roleName=roleService.findRoleName(roleId);
+        System.out.println("Role is: " + roleName);
         List<String> roleList = Arrays.asList(requiredRoles);
         return roleList.contains(roleName);
     }

@@ -12,6 +12,7 @@ import com.community.api.entity.Post;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.QualificationEligibility;
+import com.community.api.entity.QualificationGroup;
 import lombok.Getter;
 import lombok.Setter;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -57,7 +58,9 @@ public class CartService {
         return false;
     }
 
-   /* public EligibilityResult checkCustomerEligibilityDetailed(CustomCustomer customer, CustomProduct product, boolean includeAllReasons) {
+
+
+    public EligibilityResult checkCustomerEligibilityDetailed(CustomCustomer customer, CustomProduct product, boolean includeAllReasons) {
         EligibilityResult result = new EligibilityResult();
 
         if (customer == null || product == null) {
@@ -146,7 +149,7 @@ public class CartService {
 
     private EligibilityResult checkQualificationEligibility(CustomCustomer customer, Post post, boolean includeAllReasons) {
         EligibilityResult result = new EligibilityResult();
-        List<QualificationEligibility> qualificationEligibilities = post.getQualificationEligibility();
+        List<QualificationGroup> qualificationEligibilities = post.getQualificationEligibility();
 
         if (qualificationEligibilities == null || qualificationEligibilities.isEmpty()) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
@@ -163,7 +166,7 @@ public class CartService {
         boolean hasMatchingQualification = false;
         boolean hasWarnings = false;
 
-        for (QualificationEligibility eligibility : qualificationEligibilities) {
+        for (QualificationGroup eligibility : qualificationEligibilities) {
             EligibilityResult singleQualResult = checkSingleQualificationEligibility(customerQualifications, eligibility, customer);
 
             if (singleQualResult.getStatus() == EligibilityStatus.ELIGIBLE) {
@@ -191,10 +194,10 @@ public class CartService {
         return result;
     }
 
-    private EligibilityResult checkSingleQualificationEligibility(List<QualificationDetails> customerQualifications, QualificationEligibility eligibility, CustomCustomer customer) {
+    private EligibilityResult checkSingleQualificationEligibility(List<QualificationDetails> customerQualifications, QualificationGroup eligibility, CustomCustomer customer) {
         EligibilityResult result = new EligibilityResult();
 
-        for (QualificationDetails qualification : customerQualifications) {
+        for (QualificationDetails qualification : customerQualifications) { 
             EligibilityResult qualResult = checkQualificationMatch(qualification, eligibility, customer);
 
             if (qualResult.getStatus() == EligibilityStatus.ELIGIBLE) {
@@ -213,95 +216,99 @@ public class CartService {
         return result;
     }
 
-    private EligibilityResult checkQualificationMatch(QualificationDetails qualification, QualificationEligibility eligibility, CustomCustomer customer) {
+    private EligibilityResult checkQualificationMatch(QualificationDetails qualification, QualificationGroup eligibility, CustomCustomer customer) {
         EligibilityResult result = new EligibilityResult();
 
         // Standard qualification matching first
         boolean qualificationMatches = false;
-        for (Qualification requiredQualification : eligibility.getQualifications()) {
-            if (qualification.getQualification_id().equals(requiredQualification.getQualification_id())) {
+            for(QualificationEligibility req:eligibility.getQualificationGroups()) {
                 qualificationMatches = true;
-                break;
-            } else if (qualification.getQualification_id().equals(Constant.BACHELORS_QUALIFICATION) || qualification.getQualification_id().equals(Constant.MASTERS_QUALIFICATION)) {
-                Qualification qualificationToFind = entityManager.find(Qualification.class, qualification.getQualification_id());
-                Qualification requiredQualificationToFind = entityManager.find(Qualification.class, requiredQualification.getQualification_id());
-                if (qualificationToFind != null && requiredQualificationToFind != null &&
-                        qualificationToFind.getOverlap() != null &&
-                        qualificationToFind.getOverlap().equals(requiredQualificationToFind.getOverlap())) {
-                    qualificationMatches = true;
-                    break;
+                for (Qualification qualificationEligibility : req.getQualifications()) {
+                    if (!qualification.getQualification_id().equals(qualificationEligibility.getQualification_id())) {
+                        qualificationMatches = false;
+                        break;
+                    } else if (qualification.getQualification_id().equals(Constant.BACHELORS_QUALIFICATION) || qualification.getQualification_id().equals(Constant.MASTERS_QUALIFICATION)) {
+                        Qualification qualificationToFind = entityManager.find(Qualification.class, qualification.getQualification_id());
+                        Qualification requiredQualificationToFind = entityManager.find(Qualification.class, qualificationEligibility.getQualification_id());
+                        if (qualificationToFind != null && requiredQualificationToFind != null &&
+                                qualificationToFind.getOverlap() != null &&
+                                qualificationToFind.getOverlap().equals(requiredQualificationToFind.getOverlap())) {
+                            qualificationMatches = true;
+                            break;
+                        }
+                    }
+                }
+
+                System.out.println("matches or not");
+                System.out.println(qualificationMatches);
+                // If qualification matches, proceed with other checks without "Others" warnings
+                if (qualificationMatches) {
+                    // Check stream eligibility
+                    EligibilityResult streamResult = checkStreamEligibilityForMatching(qualification, req);
+                    if (streamResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.getReasons().addAll(streamResult.getReasons());
+                        return result;
+                    }
+
+                    // Check subject eligibility
+                    EligibilityResult subjectResult = checkSubjectEligibilityForMatching(qualification, req);
+                    if (subjectResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.getReasons().addAll(subjectResult.getReasons());
+                        return result;
+                    }
+
+                    // Check category eligibility
+                    EligibilityResult categoryResult = checkCategoryEligibility(customer, req);
+                    if (categoryResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.getReasons().addAll(categoryResult.getReasons());
+                        return result;
+                    }
+
+                    // Check marks/CGPA eligibility
+                    EligibilityResult marksResult = checkMarksEligibility(qualification, req);
+                    if (marksResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.getReasons().addAll(marksResult.getReasons());
+                        return result;
+                    }
+
+                    result.setStatus(EligibilityStatus.ELIGIBLE);
+                    return result;
+                }
+
+
+                // If qualification doesn't match, check for "Others" scenarios for warnings
+                // Check if any required qualification has "Others" ID
+                boolean hasOthersInProduct = req.getQualifications().stream()
+                        .anyMatch(q -> Constant.OTHERS_QUALIFICATION_ID.equals(q.getQualification_id()));
+
+                if (hasOthersInProduct) {
+                    result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                    result.addWarning("Product requires 'Others' qualification. Please verify manually if your qualification matches the product requirements");
+                    return result;
+                }
+
+                // Check if customer has "Others" qualification
+                if (Constant.OTHERS_QUALIFICATION_ID.equals(qualification.getQualification_id())) {
+                    // Check if any specific qualification matches first
+                    boolean hasSpecificMatch = false;
+                    for (Qualification requiredQual : req.getQualifications()) {
+                        if (!Constant.OTHERS_QUALIFICATION_ID.equals(requiredQual.getQualification_id())) {
+                            hasSpecificMatch = true;
+                            break;
+                        }
+                    }
+
+                    if (hasSpecificMatch) {
+                        result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                        result.addWarning("You have 'Others' qualification. Please verify manually if it matches the specific qualifications required for this product");
+                        return result;
+                    }
                 }
             }
-        }
-
-        System.out.println("matches or not");
-        System.out.println(qualificationMatches);
-        // If qualification matches, proceed with other checks without "Others" warnings
-        if (qualificationMatches) {
-            // Check stream eligibility
-            EligibilityResult streamResult = checkStreamEligibilityForMatching(qualification, eligibility);
-            if (streamResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.getReasons().addAll(streamResult.getReasons());
-                return result;
-            }
-
-            // Check subject eligibility
-            EligibilityResult subjectResult = checkSubjectEligibilityForMatching(qualification, eligibility);
-            if (subjectResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.getReasons().addAll(subjectResult.getReasons());
-                return result;
-            }
-
-            // Check category eligibility
-            EligibilityResult categoryResult = checkCategoryEligibility(customer, eligibility);
-            if (categoryResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.getReasons().addAll(categoryResult.getReasons());
-                return result;
-            }
-
-            // Check marks/CGPA eligibility
-            EligibilityResult marksResult = checkMarksEligibility(qualification, eligibility);
-            if (marksResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.getReasons().addAll(marksResult.getReasons());
-                return result;
-            }
-
-            result.setStatus(EligibilityStatus.ELIGIBLE);
-            return result;
-        }
-
-        // If qualification doesn't match, check for "Others" scenarios for warnings
-        // Check if any required qualification has "Others" ID
-        boolean hasOthersInProduct = eligibility.getQualifications().stream()
-                .anyMatch(q -> Constant.OTHERS_QUALIFICATION_ID.equals(q.getQualification_id()));
-
-        if (hasOthersInProduct) {
-            result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
-            result.addWarning("Product requires 'Others' qualification. Please verify manually if your qualification matches the product requirements");
-            return result;
-        }
-
-        // Check if customer has "Others" qualification
-        if (Constant.OTHERS_QUALIFICATION_ID.equals(qualification.getQualification_id())) {
-            // Check if any specific qualification matches first
-            boolean hasSpecificMatch = false;
-            for (Qualification requiredQual : eligibility.getQualifications()) {
-                if (!Constant.OTHERS_QUALIFICATION_ID.equals(requiredQual.getQualification_id())) {
-                    hasSpecificMatch = true;
-                    break;
-                }
-            }
-
-            if (hasSpecificMatch) {
-                result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
-                result.addWarning("You have 'Others' qualification. Please verify manually if it matches the specific qualifications required for this product");
-                return result;
-            }
-        }
 
         // No match and no "Others" scenario
         result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -1187,5 +1194,5 @@ public class CartService {
     public boolean isCustomerEligibleForProduct(CustomCustomer customer, CustomProduct product) {
         EligibilityResult result = checkCustomerEligibilityDetailed(customer, product, false);
         return result.getStatus() == EligibilityStatus.ELIGIBLE || result.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS;
-    }*/
+    }
 }
