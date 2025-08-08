@@ -1765,7 +1765,7 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "exUpdate", defaultValue = "false", required = false) Boolean extUpdate,
+            @RequestParam(value = "extUpdate", defaultValue = "false", required = false) Boolean extUpdate,
             @RequestHeader(value = "extAuth", required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
@@ -1797,11 +1797,11 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
                 ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
                 if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
                     roleId=5;
                 else
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
 
             String role = null;
@@ -1831,7 +1831,7 @@ public class CustomerEndpoint {
             }
 
             if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
-                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.FORBIDDEN);
             }
 
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).

@@ -164,6 +164,7 @@ public class OtpEndpoint {
 
     @Transactional
     @PostMapping("/verify-otp")
+
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization",required = false)String authHeadReq) {
         try {
             String authHeader=Constant.BEARER_CONST;
@@ -280,8 +281,10 @@ public class OtpEndpoint {
             }
         } catch (PersistenceException persistenceException)
         {
+            persistenceException.printStackTrace();
             return ResponseService.generateErrorResponse("Error verifying otp:"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (Exception e) {
+            e.printStackTrace();
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
