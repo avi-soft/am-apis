@@ -162,7 +162,7 @@ public class SectorController {
     @GetMapping("/get-products-by-sectors")
     public ResponseEntity<?> getProductsByAdvertisementId(
             @RequestParam(value = "sectors", required = false) String sectors,
-            @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit,
+            @RequestParam(value = "limit", required = false, defaultValue = "30") Integer limit,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "name-only", required = false, defaultValue = "true") Boolean nameOnly,
@@ -259,7 +259,7 @@ public class SectorController {
 
     @GetMapping("/get-products-by-sector-id")
     public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
-            ,@RequestParam(value = "limit",required = false,defaultValue = "1000")Integer limit
+            ,@RequestParam(value = "limit",required = false,defaultValue = "30")Integer limit
             ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
             ,@RequestHeader(value = "Authorization", required = false) String authHeader
             ,@RequestParam(value = "categoryId", required = false) List<Long> categoryId)

@@ -92,6 +92,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -268,7 +269,6 @@ public class ProductController extends CatalogEndpoint {
             if(categoryId!=null)
                 category = productService.validateCategory(categoryId);
 
-
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
             } else {
@@ -400,7 +400,7 @@ public class ProductController extends CatalogEndpoint {
                 postList = postService.savePosts(addProductDto.getPosts(), product);
             }
             if(addProductDto.getActiveStartDate()!=null)
-                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
             else
             {
                 productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
@@ -1063,7 +1063,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (offset < 0) {
@@ -1206,7 +1206,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (catalogService == null) {
@@ -1273,7 +1273,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (catalogService == null) {
@@ -1353,7 +1353,8 @@ public class ProductController extends CatalogEndpoint {
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestBody(required = false) FilterProductTitleDto titleDto) {
 
         try {
@@ -1418,6 +1419,22 @@ public class ProductController extends CatalogEndpoint {
             products = (List<CustomProduct>) opresponse.get("products");
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
+            }
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                products.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                products.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
             }
 
             // Filtering out archived products
@@ -1516,7 +1533,7 @@ public class ProductController extends CatalogEndpoint {
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts,
             @RequestParam(value = "state", required = false) List<Long> state,
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
@@ -1528,6 +1545,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
             @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestParam(value = "isArchived", required = false) Boolean isArchived) {
 
         try {
@@ -1556,7 +1574,7 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
             return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, titleDto != null ? titleDto.getTitle() : null,
-                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds, isArchived);
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds, isArchived, sortOrder);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
