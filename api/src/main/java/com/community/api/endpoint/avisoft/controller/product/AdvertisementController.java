@@ -272,8 +272,9 @@ public class AdvertisementController {
             @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
             @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
             @RequestParam(value = "id",required = false)Long id,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
+            @RequestParam(defaultValue = "30") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
         try {
 
@@ -329,7 +330,21 @@ public class AdvertisementController {
                     return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
             }
 
-
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                advertisements.sort(
+                        Comparator.comparing(
+                                Advertisement::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                advertisements.sort(
+                        Comparator.comparing(
+                                Advertisement::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
             for (Advertisement advertisement : advertisements) {
                 if (advertisement == null) {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
@@ -400,7 +415,7 @@ public class AdvertisementController {
             if(ext)
             {
                 List<Object[]> rows =advertisementService.getAdvCompressed(longList,offset,limit);
-                System.out.println("res"+rows);
+
                 BigInteger count=advertisementService.getAdvCompressedCount(longList);
                 List<AdvertisementCompressedDTO>adv=new ArrayList<>();
                 for (Object[] row : rows) {
@@ -597,8 +612,6 @@ public class AdvertisementController {
             {
                return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
             }
-
-
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
