@@ -184,7 +184,7 @@ public class OtpEndpoint {
 
     @Transactional
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
+    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization",required = false)String authHeadReq) {
         try {
 
             if (authHeadReq != null) {
@@ -264,34 +264,22 @@ public class OtpEndpoint {
                         String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                         session.setAttribute(tokenKey, newToken);
                         authHeader = authHeadReq;
-
                         String jwtToken = authHeader.substring(7);
                         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                        Long userId=jwtTokenUtil.extractId(jwtToken);
-                        if(roleId==4) {
-                            ExternalUseToken externalUseToken=em.find(ExternalUseToken.class,userId);
-                            if(externalUseToken==null) {
+                        Long userId = jwtTokenUtil.extractId(jwtToken);
+                        if (roleId == 4) {
+                            ExternalUseToken externalUseToken = em.find(ExternalUseToken.class, userId);
+                            if (externalUseToken == null) {
                                 externalUseToken = new ExternalUseToken();
                                 externalUseToken.setToken(newToken);
                                 externalUseToken.setSpId(userId);
                                 em.persist(externalUseToken);
-                            }
-                            else
-                            {
+                            } else {
                                 externalUseToken.setToken(newToken);
                                 em.merge(externalUseToken);
                             }
                         }
-                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
-                        return ResponseEntity.ok(response);
-                    }
-                    else
-                    {
-                    String existingToken = existingCustomer.getToken();
-                    if (existingToken!= null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-                        authHeader=authHeader+existingToken;
-                        ApiResponse response = new ApiResponse(existingToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
-
+                        ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                         return ResponseEntity.ok(response);
                     } else {
                         String existingToken = existingCustomer.getToken();
@@ -311,15 +299,16 @@ public class OtpEndpoint {
                         }
                     }
                 } else {
-                    return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.FORBIDDEN);
+                    return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
                 }
             } else if (!roleService.findRoleName(role).equals(Constant.roleUser)) {
                 return serviceProviderService.verifyOtp(loginDetails, session, request);
             }
 
-        /*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
-                return adminService.verifyOtpForAdmin(loginDetails,session,request);
-            }*/
+    /*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
+            return adminService.verifyOtpForAdmin(loginDetails,session,request);
+        }*/
+
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
