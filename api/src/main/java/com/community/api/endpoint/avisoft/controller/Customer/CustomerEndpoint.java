@@ -1651,6 +1651,8 @@ public class CustomerEndpoint {
             } else {
                 em.merge(customCustomer);
             }
+            customCustomer.setModifiedByRole(roleId);
+            customCustomer.setModifiedById(tokenUserId);
             entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
