@@ -731,6 +731,8 @@ public class AccountEndPoint {
             userId = jwtUtil.extractId(jwtToken);
             roleId = jwtUtil.extractRoleId(jwtToken);
         }
+        System.out.println("user"+userId);
+        System.out.println("role"+roleId);
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
@@ -738,11 +740,17 @@ public class AccountEndPoint {
             // If multiple IPs are present, take the first one
             ip = ip.split(",")[0];
         }
-        String token = null;
-        if (roleId != null && (roleId == 1 || roleId == 2)) {
-            token = jwtUtil.generateShortLivedToken(id, 5, ip);
-        } else
-            token = jwtUtil.generateShortLivedToken(id, 5, ip);
+
+        String token=null;
+        if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
+        {
+            System.out.println("case1");
+            token = jwtUtil.generateShortLivedToken(id,5, ip);
+        }
+        else {
+            System.out.println("case2");
+            token = jwtUtil.generateShortLivedToken(userId, roleId, ip);
+        }
 
         TypedQuery<ShortAccessToken> query = em.createQuery(
                 "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
