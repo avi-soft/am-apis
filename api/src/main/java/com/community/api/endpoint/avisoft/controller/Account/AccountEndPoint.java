@@ -6,7 +6,8 @@ import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
-
+import com.community.api.entity.ExternalUseToken;
+import com.community.api.entity.Role;
 import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ApiConstants;
@@ -723,14 +724,16 @@ public class AccountEndPoint {
 
     @Transactional
     @GetMapping("/genAuth")
-    public ResponseEntity<?> generateShortLivedToken(@RequestHeader(required = true, value = "Authorization") String authHeader, HttpServletRequest request, @RequestParam(required = false, name = "xcd1s") Long id) {
-        Long userId = null;
-        Integer roleId = null;
+    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request,@RequestParam(required = false,name = "xcd1s")Long id,@RequestParam(required = false,name = "3a9f",defaultValue ="false")Boolean ext)
+    {
+        Long userId=null;
+        Integer roleId=null;
         if (authHeader != null) {
             String jwtToken = authHeader.substring(7);
             userId = jwtUtil.extractId(jwtToken);
             roleId = jwtUtil.extractRoleId(jwtToken);
         }
+
         System.out.println("user"+userId);
         System.out.println("role"+roleId);
         String ip = request.getHeader("X-Forwarded-For");
@@ -742,7 +745,13 @@ public class AccountEndPoint {
         }
 
         String token=null;
-        if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
+        if(roleId==4&&ext)
+        {
+            ExternalUseToken externalUseToken=em.find(ExternalUseToken.class,userId);
+            Long uid=jwtUtil.extractId(externalUseToken.getToken());
+            token = jwtUtil.generateShortLivedToken(uid,5, ip);
+        }
+        else if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
         {
             System.out.println("case1");
             token = jwtUtil.generateShortLivedToken(id,5, ip);

@@ -1763,7 +1763,7 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "exUpdate", defaultValue = "false", required = false) Boolean extUpdate,
+            @RequestParam(value = "extUpdate", defaultValue = "false", required = false) Boolean extUpdate,
             @RequestHeader(value = "extAuth", required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
