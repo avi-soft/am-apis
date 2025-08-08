@@ -103,7 +103,7 @@ public class RoleController {
             return ResponseService.generateSuccessResponse("Available roles to assign are : ", roleService.getCondRoles(authHeader), HttpStatus.OK);
         }catch (NotAuthorizedException e)
         {
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.FORBIDDEN);
         }
     }
     @Transactional

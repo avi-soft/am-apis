@@ -98,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 token = token.trim();
                 String jwtToken = token.substring(7);
                 if (sharedUtilityService.isBlackListed(jwtToken)) {
-                    handleException(response, 403, "Your account is suspended please contact support.");
+                    handleException(response, 401, "Your account is suspended please contact support.");
                 }
             }
 
@@ -205,7 +205,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Transactional
     private boolean authenticateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        System.out.println("hiiiii");
+
         final String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             respondWithUnauthorized(response, "JWT token cannot be empty");
@@ -288,9 +288,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     System.out.println("checking");
                     customAdmin = entityManager.find(ServiceProviderEntity.class, id);
                     System.out.println("checked");
-                }catch (Exception e)
+                }catch (Exception exception)
                 {
-                    System.out.println(e);
+                    System.out.println(exception);
                 }
                 if (customAdmin != null && jwtUtil.validateToken(jwt, ipAdress, User_Agent)) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

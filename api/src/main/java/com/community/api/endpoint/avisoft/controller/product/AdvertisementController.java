@@ -589,7 +589,7 @@ public class AdvertisementController {
                     System.out.println(tokenUserId);
                     if(!advertisement.getUserId().equals(tokenUserId))
                     {
-                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.FORBIDDEN);
                     }
                 }
             }

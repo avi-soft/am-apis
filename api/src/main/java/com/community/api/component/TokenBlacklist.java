@@ -88,6 +88,14 @@ public class TokenBlacklist {
         }
     }
 
+    public boolean isTokenBlacklistedFromDB(String token) {
+        String sql = "SELECT COUNT(*) FROM black_listed_tokens WHERE blacklisttoken = :token";
+        Long count = ((Number) em
+                .createNativeQuery(sql)
+                .setParameter("token", token)
+                .getSingleResult()).longValue();
+        return count > 0;
+    }
 
     /**
      * Clean expired tokens.

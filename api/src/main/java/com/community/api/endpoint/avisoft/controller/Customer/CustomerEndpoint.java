@@ -321,8 +321,6 @@ public class CustomerEndpoint {
                 return ResponseService.generateSuccessResponse("Customer service is not initialized.", "customerService", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-
-
             if (customCustomer == null) {
                 return ResponseService.generateSuccessResponse("No data found for this customerId", "customerId", HttpStatus.NOT_FOUND);
             }
@@ -1788,6 +1786,7 @@ public class CustomerEndpoint {
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
+
             if((extUpdate!=null&&extUpdate)&&roleId==4)
             {
                 if(customerId==null)
@@ -1831,7 +1830,7 @@ public class CustomerEndpoint {
             }
 
             if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
-                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.FORBIDDEN);
             }
 
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
