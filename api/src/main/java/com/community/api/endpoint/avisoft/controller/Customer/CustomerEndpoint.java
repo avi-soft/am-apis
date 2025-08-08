@@ -2483,8 +2483,20 @@ public class CustomerEndpoint {
             Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 throw new IllegalArgumentException("Customer with id " + customerId + " not found");
