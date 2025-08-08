@@ -64,7 +64,7 @@ public class ExceptionHandlingService implements ExceptionHandlingImplement {
     }
     @Override
     public ResponseEntity<?> handleInvalidJwt(Exception ex) {
-        return ResponseService.generateErrorResponse("Invalid JWT Token",HttpStatus.UNAUTHORIZED);
+        return ResponseService.generateErrorResponse("Invalid JWT Token",HttpStatus.FORBIDDEN);
     }
 
     public String handleException(HttpStatus status, Exception e) {

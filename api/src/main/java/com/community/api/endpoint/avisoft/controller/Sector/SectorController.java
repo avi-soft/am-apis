@@ -63,7 +63,7 @@ public class SectorController {
     public ResponseEntity<?> addSubject(@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!staticDataService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.FORBIDDEN);
             }
 
             sectorService.validateAddSubjectDto(addSectorDto);
@@ -82,7 +82,7 @@ public class SectorController {
     public ResponseEntity<?> editSector(@PathVariable Long sectorId,@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!staticDataService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.FORBIDDEN);
             }
             sectorService.validateAddSubjectDto(addSectorDto);
             sectorService.editSector(sectorId,addSectorDto);
