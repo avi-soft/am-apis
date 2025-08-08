@@ -308,6 +308,7 @@ public class OtpEndpoint {
     /*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
             return adminService.verifyOtpForAdmin(loginDetails,session,request);
         }*/
+
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }

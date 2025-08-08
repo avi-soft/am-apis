@@ -1,4 +1,4 @@
-package com.community.api.endpoint.avisoft.controller.Document;
+  package com.community.api.endpoint.avisoft.controller.Document;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
