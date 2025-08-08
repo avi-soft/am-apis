@@ -2234,7 +2234,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2427,7 +2427,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2517,7 +2517,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             if (offset < 0) {
