@@ -269,7 +269,6 @@ public class ProductController extends CatalogEndpoint {
             if(categoryId!=null)
                 category = productService.validateCategory(categoryId);
 
-
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
             } else {
@@ -401,7 +400,7 @@ public class ProductController extends CatalogEndpoint {
                 postList = postService.savePosts(addProductDto.getPosts(), product);
             }
             if(addProductDto.getActiveStartDate()!=null)
-                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
             else
             {
                 productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);

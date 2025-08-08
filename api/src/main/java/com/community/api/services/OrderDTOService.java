@@ -102,7 +102,9 @@ public class OrderDTOService {
                         order.getSubTotal(),
                         orderState.getOrderStateId(),
                 orderStateName,
-                assigneeId
+                assigneeId,
+                order.getAuditable().getDateCreated(),
+                order.getAuditable().getDateUpdated()
                 );
     OrderItem orderItem=order.getOrderItems().get(0);
     Long productId=Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
@@ -171,7 +173,9 @@ public class OrderDTOService {
                 order.getSubTotal(),
                 orderState.getOrderStateId(),
                 orderStateName,
-                assigneeId
+                assigneeId,
+                order.getAuditable().getDateCreated(),
+                order.getAuditable().getDateUpdated()
         );
 
         OrderItem orderItem = order.getOrderItems().get(0);
