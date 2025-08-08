@@ -253,7 +253,7 @@ public class TicketController {
             Role tokenRole = roleService.getRoleByRoleId(roleId);
 
             if(ticket.getArchived() && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN) && !tokenRole.getRole_name().equals(Constant.ADMIN) ) {
-                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.FORBIDDEN);
             }
 
             Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
@@ -484,7 +484,7 @@ public class TicketController {
             return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NotAuthorizedException notAuthorizedException) {
             exceptionHandlingService.handleException(notAuthorizedException);
-            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -542,7 +542,7 @@ public class TicketController {
 
             Role role = roleService.getRoleByRoleId(roleId);
             if (!role.getRole_name().equals(Constant.roleSuperAdmin) && !role.getRole_name().equals(Constant.roleAdmin)) {
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
 
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();

@@ -182,7 +182,7 @@ public class BankAccountController {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
                 if (roleId == 4)
-                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
             }
             if (roleToCheck.getRole_name().equals(Constant.roleServiceProvider)) {
                 ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class, customerId);
@@ -190,10 +190,10 @@ public class BankAccountController {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
                 if (roleId == 5)
-                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
             }
             if (roleId.equals(role) && !tokenUserId.equals(customerId))
-                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
             if (customerId == null) {
                 return ResponseService.generateErrorResponse("User Id not specified", HttpStatus.BAD_REQUEST);
             }
