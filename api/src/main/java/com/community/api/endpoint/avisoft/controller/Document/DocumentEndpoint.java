@@ -318,6 +318,7 @@ public class DocumentEndpoint {
             String ip = request.getHeader("X-Forwarded-For");
 // Set roleId = 5
             int roleId = 5;
+            System.out.println("id is"+id+" and role is"+roleId);
 
 // Generate short-lived token
             String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);

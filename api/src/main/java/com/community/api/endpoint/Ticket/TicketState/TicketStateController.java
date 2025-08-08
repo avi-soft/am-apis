@@ -176,11 +176,11 @@ public class TicketStateController {
                 return ResponseService.generateErrorResponse("Document not found", HttpStatus.NOT_FOUND);
             }
             Query query=entityManager.createNativeQuery("SELECT ticket_id from custom_service_provider_ticket where parent_ticket_id = :ticketId and assignee_user_id = :uid");
-            query.setParameter("ticketId",document.getServiceProviderTicket().getTicketId());
+            query.setParameter("ticketId",document.getTicketHistory().getTicket().getTicketId());
             query.setParameter("uid",tokenUserId);
-            System.out.println("parent ticket id is"+document.getServiceProviderTicket().getTicketId());
+            System.out.println("parent ticket id is"+document.getTicketHistory().getTicket().getTicketId());
             System.out.println("uid is"+tokenUserId);
-            Long assigneeId = document.getServiceProviderTicket().getAssignee();
+            Long assigneeId = document.getTicketHistory().getTicket().getAssignee();
             Long linkedTicketId =null;
             try {
                 linkedTicketId = ((BigInteger) query.getSingleResult()).longValue();

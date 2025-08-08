@@ -296,7 +296,7 @@ public class CartEndPoint extends BaseEndpoint {
                     customer.getPassword() == null ||
                     customCustomer.getGender() == null) {
                 return ResponseService.generateErrorResponse(
-                        "All fields must be completed: First Name, Last Name, Primary Email, Username, Password, Gender and Category are required before setting up the cart.",
+                        "Please complete your account setup and fill out the 'My Profile' section before setting up the cart.",
                         HttpStatus.BAD_REQUEST
                 );
             }
@@ -469,9 +469,9 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-//                      EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
-                        EligibilityResult result=new EligibilityResult();
-                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);
+                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+                       /* EligibilityResult result=new EligibilityResult();
+                        result.setStatus(CartService.EligibilityStatus.ELIGIBLE);*/
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
                        products.add(productDetails);
