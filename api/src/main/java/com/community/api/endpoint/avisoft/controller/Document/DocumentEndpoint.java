@@ -292,20 +292,22 @@ public class DocumentEndpoint {
     }
     @Autowired
     JwtUtil jwtUtil;
-    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider})
+
+
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @Transactional
     @PostMapping("/download")
-    public ResponseEntity<?> downloadFile(
+    public void downloadFile(
             @RequestBody Map<String, Object> loginDetails,
-            HttpServletResponse response,HttpServletRequest request
+            HttpServletResponse response,
+            HttpServletRequest request
     ) {
         try {
             String fileUrl1 = (String) loginDetails.get("filePath");
             String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
             String filePath = decrypt(token);
-// Example: avisoftdocument\CUSTOMER\6416\Disability_Certificate\imresizer-1731964770170 (1) (1).jpg
 
-// Extract ID from filePath
+            // Extract ID from path
             Long id = null;
             java.util.regex.Pattern pattern = Pattern.compile("CUSTOMER[\\\\/](\\d+)[\\\\/]");
             Matcher matcher = pattern.matcher(filePath);
@@ -316,86 +318,79 @@ public class DocumentEndpoint {
             }
 
             String ip = request.getHeader("X-Forwarded-For");
-// Set roleId = 5
-            int roleId = 5;
-            System.out.println("id is"+id+" and role is"+roleId);
+            int roleId = 5; // fixed role id
 
-// Generate short-lived token
+            // Generate short-lived access token
             String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
 
-// Get the download URL
+            // Get file URL from storage
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
 
-// Append token as query parameter
+            // Append token
             String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8.toString());
-            System.out.println("Now url is"+securedFileUrl);
 
+            // Prepare custom file name
+            String[] pathParts = filePath.split("\\\\");
+            String folderName = pathParts[pathParts.length - 2];
+            String downloadFileName = folderName + ".jpg";
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id);
+            downloadFileName = customCustomer.getFirstName() + " " + customCustomer.getLastName() + " " + downloadFileName;
+
+            // Save or update short access token
             TypedQuery<ShortAccessToken> query = entityManager.createQuery(
                     "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
                     ShortAccessToken.class
             );
             query.setParameter("uid", id);
             query.setParameter("role", roleId);
-            String encryptedFileName = filePath.substring(fileUrl1.lastIndexOf('/') + 1);
-            // Extract "Aadhaar_Card_Backside" (the folder name before the filename)
-            String[] pathParts = filePath.split("\\\\");
-            String folderName = pathParts[pathParts.length - 2]; // Gets the second-last part
-            String downloadFileName = folderName + ".jpg";
-            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
-            downloadFileName=customCustomer.getFirstName()+" "+customCustomer.getLastName()+" "+downloadFileName;
-            System.out.println("fileName"+downloadFileName);
-            List<ShortAccessToken> resultList = query.getResultList();
 
+            List<ShortAccessToken> resultList = query.getResultList();
             if (resultList.isEmpty()) {
                 ShortAccessToken shortAccessToken = ShortAccessToken.builder()
                         .userId(id)
-                        .token(token)
+                        .token(tokenToAdd)
                         .role(roleId)
                         .expired(false)
                         .build();
                 entityManager.persist(shortAccessToken);
             } else {
                 ShortAccessToken shortAccessToken = resultList.get(0);
-                shortAccessToken.setToken(token);
+                shortAccessToken.setToken(tokenToAdd);
                 shortAccessToken.setExpired(false);
                 entityManager.merge(shortAccessToken);
             }
-            System.out.println(filePath);
 
-            URI uri = URI.create(securedFileUrl);
-            URL url = uri.toURL();
-            // Download logic
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("response-content-disposition",
-                    "attachment; filename=\"" + downloadFileName + "\"");
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
+            // === FIX: Download into memory/stream, then set correct filename ===
+            try (InputStream in = new URL(securedFileUrl).openStream()) {
+                byte[] fileBytes = IOUtils.toByteArray(in);
+
+                response.setContentType("application/octet-stream");
+
+                // Set both standard and UTF-8 filename headers
+                String encodedFileName = URLEncoder.encode(downloadFileName, StandardCharsets.UTF_8.toString()).replace("+", "%20");
+                response.setHeader("Content-Disposition",
+                        "attachment; filename=\"" + downloadFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+                response.setContentLength(fileBytes.length);
+
+                try (OutputStream out = response.getOutputStream()) {
+                    out.write(fileBytes);
+                    out.flush();
+                }
             }
-
-            // Set Content-Disposition with the custom filename
-            response.setContentType(connection.getContentType());
-            response.setHeader(
-                    "Content-Disposition",
-                    "attachment; filename=\"" + downloadFileName + "\""
-            );
-
-            // Stream the file to response
-            try (InputStream in = new URL(securedFileUrl).openStream();  // Use the original fileUrl, not securedFileUrl
-                 OutputStream out = response.getOutputStream()) {
-                IOUtils.copy(in, out);
-            }
-
-            return ResponseEntity.ok().build();
 
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(
-                    "Error downloading file: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            // Send error response
+            try {
+                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                response.getWriter().write("Error downloading file: " + e.getMessage());
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
         }
     }
+
 
 
     private class DocumentResponse {
