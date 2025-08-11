@@ -799,16 +799,14 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1, 0, 3)));
         groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
-        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5)));
+        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5, 9)));
+        groupedStates.add(new OrderStateGroupDto("Refund", Arrays.asList(10, 11)));
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
     /*@Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("manage-refund")
     public ResponseEntity<?> manageRefunds() {
-
-
-
 
     }*/
 
