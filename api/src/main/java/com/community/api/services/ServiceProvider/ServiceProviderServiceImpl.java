@@ -44,7 +44,6 @@ import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Not;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -231,7 +230,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.", "authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
 
-
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId;
@@ -243,17 +241,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             updates = sharedUtilityService.trimStringValues(updates);
             Map<String, String> errorMessages = new HashMap<>();
 
-
             // Find existing ServiceProviderEntity
             existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (existingServiceProvider == null) {
                 errorMessages.put("service_provider_id", "ServiceProvider with ID " + userId + " not found");
             }
 
-
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
 
             if (existingServiceProvider != null) {
                 originalCopy = cloneServiceProvider(existingServiceProvider);
@@ -577,7 +572,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<String> businessKeys = new ArrayList<>();
             businessKeys.add("business_name");
 
-
 //            businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
@@ -633,19 +627,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     businessAddresssKeys.add("business_longitude");
                     businessAddresssKeys.add("business_latitude");
                     businessAddresssKeys.add("business_geo_location");
-//                    int businessKeysCount = 0;
-//                    for (String key : updates.keySet()) {
-//                        if (businessAddresssKeys.contains(key))
-//                            businessKeysCount++;
-//                    }
-//                    if (businessKeysCount > 0 && businessKeysCount < businessAddresssKeys.size())
-//                    {
-//                        for (String key : businessAddresssKeys) {
-//                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
-//                                errorMessages.put(key, key + " is required to add or update business address");
-//                            }
-//                        }
-//                    }
+                    /*int businessKeysCount = 0;
+                    for (String key : updates.keySet()) {
+                        if (businessAddresssKeys.contains(key))
+                            businessKeysCount++;
+                    }
+                    if (businessKeysCount > 0 && businessKeysCount < businessAddresssKeys.size())
+                    {
+                        for (String key : businessAddresssKeys) {
+                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+                                errorMessages.put(key, key + " is required to add or update business address");
+                            }
+                        }
+                    }*/
                     if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address") && updates.containsKey("business_longitude") && updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
                         existingServiceProvider.setIsAcknowledged(false);
                         if (validateBusinessAddressFields(updates).isEmpty()) {
@@ -707,7 +701,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 );
 
                                 errorMessages.putAll(addressErrors);
-
                             }
                         } else {
                             errorMessages.putAll(validateBusinessAddressFields(updates));
@@ -721,7 +714,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
                         } else
                             errorMessages.put("registration_number", "Registration Number can not be empty or null");
-
 
                     } else
                         existingServiceProvider.setRegistration_number(null);
@@ -780,7 +772,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Object workExpMonths = updates.get("work_experience_in_months");
                 int months = 0;
 
-
                 if (workExpMonths != null && !workExpMonths.toString().trim().isEmpty()) {
                     try {
                         months = Integer.parseInt(workExpMonths.toString().trim());
@@ -804,7 +795,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-
 
             if (updates.containsKey("user_name")) {
                 updates.remove("user_name");
@@ -1014,7 +1004,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 updates.remove("secondary_email");
             }
 
-
             if (updates.containsKey("aadhaar_number")) {
                 String newAadhaarNumber = (String) updates.get("aadhaar_number");
 
@@ -1037,7 +1026,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             errorMessages.put("aadhaar_number", "Aadhaar number already exists");
                         }
                     }
-
                 }
             }
 
@@ -1148,6 +1136,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             // Merge the updated entity
+
+            existingServiceProvider.setUpdatedDate(new Date());
             entityManager.merge(existingServiceProvider);
             if (existingServiceProvider.getUser_name() == null && !existingServiceProvider.getSpAddresses().isEmpty()) {
                 String username = generateUsernameForServiceProvider(existingServiceProvider);
@@ -2168,7 +2158,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-
             // Build dynamic query based on address filtering logic
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT DISTINCT s FROM ServiceProviderEntity s ");
@@ -2345,6 +2334,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
+        serviceProviderDetails.put("created_date", serviceProvider.getDateJoined());
+        serviceProviderDetails.put("updated_date", serviceProvider.getUpdatedDate());
 
         if (serviceProvider.getType() != null && serviceProvider.getType().equalsIgnoreCase("INDIVIDUAL")) {
             serviceProviderDetails.put("part_time_or_full_time", serviceProvider.getPartTimeOrFullTime());

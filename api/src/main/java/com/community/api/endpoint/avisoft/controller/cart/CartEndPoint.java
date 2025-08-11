@@ -332,7 +332,7 @@ public class CartEndPoint extends BaseEndpoint {
 
             }*/
             if ((((Status) customProduct).getArchived() == 'Y' || !customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
-                return ResponseService.generateErrorResponse("Cannot add an archived product", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Cannot add an Archived/Expired product", HttpStatus.BAD_REQUEST);
             }
             OrderItemRequest orderItemRequest = new OrderItemRequest();
             orderItemRequest.setProduct(product);
