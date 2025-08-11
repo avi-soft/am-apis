@@ -80,7 +80,7 @@ public class EarningsController {
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from,
             @RequestParam(required = false,defaultValue ="0") Integer page,
-            @RequestParam(required = false,defaultValue = "1000")Integer limit) throws Exception {
+            @RequestParam(required = false,defaultValue = "30")Integer limit) throws Exception {
 
 
         String jwtToken = authHeader.substring(7);
@@ -195,7 +195,7 @@ public class EarningsController {
     @Transactional(readOnly = true)
     @GetMapping("get-all")
     public ResponseEntity<?> getFilteredEarnings(@RequestHeader(value = "Authorization")String authHeader,@RequestParam(required = false) Long spId,@RequestParam(required = false,defaultValue ="0") Integer page,
-                                                 @RequestParam(required = false,defaultValue = "1000")Integer limit) {
+                                                 @RequestParam(required = false,defaultValue = "30")Integer limit) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -282,7 +282,7 @@ public class EarningsController {
             @RequestParam(required = false) Long spId,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from,@RequestParam(required = false,defaultValue ="0") Integer page,
-            @RequestParam(required = false,defaultValue = "1000")Integer limit
+            @RequestParam(required = false,defaultValue = "30")Integer limit
             ) {
 
         try {

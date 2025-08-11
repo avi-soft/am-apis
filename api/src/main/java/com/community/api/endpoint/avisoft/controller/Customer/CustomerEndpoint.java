@@ -284,12 +284,12 @@ public class CustomerEndpoint {
             }
             details = sanitizerService.sanitizeInputMap(details);
 
-            String dobStr = (String)details.get("dob");
+            String dobStr = (String) details.get("dob");
 
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-            if(dobStr!=null) {
+            if (dobStr != null) {
                 try {
                     LocalDate dob = LocalDate.parse(dobStr, formatter);
                     LocalDate today = LocalDate.now();
@@ -898,7 +898,7 @@ public class CustomerEndpoint {
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
                         if (result > 0) {
-                            errorMessages.put("adharNumber", "Aadhar number already in use.");
+                            errorMessages.put("adharNumber", "Aadhaar number already in use.");
                             details.remove("adharNumber");
                         }
                     }
@@ -908,7 +908,7 @@ public class CustomerEndpoint {
                     Integer result = ((Number) query.getSingleResult()).intValue();
                     System.out.println("result" + result);
                     if (result > 0) {
-                        errorMessages.put("adharNumber", "Aadhar number already in use!!");
+                        errorMessages.put("adharNumber", "Aadhaar number already in use!!");
                         details.remove("adharNumber");
                     }
                 }
@@ -1628,6 +1628,7 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
+            customCustomer.getAuditable().setDateUpdated(new Date());
             if (details.containsKey("isAcknowledged")) {
                 Boolean value = (Boolean) details.get("isAcknowledged");
                 customCustomer.setIsAcknowledged(value);
@@ -1906,7 +1907,7 @@ public class CustomerEndpoint {
             Customer existingCustomerByUsername = null;
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
 
-            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)) {
+            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equalsIgnoreCase(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
 
             } else {
@@ -2244,7 +2245,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2280,7 +2281,7 @@ public class CustomerEndpoint {
                 listOfSavedProducts.add(customProduct);
             }
 
-           return getSavedFormsWrapper(customer_id,listOfSavedProducts,offset,limit);
+            return getSavedFormsWrapper(customer_id, listOfSavedProducts, offset, limit);
 
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -2392,7 +2393,7 @@ public class CustomerEndpoint {
                 CustomProduct product = entityManager.find(CustomProduct.class, productId);
                 if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(order.getId(),product, request, reserveCategoryService,
+                    wrapper.wrapDetails(order.getId(), product, request, reserveCategoryService,
                             reserveCategoryAgeService, genderService,
                             customer, sharedUtilityService);
                     appliedForms.add(wrapper);
@@ -2437,7 +2438,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2456,8 +2457,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if(customer.getCategory()==null||customer.getCategory().isEmpty()||customer.getGender()==null||customer.getGender().isEmpty())
-                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations",HttpStatus.OK);
+            if (customer.getCategory() == null || customer.getCategory().isEmpty() || customer.getGender() == null || customer.getGender().isEmpty())
+                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations", HttpStatus.OK);
             if (customer == null) {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
@@ -2481,7 +2482,6 @@ public class CustomerEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
-
 
             if(roleId==4)
             {
@@ -2537,7 +2537,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             if (offset < 0) {
@@ -2636,12 +2636,12 @@ public class CustomerEndpoint {
                 if (customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id) && !primaryReferee) {
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
                 }
-                if(service_provider_id.equals(customerReferrer.getServiceProvider().getService_provider_id())) {
+                if (service_provider_id.equals(customerReferrer.getServiceProvider().getService_provider_id())) {
                     existingRef = customerReferrer;
                 }
             }
             if (customCustomer.getPrimaryRef() == 0 || (customCustomer.getRegisteredBySp() && customCustomer.getCreatedByRole() != 4) || (customCustomer.getCreatedByRole()) == 5) {
-                if(primaryRef != null && primaryRef.getServiceProvider().getService_provider_id().equals(service_provider_id)) {
+                if (primaryRef != null && primaryRef.getServiceProvider().getService_provider_id().equals(service_provider_id)) {
                     throw new IllegalArgumentException("Selected Service Provider already set as Primary Referrer");
                 }
                 customCustomer.setPrimaryRef(service_provider_id);
@@ -2650,7 +2650,7 @@ public class CustomerEndpoint {
                 primaryRef.setPrimaryRef(false);
                 entityManager.merge(primaryRef);
             }
-            if(existingRef != null && primaryReferee) {
+            if (existingRef != null && primaryReferee) {
                 existingRef.setPrimaryRef(true);
                 entityManager.merge(existingRef);
             } else {
@@ -2760,10 +2760,10 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false, defaultValue = "DESC") String sortOrder) throws Exception {
         /* try {*/
-        if (!sort.equals("DESC") && !sort.equals("ASC"))
-            return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
+        if (!sortOrder.equals("DESC") && !sortOrder.equals("ASC"))
+            return ResponseService.generateErrorResponse("Invalid sortOrder filter", HttpStatus.BAD_REQUEST);
         List<Long> refereeId = null;
         if (ref != null)
             refereeId = ref;
@@ -2827,7 +2827,6 @@ public class CustomerEndpoint {
 
         }
 
-
         List<Long> refids = new ArrayList<>();
         if (refereeId != null && !refereeId.isEmpty()) {
             // Convert the list of Long to a list of String using Java Streams
@@ -2838,11 +2837,11 @@ public class CustomerEndpoint {
         if (refids.isEmpty())
             refids = null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
-        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
+        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
         Set<BigInteger> uniqueResults = new HashSet<>();
 
-// Add all elements from both result sets
+        // Add all elements from both result sets
         uniqueResults.addAll(resultSet1);
         uniqueResults.addAll(resultSet2);
         List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
@@ -2902,7 +2901,7 @@ public class CustomerEndpoint {
             }
         }
 
-// Convert the Set back to a List
+        // Convert the Set back to a List
         List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
         Map<Integer, Integer> Qualificationorder = new HashMap<>();
         Qualificationorder.put(1, 1);
@@ -2914,12 +2913,11 @@ public class CustomerEndpoint {
         Qualificationorder.put(5, 7);
         Qualificationorder.put(8, 8);
         for (BigInteger id : uniqueResultList) {
-            System.out.println("fetchedId: by the querry " + id);
             Customer customer = null;
             try {
                 customer = customerService.readCustomerById(id.longValue());
-            } catch (Exception e) {
-                System.out.println("ID skipped" + id + "due to" + e);
+            } catch (Exception exception) {
+                log.error("Customer ID skipped: {} due to- {}", id, exception.getMessage());
                 continue;
             }
             if (customer != null) {
@@ -2984,6 +2982,10 @@ public class CustomerEndpoint {
                         }
                         customerBasicDetailsDto.setState(state);
                     }
+
+                    log.info("created Date: {}", customer.getAuditable().getDateCreated());
+                    log.info("updated Date: {}", customer.getAuditable().getDateUpdated());
+
                     customerBasicDetailsDto.setCustomerId(id.longValue());
                     customerBasicDetailsDto.setEmail(customer.getEmailAddress());
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
@@ -3068,12 +3070,10 @@ public class CustomerEndpoint {
                         }
                     }
 
-
                     Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                     if (age != -1)
                         customerBasicDetailsDto.setAge(age);
                     List<QualificationDetails> qualifications = customCustomer.getQualificationDetailsList();
-
 
 //                    CODE TO IMPLEMENT THE HIGHEST QUALIFICATION FILTER
 //                    int max = 0;
@@ -3104,7 +3104,6 @@ public class CustomerEndpoint {
 //                            }
 //                        }
 //                    }
-
 
                     if (qualificationType != null) {
                         for (QualificationDetails qualificationDetails : qualifications) {
@@ -3145,20 +3144,31 @@ public class CustomerEndpoint {
                     customerList.add(customerBasicDetailsDto);
 
                     customerBasicDetailsDto.setSecondaryMobileNumber(customCustomer.getSecondaryMobileNumber());
+                    customerBasicDetailsDto.setCreatedDate(customCustomer.getAuditable().getDateCreated());
+                    customerBasicDetailsDto.setUpdatedDate(customCustomer.getAuditable().getDateUpdated());
                 }
             }
         }
-        if (sort.equals("ASC"))
-            customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
-        else
-            customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
+        if ("ASC".equalsIgnoreCase(sortOrder)) {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsFirst(Comparator.naturalOrder())
+                    )
+            );
+        } else {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    )
+            );
+        }
+
         int totalItems = customerList.size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
 
         List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
-
-        System.out.println("dkfjalksdjflkasdjflkajds" + offset);
-        System.out.println(offset);
 
         Map<String, Object> response = new HashMap<>();
         response.put("customers", paginatedList);       // Your paginated data
@@ -3278,7 +3288,7 @@ public class CustomerEndpoint {
         Double fee = null;
         String ageLimit = null;
 
-        System.out.println("Limit is "+limit+"offset is"+offset);
+        System.out.println("Limit is " + limit + "offset is" + offset);
         List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
                 .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
@@ -3286,13 +3296,12 @@ public class CustomerEndpoint {
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
                 .setParameter("limit", limit)
-                .setParameter("offset", limit*offset)
+                .setParameter("offset", limit * offset)
                 .getResultList();
 
         System.out.println(res.size());
         System.out.println("Products");
-        for (BigInteger resl:res)
-        {
+        for (BigInteger resl : res) {
             System.out.println(resl.intValue());
         }
 
@@ -3533,9 +3542,8 @@ public class CustomerEndpoint {
     }
 
 
-    public ResponseEntity<?> getSavedFormsWrapper(Long customerId,List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
-        try
-        {
+    public ResponseEntity<?> getSavedFormsWrapper(Long customerId, List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
+        try {
             Customer customer = customerService.readCustomerById(customerId);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -3559,19 +3567,15 @@ public class CustomerEndpoint {
 
                 if (customCustomer != null) {
                     try {
-                        if(customCustomer.getCategory()!=null)
-                        {
+                        if (customCustomer.getCategory() != null) {
                             categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                        } else {
+                            categoryId = RESERVED_CATEGORY_ALL;
                         }
-                        else {
-                            categoryId=RESERVED_CATEGORY_ALL;
-                        }
-                        if(customCustomer.getGender()!=null)
-                        {
+                        if (customCustomer.getGender() != null) {
                             genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-                        }
-                        else {
-                            genderId=GENDER_ALL;
+                        } else {
+                            genderId = GENDER_ALL;
                         }
 
                         // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
@@ -3678,14 +3682,10 @@ public class CustomerEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset + 1);
             return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
-        }
-        catch (IllegalArgumentException illegalArgumentException)
-        {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new Exception(e);
         }
