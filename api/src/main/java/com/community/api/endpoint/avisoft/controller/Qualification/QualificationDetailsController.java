@@ -107,7 +107,7 @@ public class QualificationDetailsController
     }
 
     @GetMapping("/get-by-id/{id}")
-    public ResponseEntity<?> getQualificationDetailsById(@PathVariable Long id, @RequestHeader(value = "Authorization") String authHeader ,@RequestParam(required = false) Boolean ext) throws CustomerDoesNotExistsException ,EntityDoesNotExistsException{
+    public ResponseEntity<?> getQualificationDetailsById(@PathVariable Long id, @RequestHeader(value = "Authorization") String authHeader ,@RequestParam(required = false,defaultValue = "false") Boolean ext) throws CustomerDoesNotExistsException ,EntityDoesNotExistsException{
         String role=null;
         try
         {

@@ -2482,9 +2482,7 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+
             if(roleId==4)
             {
                 if(customerId==null)
