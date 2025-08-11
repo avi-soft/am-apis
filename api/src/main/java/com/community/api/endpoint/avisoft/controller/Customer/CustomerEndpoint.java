@@ -1905,9 +1905,21 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Username cannot be changed once created", HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
-            existingCustomerByUsername = customerService.readCustomerByUsername(username.toLowerCase());
+            Query query = entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM blc_customer WHERE LOWER(user_name) = :username"
+            );
+            query.setParameter("username", username.toLowerCase());
 
-            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equalsIgnoreCase(existingCustomerByUsername.getUsername())) {
+            Number count = (Number) query.getSingleResult();
+            if (count.intValue() > 0) {
+                return ResponseService.generateErrorResponse(
+                        "Username already exists",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+            existingCustomerByUsername = customerService.readCustomerByUsername(username);
+
+            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equals(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
 
             } else {
