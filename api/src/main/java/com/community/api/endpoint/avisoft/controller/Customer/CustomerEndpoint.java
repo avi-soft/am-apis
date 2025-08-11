@@ -1905,7 +1905,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Username cannot be changed once created", HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
-            existingCustomerByUsername = customerService.readCustomerByUsername(username);
+            existingCustomerByUsername = customerService.readCustomerByUsername(username.toLowerCase());
 
             if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equalsIgnoreCase(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
