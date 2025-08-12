@@ -23,6 +23,7 @@ import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Role;
 import com.community.api.services.CustomerAddressFetcher;
 import com.community.api.services.DocumentStorageService;
+import com.community.api.services.EmailQueueService;
 import com.community.api.services.FileService;
 import com.community.api.services.OrderDTOService;
 import com.community.api.services.ProductService;
@@ -125,6 +126,9 @@ public class TicketController {
 
     @Autowired
     CustomerAddressFetcher addressFetcher;
+
+    @Autowired
+    EmailQueueService emailQueueService;
 
     @PersistenceContext
     EntityManager entityManager;
@@ -842,7 +846,7 @@ public class TicketController {
         }
     }
 
-    @DeleteMapping("/ticket-allocation-mail")
+    @PutMapping("/ticket-allocation-mail")
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> ticketAllocationMail(@RequestHeader(value = "authorization") String authHeader) {
         try {
@@ -862,7 +866,7 @@ public class TicketController {
             List<EmailQueue> emailQueues = emailQueueService.getAllEmailQueue();
             for (EmailQueue emailQueue : emailQueues) {
                 Long userId = emailQueue.getUserId();
-                Role role = emailQueue.getRoleId();
+                Role role = emailQueue.getRole();
 
 //                Role role = roleService.getRoleByRoleId(roleId);
                 CustomServiceProviderTicket ticket = null;
