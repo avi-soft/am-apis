@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -42,6 +43,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -162,7 +164,8 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Autowired
+    AcknowledgementWebhook webhook;
     @Authorize(value = {Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
@@ -284,6 +287,15 @@ public class ServiceProviderController {
         }
         serviceProvider.setCompleted(true);
         serviceProvider.setRejected(false);
+     /*   if(!webhook.checkRef(spId,4))
+        {
+            return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+        }*/
+        /*SPAcknowledgement userAcknowledgement=new SPAcknowledgement();
+        userAcknowledgement.setAcknowledgedAt(new Date());
+        userAcknowledgement.setUserId(spId);
+        userAcknowledgement.setAcknowledgementVersion("v.1");
+        entityManager.persist(userAcknowledgement);*/
         entityManager.merge(serviceProvider);
         return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
     }

@@ -6,6 +6,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.ProductDetailsDTO;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -2485,7 +2486,8 @@ public class CustomerEndpoint {
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
+@Autowired
+    AcknowledgementWebhook webhook;
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
@@ -2531,6 +2533,15 @@ public class CustomerEndpoint {
                 customCustomer.setProfileComplete(false);
             }
             customCustomer.setProfileComplete(true);
+            /*if(!webhook.checkRef(customerId,5))
+            {
+              return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+            }
+            UserAcknowledgement userAcknowledgement=new UserAcknowledgement();
+            userAcknowledgement.setAcknowledgedAt(new Date());
+            userAcknowledgement.setUserId(customerId);
+            userAcknowledgement.setAcknowledgementVersion("v.1");
+            entityManager.persist(userAcknowledgement);*/
             return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
         } catch (NumberFormatException e) {
             exceptionHandling.handleException(e);

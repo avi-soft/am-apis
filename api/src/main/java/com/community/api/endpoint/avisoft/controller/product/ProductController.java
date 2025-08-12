@@ -1354,7 +1354,8 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "1000") int limit,
-            @RequestBody(required = false) FilterProductTitleDto titleDto) {
+            @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(required = false,defaultValue = "false")Boolean preview) {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -1363,7 +1364,7 @@ public class ProductController extends CatalogEndpoint {
             Role roleEntity = roleService.getRoleByRoleId(roleId);
             Long createdById = null;
 
-            if (roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) {
+            if ((roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name()))&&!preview) {
                 myProducts = true;
             }
             if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && !myProducts) {
