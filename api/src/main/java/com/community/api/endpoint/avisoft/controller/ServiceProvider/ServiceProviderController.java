@@ -430,7 +430,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String spAdmin,
             @RequestParam(required = false) String sp,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             HttpServletRequest request) {
         try {
             if (offset < 0) {
@@ -574,7 +574,7 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "1000") int limit) {
+            @RequestParam(defaultValue = "30") int limit) {
         try {
             int startPosition = page * limit;
 
@@ -622,6 +622,7 @@ public class ServiceProviderController {
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(required = false) Long ticketId,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
 
         try {
@@ -633,7 +634,7 @@ public class ServiceProviderController {
             Map<String, String[]> uri = request.getParameterMap();
             if (role != null && (role <= roleId && roleId != 5))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            System.out.println("bypassed");
+
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -721,7 +722,6 @@ public class ServiceProviderController {
                 finalResponse.put("currentPage", currentPage);
                 String message = resultList.isEmpty() ? "No Details Found" : "Details found";
                 return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
-
             }
 
             // Handle search by full name (split into first and last names)
@@ -769,12 +769,20 @@ public class ServiceProviderController {
             List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
 
             finalList.sort((a, b) -> {
-                Object idA = a.get("service_provider_id");
-                Object idB = b.get("service_provider_id");
-                if (idA instanceof Number && idB instanceof Number) {
-                    return Long.compare(((Number) idA).longValue(), ((Number) idB).longValue());
+                Date dateA = (Date) a.get("updated_date");
+                Date dateB = (Date) b.get("updated_date");
+
+                if (dateA == null && dateB == null) return 0;
+
+                if ("ASC".equalsIgnoreCase(sortOrder)) {
+                    if (dateA == null) return -1; // nulls first
+                    if (dateB == null) return 1;
+                    return dateA.compareTo(dateB);
+                } else {
+                    if (dateA == null) return 1; // nulls last
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
                 }
-                return 0;
             });
 
             int totalItems = finalList.size();
@@ -783,7 +791,6 @@ public class ServiceProviderController {
 
             int fromIndex = Math.min(offset * limit, totalItems);
             int toIndex = Math.min(fromIndex + limit, totalItems);
-
 
             List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
@@ -823,7 +830,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -875,7 +882,7 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
-    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
+    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "30") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
         try {
             int startPosition = page * limit;
             Query query = null;
@@ -1194,7 +1201,7 @@ public class ServiceProviderController {
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
-    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "1000", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
+    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "30", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
         Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);

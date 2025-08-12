@@ -272,8 +272,9 @@ public class AdvertisementController {
             @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
             @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
             @RequestParam(value = "id",required = false)Long id,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
+            @RequestParam(defaultValue = "30") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
         try {
 
@@ -329,15 +330,28 @@ public class AdvertisementController {
                     return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
             }
 
-
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                advertisements.sort(
+                        Comparator.comparing(
+                                Advertisement::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                advertisements.sort(
+                        Comparator.comparing(
+                                Advertisement::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
             for (Advertisement advertisement : advertisements) {
                 if (advertisement == null) {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
-                    AdvertisementWrapper wrapper = new AdvertisementWrapper();
-                    wrapper.wrapDetails(advertisement, null, null);
-                    responses.add(wrapper);
-
+                AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                wrapper.wrapDetails(advertisement, null, null);
+                responses.add(wrapper);
             }
 
             // Manual Pagination
@@ -377,7 +391,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestParam(defaultValue = "false",required = false)Boolean ext) {
 
         try {
@@ -400,7 +414,7 @@ public class AdvertisementController {
             if(ext)
             {
                 List<Object[]> rows =advertisementService.getAdvCompressed(longList,offset,limit);
-                System.out.println("res"+rows);
+
                 BigInteger count=advertisementService.getAdvCompressedCount(longList);
                 List<AdvertisementCompressedDTO>adv=new ArrayList<>();
                 for (Object[] row : rows) {
@@ -482,10 +496,10 @@ public class AdvertisementController {
                                 })
                                 // Sorting
                                 .sorted((p1, p2) -> {
-                                    if (p1.getCreatedDate() == null && p2.getCreatedDate() == null) return 0;
+                                    if (p1.getCreatedDate() == null && p2.getModifiedDate() == null) return 0;
                                     if (p1.getCreatedDate() == null) return 1;
                                     if (p2.getCreatedDate() == null) return -1;
-                                    return p2.getCreatedDate().compareTo(p1.getCreatedDate()); // DESC order
+                                    return p2.getCreatedDate().compareTo(p1.getModifiedDate()); // DESC order
                                 })
                                 .collect(Collectors.toList());
 
@@ -598,8 +612,6 @@ public class AdvertisementController {
                return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
             }
 
-
-
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
             }
@@ -632,13 +644,14 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @GetMapping("/get-new-all-advertisement-by-categoryId")
     public ResponseEntity<?> getFilterAdvertisementNew(
             @RequestParam(value = "summarize",required = false)Boolean summarise,
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit) {
+            @RequestParam(defaultValue = "30") int limit) {
 
         try {
             CustomCustomer customCustomer = null;

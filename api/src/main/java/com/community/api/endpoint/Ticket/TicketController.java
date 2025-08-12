@@ -6,6 +6,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketHistoryWrapper;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.TicketDocumentWrapper;
 import com.community.api.dto.TicketStatisticsDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -62,6 +63,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -323,10 +325,11 @@ public class TicketController {
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit,
+            @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(value = "personal", required = false) Boolean personal,
             @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays,
-            @RequestParam(value = "archived", defaultValue = "false") Boolean archived) {
+            @RequestParam(value = "archived", defaultValue = "false") Boolean archived,
+            @RequestParam(value = "sort_order", required = false, defaultValue = "DESC") String sortOrder) {
         try {
 
             if (offset < 0) {
@@ -373,6 +376,22 @@ public class TicketController {
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
                     ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays, archived);
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                tickets.sort(
+                        Comparator.comparing(
+                                CustomServiceProviderTicket::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                tickets.sort(
+                        Comparator.comparing(
+                                CustomServiceProviderTicket::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
 
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);

@@ -25,6 +25,7 @@ import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
+import io.swagger.annotations.ApiResponse;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -304,9 +306,10 @@ public class OtpEndpoint {
                 return serviceProviderService.verifyOtp(loginDetails, session, request);
             }
 
-/*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
-        return adminService.verifyOtpForAdmin(loginDetails,session,request);
-    }*/
+    /*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
+            return adminService.verifyOtpForAdmin(loginDetails,session,request);
+        }*/
+
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
@@ -364,7 +367,9 @@ public class OtpEndpoint {
                 serviceProviderEntity.setMobileNumber(mobileNumber);
                 serviceProviderEntity.setOtp(otp);
                 serviceProviderEntity.setApproved(false);
+                // Change it to Date carefully as it's been used in re-ranking logic. (FIND)
                 serviceProviderEntity.setDateJoined(LocalDate.now());
+                serviceProviderEntity.setUpdatedDate(new Date());
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);

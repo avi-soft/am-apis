@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -887,7 +888,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds,Boolean isArchived) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds,Boolean isArchived, String sortOrder) {
         try {
             Role role = null;
             if (roleId != null) {
@@ -935,6 +936,23 @@ public class ProductService {
             List<CustomProduct> nonArchivedProducts = allProducts.stream()
                     .filter(p -> p != null && ((Status) p).getArchived() != 'Y')
                     .collect(Collectors.toList());
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                nonArchivedProducts.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                nonArchivedProducts.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
+
             int totalItems = nonArchivedProducts.size();
             int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / limit) : 0;
             if (page >= totalPages && page > 0 && totalItems > 0) {

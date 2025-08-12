@@ -138,7 +138,7 @@ public class OrderController {
 
 /*    @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
@@ -185,10 +185,9 @@ public class OrderController {
         }
     }*/
 
-
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "DESC") String sortOrder, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
 
@@ -201,7 +200,7 @@ public class OrderController {
             if (customCustomer == null) throw new NotFoundException("Customer with the provided Id not found");
 
             if (!tokenUserId.equals(customerId)) {
-                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
 
             if (customCustomer.getNumberOfOrders() == 0)
@@ -265,12 +264,11 @@ public class OrderController {
 
             // Data query
             String dataQueryStr = "SELECT o.order_id " + baseQuery;
-            if ("latest-to-oldest".equalsIgnoreCase(sort)) {
-                dataQueryStr += " ORDER BY o.order_id DESC";
+            if ("DESC".equalsIgnoreCase(sortOrder)) {
+                dataQueryStr += " ORDER BY o.date_updated DESC";
             } else {
-                dataQueryStr += " ORDER BY o.order_id ASC";
+                dataQueryStr += " ORDER BY o.date_updated ASC";
             }
-
 
             Query dataQuery = entityManager.createNativeQuery(dataQueryStr);
             dataQuery.setFirstResult(offset * limit);
@@ -292,7 +290,7 @@ public class OrderController {
 
             List<BigInteger> orders = dataQuery.getResultList();
 
-            return generateCombinedDTO(authHeader, orders, sort, totalItems.intValue(), totalPages.intValue(), offset);
+            return generateCombinedDTO(authHeader, orders, sortOrder, totalItems.intValue(), totalPages.intValue(), offset);
 
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
@@ -305,14 +303,13 @@ public class OrderController {
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
-    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "DESC") String sortOrder, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
         try {
             if (offset < 0 || limit <= 0) {
                 throw new IllegalArgumentException("Offset or Limit invalid");
             }
 
             int offset1 = offset * limit;
-            sort = sort.toLowerCase();
 
 //            if (orderStateIds != null && orderStateIds.contains(9)) {
 //                orderStateIds.clear();
@@ -373,7 +370,7 @@ public class OrderController {
 
             // Data Query
             String dataQueryStr = "SELECT o.order_id " + baseQuery;
-            dataQueryStr += sort.equals("latest-to-oldest") ? " ORDER BY o.order_id DESC" : " ORDER BY o.order_id ASC";
+            dataQueryStr += "DESC".equalsIgnoreCase(sortOrder) ? " ORDER BY o.date_updated DESC" : " ORDER BY o.date_updated ASC";
 
             Query query = entityManager.createNativeQuery(dataQueryStr);
             query.setFirstResult(offset1);
@@ -395,7 +392,7 @@ public class OrderController {
             @SuppressWarnings("unchecked") List<BigInteger> orderIds = query.getResultList();
 
             // Generate DTO and build response
-            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sort);
+            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
 
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
@@ -728,7 +725,7 @@ public class OrderController {
 
     @Transactional
     @GetMapping("/{orderId}/availableSp")
-    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit) {
+    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "30") int limit) {
         try {
             List<ServiceProviderEntity> result = customOrderService.availableSp(orderId, page, limit);
             return ResponseService.generateSuccessResponse("List of available Sp", result, HttpStatus.OK);
@@ -801,16 +798,14 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1, 0, 3)));
         groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
-        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5)));
+        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5, 9)));
+        groupedStates.add(new OrderStateGroupDto("Refund", Arrays.asList(10, 11)));
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
     /*@Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("manage-refund")
     public ResponseEntity<?> manageRefunds() {
-
-
-
 
     }*/
 
