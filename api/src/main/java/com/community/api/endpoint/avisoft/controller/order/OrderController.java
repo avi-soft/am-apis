@@ -187,7 +187,7 @@ public class OrderController {
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "DESC") String sortOrder, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
 
@@ -264,12 +264,11 @@ public class OrderController {
 
             // Data query
             String dataQueryStr = "SELECT o.order_id " + baseQuery;
-            if ("latest-to-oldest".equalsIgnoreCase(sort)) {
-                dataQueryStr += " ORDER BY o.order_id DESC";
+            if ("DESC".equalsIgnoreCase(sortOrder)) {
+                dataQueryStr += " ORDER BY o.date_updated DESC";
             } else {
-                dataQueryStr += " ORDER BY o.order_id ASC";
+                dataQueryStr += " ORDER BY o.date_updated ASC";
             }
-
 
             Query dataQuery = entityManager.createNativeQuery(dataQueryStr);
             dataQuery.setFirstResult(offset * limit);
@@ -291,7 +290,7 @@ public class OrderController {
 
             List<BigInteger> orders = dataQuery.getResultList();
 
-            return generateCombinedDTO(authHeader, orders, sort, totalItems.intValue(), totalPages.intValue(), offset);
+            return generateCombinedDTO(authHeader, orders, sortOrder, totalItems.intValue(), totalPages.intValue(), offset);
 
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
