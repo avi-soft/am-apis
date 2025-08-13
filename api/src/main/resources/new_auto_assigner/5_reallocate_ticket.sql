@@ -110,6 +110,20 @@ BEGIN
 	        -- Append ticket to result
 	        assigned_ticket_ids := array_append(assigned_ticket_ids, p_ticket_id);
 	        assigned := TRUE;
+
+            INSERT INTO public.email_queue (
+                archived,
+                created_date,
+                user_id,
+                role_id,
+                ticket_id
+            ) VALUES (
+                false,
+                NOW(),
+                p_service_provider_id,
+                4,
+                p_ticket_id
+            );
        
        ELSE
        	RAISE NOTICE 'Cannot assign as the product active date is before its new completion date';
