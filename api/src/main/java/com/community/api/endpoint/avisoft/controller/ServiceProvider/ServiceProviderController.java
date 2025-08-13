@@ -621,6 +621,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
+            @RequestParam(value = "a4dh",defaultValue = "false")Boolean ext,
             @RequestParam(required = false) Long ticketId,
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
@@ -632,7 +633,7 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId && roleId != 5))
+            if (role != null && (role <= roleId && roleId != 5)&&!ext)
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             // Validate input
