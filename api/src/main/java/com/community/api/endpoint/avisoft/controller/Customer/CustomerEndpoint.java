@@ -1708,18 +1708,15 @@ public class CustomerEndpoint {
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest, @RequestParam(required = false) Long ticketId) {
         try {
-            System.out.println("checkpoint1");
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
-            System.out.println("checkpoint2");
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            System.out.println("checkpoint3");
             if (role.getRole_name().equals(roleServiceProvider) && ticketId != null) {
                 CustomServiceProviderTicket ticket = em.find(CustomServiceProviderTicket.class, ticketId);
                 if (ticket == null)
@@ -1728,7 +1725,6 @@ public class CustomerEndpoint {
                 if (!ticket.getAssignee().equals(tokenUserId) || !order.getCustomer().getId().equals(customerId) || (ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW) || ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             } else if (role.getRole_name().equals(roleServiceProvider)) {
-                System.out.println("checkpoint4");
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
                 if (serviceProvider == null)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
@@ -1737,14 +1733,14 @@ public class CustomerEndpoint {
                 query.setParameter("cid", customCustomer.getId());
                 query.setParameter("sid", serviceProvider.getService_provider_id());
                 if (((BigInteger) query.getSingleResult()).intValue() == 0)
-                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 System.out.println(((BigInteger) query.getSingleResult()).intValue());
             }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
             if (customCustomer.getArchived() != null) {
-                if (customCustomer.getArchived().equals(true)) {
+                if (customCustomer.getArchived().equals(true) && !role.getRole_name().equals(SUPER_ADMIN) && !role.getRole_name().equals(ADMIN) && !role.getRole_name().equals(SERVICE_PROVIDER)) {
                     return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
                 }
             }
@@ -3259,7 +3255,7 @@ public class CustomerEndpoint {
         Double fee = null;
         String ageLimit = null;
 
-
+        System.out.println("Limit is "+limit+"offset is"+offset);
         List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
                 .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
@@ -3267,8 +3263,15 @@ public class CustomerEndpoint {
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
                 .setParameter("limit", limit)
-                .setParameter("offset", offset)
+                .setParameter("offset", limit*offset)
                 .getResultList();
+
+        System.out.println(res.size());
+        System.out.println("Products");
+        for (BigInteger resl:res)
+        {
+            System.out.println(resl.intValue());
+        }
 
         BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(recosCount)
                 .setParameter("customerId", customCustomer.getId())

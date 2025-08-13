@@ -1,11 +1,13 @@
 package com.community.api.endpoint.avisoft.controller.Document;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.DocumentTypeDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.Role;
+import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
@@ -13,22 +15,37 @@ import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+import java.util.Date;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static io.jsonwebtoken.JwsHeader.ALGORITHM;
+
 
 @RestController
 @RequestMapping(value = "/document-type")
@@ -48,6 +65,10 @@ public class DocumentEndpoint {
 
     @Autowired
     private DocumentStorageService documentStorageService;
+
+
+    private static String key="2025202220202512";
+
 
     @Autowired
     private RoleService roleService;
@@ -196,8 +217,9 @@ public class DocumentEndpoint {
                                 String fileUrl = null;
                                     fileUrl = fileService.getFileUrl(filePath, request);
                                 String document_name = documentStorageService.findRoleName(serviceProviderDocument.getDocumentType());
+                                Date created_date = serviceProviderDocument.getUploadedDate();
 
-                                return new DocumentResponse(fileName, fileUrl, document_name);
+                                return new DocumentResponse(fileName, fileUrl, document_name, created_date);
                             })
                             .collect(Collectors.toList());
                     return responseService.generateSuccessResponse("Documents retrieved successfully", documentResponses, HttpStatus.OK);
@@ -229,8 +251,8 @@ public class DocumentEndpoint {
                             String fileUrl = fileService.getFileUrl(filePath, request);
 
                             String document_name = documentStorageService.findRoleName(document.getDocumentType());
-
-                            return new DocumentResponse(fileName, fileUrl, document_name);
+                            Date created_date = document.getCreatedDate();
+                            return new DocumentResponse(fileName, fileUrl, document_name, created_date);
                         })
                         .collect(Collectors.toList());
                 return responseService.generateSuccessResponse("Documents retrieved successfully", documentResponses, HttpStatus.OK);
@@ -246,47 +268,133 @@ public class DocumentEndpoint {
             return responseService.generateErrorResponse("Error retrieving Documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-    @PostMapping("/download")
-    public ResponseEntity<?> downloadFile(@RequestBody Map<String, Object> loginDetails, HttpServletRequest request, HttpServletResponse response) {
+    private static final String AES_ALGORITHM = "AES";
+    public static String decrypt(String encryptedData) throws Exception {
         try {
-            String filePath = (String) loginDetails.get("filePath");
+            // Decode the URL-safe Base64 string
+            byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
+
+            // Initialize the SecretKeySpec and Cipher for decryption
+            SecretKeySpec secretKey = new SecretKeySpec(Constant.KEY.getBytes(), AES_ALGORITHM ); //@TODO-remove key from constants
+            Cipher cipher = Cipher.getInstance(AES_ALGORITHM );
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+            // Decrypt the data
+            byte[] decryptedData = cipher.doFinal(decodedData);
+            System.out.println("i am returning");
+            // Convert the decrypted data back to a String
+            return new String(decryptedData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+
+        }
+    }
+    @Autowired
+    JwtUtil jwtUtil;
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider})
+    @Transactional
+    @PostMapping("/download")
+    public ResponseEntity<?> downloadFile(
+            @RequestBody Map<String, Object> loginDetails,
+            HttpServletResponse response,HttpServletRequest request
+    ) {
+        try {
+            String fileUrl1 = (String) loginDetails.get("filePath");
+            String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
+            String filePath = decrypt(token);
+// Example: avisoftdocument\CUSTOMER\6416\Disability_Certificate\imresizer-1731964770170 (1) (1).jpg
+
+// Extract ID from filePath
+            Long id = null;
+            java.util.regex.Pattern pattern = Pattern.compile("CUSTOMER[\\\\/](\\d+)[\\\\/]");
+            Matcher matcher = pattern.matcher(filePath);
+            if (matcher.find()) {
+                id = Long.parseLong(matcher.group(1));
+            } else {
+                throw new IllegalArgumentException("Invalid file path format, ID not found");
+            }
+
+            String ip = request.getHeader("X-Forwarded-For");
+// Set roleId = 5
+            int roleId = 5;
+            System.out.println("id is"+id+" and role is"+roleId);
+
+// Generate short-lived token
+            String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
+
+// Get the download URL
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
 
-            URI uri = URI.create(fileUrl);
-            URL url = uri.toURL();
+// Append token as query parameter
+            String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8.toString());
+            System.out.println("Now url is"+securedFileUrl);
 
+            TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                    "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                    ShortAccessToken.class
+            );
+            query.setParameter("uid", id);
+            query.setParameter("role", roleId);
+            String encryptedFileName = filePath.substring(fileUrl1.lastIndexOf('/') + 1);
+            // Extract "Aadhaar_Card_Backside" (the folder name before the filename)
+            String[] pathParts = filePath.split("\\\\");
+            String folderName = pathParts[pathParts.length - 2]; // Gets the second-last part
+            String downloadFileName = folderName + ".jpg";
+            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+            downloadFileName=customCustomer.getFirstName()+" "+customCustomer.getLastName()+" "+downloadFileName;
+            System.out.println("fileName"+downloadFileName);
+            List<ShortAccessToken> resultList = query.getResultList();
+
+            if (resultList.isEmpty()) {
+                ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                        .userId(id)
+                        .token(token)
+                        .role(roleId)
+                        .expired(false)
+                        .build();
+                entityManager.persist(shortAccessToken);
+            } else {
+                ShortAccessToken shortAccessToken = resultList.get(0);
+                shortAccessToken.setToken(token);
+                shortAccessToken.setExpired(false);
+                entityManager.merge(shortAccessToken);
+            }
+            System.out.println(filePath);
+
+            URI uri = URI.create(securedFileUrl);
+            URL url = uri.toURL();
+            // Download logic
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                response.setContentType("application/octet-stream");
-
-                String fileName = url.getPath().substring(url.getPath().lastIndexOf('/') + 1);
-                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-                response.setContentLength(connection.getContentLength());
-
-                try (InputStream inputStream = connection.getInputStream();
-                     OutputStream outputStream = response.getOutputStream()) {
-                    IOUtils.copy(inputStream, outputStream);
-                    outputStream.flush();
-                }
-            } else {
-                return responseService.generateErrorResponse("Error downloading file: " + connection.getResponseMessage(), HttpStatus.BAD_REQUEST);
+            connection.setRequestProperty("response-content-disposition",
+                    "attachment; filename=\"" + downloadFileName + "\"");
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
             }
-        } catch (IllegalArgumentException e) {
-            return responseService.generateErrorResponse("Invalid file URL: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IOException e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+
+            // Set Content-Disposition with the custom filename
+            response.setContentType(connection.getContentType());
+            response.setHeader(
+                    "Content-Disposition",
+                    "attachment; filename=\"" + downloadFileName + "\""
+            );
+
+            // Stream the file to response
+            try (InputStream in = new URL(securedFileUrl).openStream();  // Use the original fileUrl, not securedFileUrl
+                 OutputStream out = response.getOutputStream()) {
+                IOUtils.copy(in, out);
+            }
+
+            return ResponseEntity.ok().build();
+
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error downloading file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(
+                    "Error downloading file: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
-
-        return null;
     }
 
 
@@ -294,15 +402,18 @@ public class DocumentEndpoint {
 
         private String fileName;
         private String fileUrl;
-
         private String document_name;
+        private Date created_date;
 
-
-        public DocumentResponse(String fileName, String fileUrl, String document_name) {
+        public DocumentResponse(String fileName, String fileUrl, String document_name, Date createdDate) {
             this.fileName = fileName;
             this.fileUrl = fileUrl;
             this.document_name = document_name;
+            this.created_date = createdDate;
+        }
 
+        public Date getCreatedDate() {
+            return created_date;
         }
 
         public String getFileName() {

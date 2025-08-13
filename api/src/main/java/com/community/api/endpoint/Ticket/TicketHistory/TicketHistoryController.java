@@ -82,7 +82,7 @@ public class TicketHistoryController {
             if(role.getRole_name().equals(Constant.SERVICE_PROVIDER) && !ticket.getAssignee().equals(tokenUseId)) {
                 throw new IllegalArgumentException("Forbidden Access");
             }
-            if(ticket == null) {
+            if(ticket == null || ticket.getArchived()) {
                 throw new NotFoundException("No Ticket Found with provided ticket id.");
             }
 

@@ -55,7 +55,7 @@ public class SchedulerController {
     @Value("${db.backup.db-name}")
     private String dbName;
 
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @Transactional
     @PutMapping("/backup-db")
     public ResponseEntity<?> callDBBackup() {
@@ -76,7 +76,7 @@ public class SchedulerController {
         );
 
         processBuilder.environment().put("PGPASSWORD", password);
-        processBuilder.directory(new File("C:/Program Files/PostgreSQL/16/bin"));
+        processBuilder.directory(new File("C:/Program Files/PostgreSQL/13/bin"));
 
         Schedule schedule = entityManager.find(Schedule.class, 3L);
         if (schedule == null) {
@@ -138,7 +138,7 @@ public class SchedulerController {
         );
 
         processBuilder.environment().put("PGPASSWORD", password);
-        processBuilder.directory(new File("C:/Program Files/PostgreSQL/16/bin"));
+        processBuilder.directory(new File("C:/Program Files/PostgreSQL/13/bin"));
 
         Schedule schedule = entityManager.find(Schedule.class, 3L);
         if (schedule == null) {
@@ -180,7 +180,7 @@ public class SchedulerController {
             return ResponseService.generateErrorResponse("Backup process failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @Transactional
     @Scheduled(cron = "0 */5 * * * *")
     @PutMapping("/update-product-states")
@@ -238,7 +238,7 @@ public class SchedulerController {
             return ResponseService.generateErrorResponse("Product update failed",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @Transactional
     @PutMapping("/run-auto-assigner")
     public ResponseEntity<?> runAutoAssigner() {
@@ -289,7 +289,7 @@ public class SchedulerController {
             return now.plusDays(1).toLocalDate().atTime(sevenThirtyAM);
         }
     }
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @Transactional
     @PutMapping("/run-re-ranking")
     public ResponseEntity<?> runReranking() {
@@ -335,7 +335,7 @@ public class SchedulerController {
 
 
 
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @Scheduled(cron = "0 0 0 * * MON")
     @Transactional
     @PutMapping("file-server-backup")
@@ -381,7 +381,7 @@ public class SchedulerController {
             return ResponseService.generateErrorResponse("Failed to backup File server",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @GetMapping("/all-schedules")
     public ResponseEntity<?> getAll() {
         try {
@@ -395,7 +395,7 @@ public class SchedulerController {
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @GetMapping("/{scheduleId}")
     public ResponseEntity<?> getProcessById(@PathVariable Long scheduleId) {
         try {

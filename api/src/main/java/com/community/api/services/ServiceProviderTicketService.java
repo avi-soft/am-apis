@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -100,6 +101,8 @@ public class ServiceProviderTicketService {
     private OrderDTOService orderDTOService;
     @Autowired
     private CustomerService customerService;
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     // auto-assigner scheduled to execute at 7:30 AM
     @Scheduled(cron = "0 30 7 * * ?")
@@ -293,8 +296,8 @@ public class ServiceProviderTicketService {
         try {
 
             List<CustomTicketState> ticketStateList = new ArrayList<>();
-            CustomTicketState ticketStateToDo = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
-            CustomTicketState ticketStateReturned = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_RETURNED);
+            CustomTicketState ticketStateToDo = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_TO_DO);
+            CustomTicketState ticketStateReturned = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_RETURNED);
 
             ticketStateList.add(ticketStateToDo);
             ticketStateList.add(ticketStateReturned);
@@ -386,7 +389,7 @@ public class ServiceProviderTicketService {
             if ((serviceProvider.getMaximumTicketSize() != null && (serviceProvider.getIsActive().equals(true)) && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
 
                 // Set ticket state to TO-DO.
-                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L);
+                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(1L);
                 ticket.setTicketState(ticketState);
 
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L);
@@ -520,7 +523,7 @@ public class ServiceProviderTicketService {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                         log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
-                        if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
+                        if (serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                             assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                         } else {
                             log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
@@ -541,7 +544,7 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
+                    if (serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     } else {
                         log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
@@ -606,7 +609,7 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                         log.info("Primary Referrer !!");
                         if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
@@ -630,7 +633,7 @@ public class ServiceProviderTicketService {
                         log.info("Other Referrer !!");
 
                         // check that it should not assigned to any sp who already rejected the ticket.
-                        if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                        if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                             if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
                                 log.info("cannot assign ticket to assignee of parent ticket");
@@ -691,7 +694,7 @@ public class ServiceProviderTicketService {
             // If target date is provided then it's fine else we give 4 hours to complete the ticket.
             log.info("date {}", createTicketDto.getTargetCompletionDate());
             if (createTicketDto.getTargetCompletionDate() != null) {
-                if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
                     throw new IllegalArgumentException("TARGET COMPLETION DATE MUST BE OF FUTURE");
                 }
             } else {
@@ -726,7 +729,7 @@ public class ServiceProviderTicketService {
 
             CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
-                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+                ticketState = ticketStateService.getTicketStateByTicketStateId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
@@ -788,7 +791,7 @@ public class ServiceProviderTicketService {
             reviewTicket.setComment(parentTicket.getComment());
             reviewTicket.setParentTicket(parentTicket);
 
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L); // Sate (to-do)
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(1L); // Sate (to-do)
             CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // Status with state linkage (to-do)
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L); // Review Ticket
 
@@ -844,7 +847,7 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
 
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(createTicketDto.getTicketState());
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
             CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
 
@@ -1258,7 +1261,7 @@ public class ServiceProviderTicketService {
 
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
         try {
-            String sql = "SELECT * FROM custom_service_provider_ticket ORDER BY modified_date DESC NULLS LAST";
+            String sql = "SELECT * FROM custom_service_provider_ticket WHERE archived = false ORDER BY modified_date DESC NULLS LAST";
             return entityManager.createNativeQuery(sql, CustomServiceProviderTicket.class).getResultList();
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -1280,7 +1283,7 @@ public class ServiceProviderTicketService {
             // Conditionally build the query
             if (states != null && !states.isEmpty()) {
                 for (Long id : states) {
-                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(id);
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(id);
                     if (ticketState == null) {
                         throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
                     }
@@ -1313,9 +1316,9 @@ public class ServiceProviderTicketService {
 
             if (dateFrom != null && dateTo != null) {
                 jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom) AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
-            } else if(dateFrom != null) {
+            } else if (dateFrom != null) {
                 jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom)");
-            } else if(dateTo != null) {
+            } else if (dateTo != null) {
                 jpql.append("AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
             }
 
@@ -1330,7 +1333,7 @@ public class ServiceProviderTicketService {
             if (dueInThreeDays != null) {
                 jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
                 if (states == null) {
-                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE);
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_CLOSE);
                     if (ticketState == null) {
                         throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + Constant.TICKET_STATE_CLOSE);
                     }
@@ -1339,7 +1342,7 @@ public class ServiceProviderTicketService {
                 }
             }
 
-            if(archived != null ) {
+            if (archived != null) {
                 jpql.append("AND c.archived = :archived ");
             }
 
@@ -1366,7 +1369,7 @@ public class ServiceProviderTicketService {
             if (dateFrom != null && dateTo != null) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
-            } else if(dateFrom != null) {
+            } else if (dateFrom != null) {
                 query.setParameter("dateFrom", dateFrom);
             } else if (dateTo != null) {
                 query.setParameter("dateTo", dateTo);
@@ -1389,7 +1392,7 @@ public class ServiceProviderTicketService {
                 query.setParameter("threeDaysLater", threeDaysLater);
             }
 
-            if(archived != null ) {
+            if (archived != null) {
                 query.setParameter("archived", archived);
             }
 
@@ -1476,21 +1479,121 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket) throws Exception {
+    public CustomServiceProviderTicket deleteTicketLogic(CustomServiceProviderTicket ticket, ServiceProviderEntity tokenServiceProvider) throws Exception {
         try {
             if (ticket == null) {
                 throw new IllegalArgumentException("Ticket is null");
             }
+
+            // check if already archived
+            if (ticket.getArchived() != null && ticket.getArchived()) {
+                throw new IllegalArgumentException("Ticket is already Archived.");
+            }
+
+            // According to logic only Review and miscellaneous ticket are allowed to be archived.
+            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                throw new IllegalArgumentException("Cannot archive Primary ticket directly.");
+            }
+
+            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
+                if (parentTicket == null) {
+                    throw new IllegalArgumentException("Parent ticket for a Review is null.");
+                }
+
+                CustomTicketState updatedTicketState = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_IN_PROGRESS);
+                parentTicket.setTicketState(updatedTicketState);
+                deleteTicket(ticket, tokenServiceProvider);
+
+            } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                // find the review ticket associated with this miscellaneous ticket
+                List<CustomServiceProviderTicket> linkedTickets = fetchChildTicketByTicketId(ticket.getTicketId());
+
+                // archive this ticket as well
+                deleteTicket(ticket, tokenServiceProvider);
+            } else {
+                throw new IllegalArgumentException("Ticket contains Invalid Ticket Type.");
+            }
+
+            return ticket;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket, ServiceProviderEntity tokenServiceProvider) throws Exception {
+        try {
+            if (ticket == null) {
+                throw new IllegalArgumentException("Ticket is null");
+            }
+
+            Role tokenRole = roleService.getRoleByRoleId(tokenServiceProvider.getRole());
+            if(tokenRole == null) {
+                throw new IllegalArgumentException("Could not found token role.");
+            }
+
             // find all the review ticket which are associated with this ticket and archive them as well.
             List<CustomServiceProviderTicket> childTickets = fetchChildTicketByTicketId(ticket.getTicketId());
-            if(childTickets != null) {
-                for(CustomServiceProviderTicket childTicket: childTickets) {
+            if (childTickets != null) {
+                for (CustomServiceProviderTicket childTicket : childTickets) {
+                    if (childTicket.getAssignee() != null && childTicket.getAssigneeRole() != null) {
+
+                        ServiceProviderEntity assigneeServiceProvider = serviceProviderService.getServiceProviderById(childTicket.getAssignee());
+
+                        if (assigneeServiceProvider == null) {
+                            throw new IllegalArgumentException("Assignee not found with the assignee Id.");
+                        }
+
+                        if (childTicket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            assigneeServiceProvider.setTicketAssigned(assigneeServiceProvider.getTicketAssigned() - 1);
+                        } else if (childTicket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                            assigneeServiceProvider.setTicketCompleted(assigneeServiceProvider.getTicketCompleted() - 1);
+                        } else {
+                            assigneeServiceProvider.setTicketPending(assigneeServiceProvider.getTicketPending() - 1);
+                        }
+                        serviceProviderActionController.sendArchiveTicketMail(assigneeServiceProvider, tokenServiceProvider, childTicket);
+                    } else { // Returned ticket case also handled here.
+                        log.info("child ticket with id: {} has no assignee to update its ticket stats.", childTicket.getTicketId());
+                    }
+                    log.info("child ticket id: {}", childTicket.getTicketId());
                     childTicket.setArchived(true);
+                    childTicket.setModifierId(tokenServiceProvider.getService_provider_id());
+                    childTicket.setModifierRole(tokenRole);
+                    childTicket.setModifiedDate(new Date());
                     entityManager.merge(childTicket);
                 }
             }
 
+            // Updating main ticket.
+            if (ticket.getAssignee() != null && ticket.getAssigneeRole() != null) {
+
+                ServiceProviderEntity assigneeServiceProvider = serviceProviderService.getServiceProviderById(ticket.getAssignee());
+
+                if (assigneeServiceProvider == null) {
+                    throw new IllegalArgumentException("Assignee not found with the assignee Id.");
+                }
+
+                if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                    assigneeServiceProvider.setTicketAssigned(assigneeServiceProvider.getTicketAssigned() - 1);
+                } else if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    assigneeServiceProvider.setTicketCompleted(assigneeServiceProvider.getTicketCompleted() - 1);
+                } else {
+                    assigneeServiceProvider.setTicketPending(assigneeServiceProvider.getTicketPending() - 1);
+                }
+                serviceProviderActionController.sendArchiveTicketMail(assigneeServiceProvider, tokenServiceProvider, ticket);
+            } else { // Returned ticket case also handled here.
+                log.info("Ticket with id: {} has no assignee to update its ticket stats.", ticket.getTicketId());
+            }
+
             ticket.setArchived(true);
+            ticket.setModifierRole(tokenRole);
+            ticket.setModifierId(tokenServiceProvider.getService_provider_id());
+            ticket.setModifiedDate(new Date());
             return entityManager.merge(ticket);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

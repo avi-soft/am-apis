@@ -759,14 +759,14 @@ public class AccountEndPoint {
 
     @Transactional
     @GetMapping("/genAuth")
-    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request)
+    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request,@RequestParam(required = false,name = "xcd1s")Long id)
     {
         Long userId=null;
         Integer roleId=null;
         if (authHeader != null) {
             String jwtToken = authHeader.substring(7);
              userId = jwtUtil.extractId(jwtToken);
-            roleId = jwtUtil.extractRoleId(jwtToken);
+             roleId = jwtUtil.extractRoleId(jwtToken);
         }
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -775,7 +775,13 @@ public class AccountEndPoint {
             // If multiple IPs are present, take the first one
             ip = ip.split(",")[0];
         }
-        String token = jwtUtil.generateShortLivedToken(userId, roleId, ip);
+        String token=null;
+        if(roleId!=null&&(roleId==1||roleId==2))
+        {
+            token = jwtUtil.generateShortLivedToken(id,5, ip);
+        }
+        else
+            token = jwtUtil.generateShortLivedToken(userId,roleId, ip);
 
         TypedQuery<ShortAccessToken> query = em.createQuery(
                 "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",

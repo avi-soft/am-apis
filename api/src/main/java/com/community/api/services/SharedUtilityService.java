@@ -9,10 +9,26 @@ import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.BlackListedTokens;
+import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.CustomerAddressDTO;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.Institution;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Post;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.SubjectDetail;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
@@ -24,7 +40,6 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Hex;
 
@@ -36,6 +51,7 @@ import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -54,6 +70,7 @@ import java.util.stream.Collectors;
 import static com.community.api.component.Constant.GENDER_ALL;
 import static com.community.api.component.Constant.RESERVED_CATEGORY_ALL;
 
+@Slf4j
 @Service
 public class SharedUtilityService {
     public ReserveCategoryService reserveCategoryService;
@@ -484,6 +501,7 @@ public class SharedUtilityService {
                         }
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                         documentDetails.put("fileUrl", fileUrl);
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Get the document type name dynamically without modifying the actual entity
                         String documentTypeName = document.getDocumentType().getDocument_type_name();
@@ -782,8 +800,8 @@ public class SharedUtilityService {
                         }
 
                         String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
-                        System.out.println("heloooooooooooooooooooooooooooooooooooooooooo");
                         documentDetails.put("fileUrl", fileUrl);
+                        documentDetails.put("created_date", document.getCreatedDate());
 
                         // Get the document type name dynamically without modifying the actual entity
                         String documentTypeName = document.getDocumentType().getDocument_type_name();
@@ -1811,7 +1829,7 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("In Miscellaneous Details, you have to select whether you are Phd passed or not");
         }
-        if(customCustomer.getWorkExperience()!=null)
+        if(customCustomer.getWorkExperience()!=null&&customCustomer.getWorkExperience()!=0)
         {
             if(customCustomer.getWorkExperienceScopeId()==null)
             {
@@ -2075,7 +2093,7 @@ public class SharedUtilityService {
         return Hex.encodeHexString(hashBytes);
     }
 
-    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
+    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory, String rerserveCategoryOthers, Integer roleId, Long userId, String sourceName)
     {
         if(foundedCategory.equalsIgnoreCase("Others"))
         {
@@ -2120,31 +2138,151 @@ public class SharedUtilityService {
         }
         return null;
     }
-    public  List<String> getDifferences(Object before, Object after) {
+
+    public Map<String, Object> getDifferences(CustomProduct before, CustomProduct after) {
         if (before == null || after == null || !before.getClass().equals(after.getClass())) {
             throw new IllegalArgumentException("Both objects must be non-null and of the same type");
         }
 
-        List<String> differences = new ArrayList<>();
-        Class<?> clazz = before.getClass();
+        Map<String, Object> differenceDataMap = new HashMap<>();
 
-        for (Field field : clazz.getDeclaredFields()) {
-            field.setAccessible(true); // Allows access to private fields
+        // Active Dates
+        if (!Objects.equals(after.getActiveStartDate(), before.getActiveStartDate())) {
+            differenceDataMap.put("Application Starting Date", after.getActiveStartDate());
+        }
+        if (!Objects.equals(after.getActiveEndDate(), before.getActiveEndDate())) {
+            differenceDataMap.put("Application Ending Date", after.getActiveEndDate());
+        }
+
+        // Admit Card Dates
+        if (!Objects.equals(after.getAdmitCardDateFrom(), before.getAdmitCardDateFrom())) {
+            differenceDataMap.put("Admit Card Available From", after.getAdmitCardDateFrom());
+        }
+        if (!Objects.equals(after.getAdmitCardDateTo(), before.getAdmitCardDateTo())) {
+            differenceDataMap.put("Admit Card Available Up-to", after.getAdmitCardDateTo());
+        }
+
+        // Exam Dates
+        if (!Objects.equals(after.getExamDateFrom(), before.getExamDateFrom())) {
+            differenceDataMap.put("Exam Starting Date", after.getExamDateFrom());
+        }
+        if (!Objects.equals(after.getExamDateTo(), before.getExamDateTo())) {
+            differenceDataMap.put("Exam Ending Date", after.getExamDateTo());
+        }
+
+        // Modification Dates
+        if (!Objects.equals(after.getModificationDateFrom(), before.getModificationDateFrom())) {
+            differenceDataMap.put("Correction Starting Date", after.getModificationDateFrom());
+        }
+        if (!Objects.equals(after.getModificationDateTo(), before.getModificationDateTo())) {
+            differenceDataMap.put("Correction Ending Date", after.getModificationDateTo());
+        }
+
+        // Last date to pay fee
+        if (!Objects.equals(after.getLateDateToPayFee(), before.getLateDateToPayFee())) {
+            differenceDataMap.put("Last Day to Pay Fee Date", after.getLateDateToPayFee());
+        }
+
+        // Verification Dates
+        if (!Objects.equals(after.getTentativeVerificationFrom(), before.getTentativeVerificationFrom())) {
+            differenceDataMap.put("Verification Starting Date", after.getTentativeVerificationFrom());
+        }
+        if (!Objects.equals(after.getTentativeVerificationTo(), before.getTentativeVerificationTo())) {
+            differenceDataMap.put("Verification Ending Date", after.getTentativeVerificationTo());
+        }
+
+        // Answer Key release date
+        if (!Objects.equals(after.getAnswerKeyAvailableDate(), before.getAnswerKeyAvailableDate())) {
+            differenceDataMap.put("Answer Key Release Date", after.getAnswerKeyAvailableDate());
+        }
+
+        // Result Declaration date
+        if (!Objects.equals(after.getResultDeclarationDate(), before.getResultDeclarationDate())) {
+            differenceDataMap.put("Result Declaration Date", after.getResultDeclarationDate());
+        }
+
+        // Exam Center available date
+        if (!Objects.equals(after.getExamCenterAvailableDate(), before.getExamCenterAvailableDate())) {
+            differenceDataMap.put("Exam Center Availability Date", after.getExamCenterAvailableDate());
+        }
+
+        // Counselling date
+        if (!Objects.equals(after.getCounsellingDate(), before.getCounsellingDate())) {
+            differenceDataMap.put("Counselling Date", after.getCounsellingDate());
+        }
+
+        // Number of vacancies
+        if (!Objects.equals(after.getTotalVacanciesInProduct(), before.getTotalVacanciesInProduct())) {
+            differenceDataMap.put("Total Vacancies", after.getTotalVacanciesInProduct());
+        }
+
+        return differenceDataMap;
+    }
+
+
+    public String generateUpdateEmailContent(CustomProduct updatedProduct, Map<String, Object> differencesMap) {
+        DateTimeFormatter formatterDateTime = DateTimeFormatter.ofPattern("MMMM d, yyyy, h:mm a")
+                .withZone(ZoneId.of("Asia/Kolkata"));
+
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                .withZone(ZoneId.of("Asia/Kolkata"));
+
+        if (differencesMap.isEmpty()) {
+            return "No changes were detected.";
+        }
+
+        StringBuilder text = new StringBuilder();
+        text.append("Hi,\n\n");
+        text.append("Important schedule updates have been made to your purchased product: ")
+                .append(updatedProduct.getDisplayTemplate())
+                .append("\n\nThe following changes have been made:\n");
+
+        for (Map.Entry<String, Object> entry : differencesMap.entrySet()) {
+            String fieldLabel = entry.getKey();
+            Object value = entry.getValue();
+            String formattedValue = null;
+            if(fieldLabel.equals("Last Day to Pay Fee Date") || fieldLabel.equals("Application Starting Date") || fieldLabel.equals("Application Ending Date")) {
+                formattedValue = formatValue(value, formatterDateTime);
+            } else {
+                formattedValue = formatValue(value, formatterDate);
+            }
+            text.append("- ").append(fieldLabel).append(": ").append(formattedValue).append("\n");
+        }
+
+        text.append("\nTo view the latest changes, please visit:\n");
+        text.append("https://am-public-ui.vercel.app/")
+                .append("\n\n");
+
+        text.append("Thank you,\nSystem Administrator");
+
+        return text.toString();
+    }
+
+
+    private String formatValue(Object value, DateTimeFormatter formatter) {
+        if (value == null) return "N/A";
+        // only application start date , close date and last day to pay fee.
+
+        if (value instanceof OffsetDateTime) {
+            return ((OffsetDateTime) value).format(formatter);
+        } else if (value instanceof ZonedDateTime) {
+            return ((ZonedDateTime) value).format(formatter);
+        } else if (value instanceof Date) {
+            ZonedDateTime zdt = ((Date) value).toInstant()
+                    .atZone(ZoneId.of("Asia/Kolkata")); // preserve +05:30
+            return zdt.format(formatter);
+        } else if (value instanceof String) {
             try {
-                Object beforeValue = field.get(before);
-                Object afterValue = field.get(after);
-
-                if (!Objects.equals(beforeValue, afterValue)) {
-                    differences.add(field.getName());
-                }
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Unable to access field: " + field.getName(), e);
+                // Parse with offset preserved
+                OffsetDateTime odt = OffsetDateTime.parse((String) value);
+                return odt.format(formatter);
+            } catch (DateTimeParseException e) {
+                return value.toString(); // fallback
             }
         }
 
-        return differences;
+        return value.toString();
     }
-
 
 }
 

@@ -48,6 +48,9 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
     @JsonProperty("modifier_user_id")
     private Long modifierId;
 
+    @JsonProperty("live_product_count")
+    private Integer productCount;
+
     @JsonProperty("modifier_role_id")
     private Role modifierRole;
 
@@ -89,6 +92,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
+        this.productCount=advertisement.getProductCount();
     }
 
     public void wrapDetails(Advertisement advertisement, List<CustomProductWrapper> wrapper, HttpServletRequest httpServletRequest) {
@@ -111,6 +115,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
         this.productWrapperList = wrapper;
+        this.productCount=advertisement.getProductCount();
     }
 
     @Override

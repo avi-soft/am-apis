@@ -2792,6 +2792,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     documentDetails.put("documentId", document.getDocumentId());
                     documentDetails.put("name", document.getName());
                     documentDetails.put("filePath", document.getFilePath());
+                    documentDetails.put("created_date", document.getUploadedDate());
 
                     // Add qualification details if applicable
                     if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {

@@ -94,7 +94,7 @@ public class TicketStateService {
         }
     }
 
-    public CustomTicketState getTicketStateByTicketId(Long ticketStateId) throws Exception {
+    public CustomTicketState getTicketStateByTicketStateId(Long ticketStateId) throws Exception {
         try {
 
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_BY_TICKET_STATE_ID, CustomTicketState.class);
@@ -234,7 +234,7 @@ public class TicketStateService {
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
-            if (ticket == null)
+            if (ticket == null || ticket.getArchived())
                 throw new NotFoundException("Ticket not found");
 
             // the assignee not allowed to modify the ticket now.
@@ -366,7 +366,7 @@ public class TicketStateService {
             CustomTicketStatus ticketStatus = null;
 
             if (createTicketDTO.getTicketState() != null && createTicketDTO.getTicketStatus() != null) {
-                ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
+                ticketState = getTicketStateByTicketStateId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
                 if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
@@ -476,7 +476,7 @@ public class TicketStateService {
 
                     parentTicket.setComment(createTicketDTO.getComment().trim());
                     if (createTicketDTO.getIsComplete()) {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_CLOSE));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
@@ -518,7 +518,7 @@ public class TicketStateService {
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
@@ -797,7 +797,7 @@ public class TicketStateService {
     public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId, String roleName, Long customTicketStatus) throws Exception {
         try {
 
-            CustomTicketState nextState = getTicketStateByTicketId(ticketStateId);
+            CustomTicketState nextState = getTicketStateByTicketStateId(ticketStateId);
             CustomTicketStatus status = ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
 
             if (customServiceProviderTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {

@@ -1690,6 +1690,7 @@ BEGIN
 --        (6, 'DIPLOMA', 'Completed a diploma program', FALSE, TRUE,6),
 --        (7, 'ITI', 'Completed an ITI (Industrial Training Institute) program', FALSE, TRUE,7),
 --
+<<<<<<< HEAD
 ---- Bachelors Degrees
 --        (8, 'B.A.', 'Bachelor of Arts', FALSE, TRUE,8),
 --        (9, 'B.Sc.', 'Bachelor of Science', FALSE, TRUE,9),
@@ -1939,6 +1940,201 @@ BEGIN
 --                WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
 --                AND q.qualification_id BETWEEN 3 AND 60;
 --    END IF;
+=======
+--    -- Mapping for INTERMEDIATE/12th (qualification_id: 2)
+--  -- 12th Standard Streams (qualification_id = 2)
+IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
+
+        ALTER TABLE public.qualification_stream
+        ADD CONSTRAINT qualification_stream_unique UNIQUE (qualification_id, stream_id);
+
+        -- Insert values if the table is empty
+INSERT INTO qualification_stream (qualification_id, stream_id)
+-- 10th stream id 1 which is implicit
+        SELECT 1, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (0);
+        -- 12th Stream
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 2, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (1, 2, 3);
+
+        -- Bachelor of Arts and BA Honours (qualification_id = 8, 21)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (8, 21)
+        AND stream_id IN (5, 6, 7, 8, 9, 142, 143, 144, 145, 146, 147);
+
+        -- Bachelor of Science and BSc Honours (qualification_id = 9, 22)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (9, 22)
+        AND stream_id IN (10, 11, 12, 13, 14, 15, 148, 149, 150, 151, 152);
+
+        -- Bachelor of Commerce and BCom Honours (qualification_id = 10, 23)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (10, 23)
+        AND stream_id IN (16, 17, 18, 153, 154, 155, 156, 157);
+
+        -- BTech/BE (qualification_id = 11, 12)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (11, 12)
+        AND stream_id IN (19, 20, 21, 22, 158, 159);
+
+        -- BAMS (qualification_id = 24)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 24, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 160 AND 165;
+
+        -- BSc Nursing (qualification_id = 25)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 25, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 166 AND 171;
+
+        -- BPT (qualification_id = 26)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 26, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 172 AND 176;
+
+        -- BHMS (qualification_id = 27)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 27, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 177 AND 182;
+
+        -- BMLT (qualification_id = 28)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 28, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 183 AND 187;
+
+        -- BHMCT (qualification_id = 29)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 29, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 188 AND 191;
+
+        -- BTTM (qualification_id = 30)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 30, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 192 AND 195;
+
+        -- B.Voc (qualification_id = 31)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 31, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 196 AND 201;
+
+        -- B.P.Ed (qualification_id = 32)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 32, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 202 AND 205;
+
+        -- B.Ed (qualification_id = 33)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 33, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 206 AND 210;
+
+        -- B.Li.Sc (qualification_id = 34)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 34, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 211 AND 214;
+
+        -- Masters Degrees
+        -- MA (qualification_id = 35)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 35, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (43, 44, 45, 46, 47);
+
+        -- MSc (qualification_id = 36)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 36, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (48, 49, 50, 51, 52);
+
+        -- MTech/ME (qualification_id = 38, 39)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (38, 39)
+        AND stream_id IN (54, 59, 60, 61);
+
+        -- MD (qualification_id = 40)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 40, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (62, 63, 64, 65);
+
+        -- MS (qualification_id = 41)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 41, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (66, 67, 68);
+
+        -- Diplomas (qualification_id = 6)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 6, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 85 AND 103;
+
+        -- ITI (qualification_id = 7)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 7, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 104 AND 121;
+
+        -- PhD (qualification_id = 5)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 5, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 122 AND 141;
+ -- BACHELORS
+            INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT 3, stream_id
+                FROM custom_stream
+                WHERE stream_id BETWEEN 217 AND 261;
+--MASTERS
+                INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT 4, stream_id
+                FROM custom_stream
+                WHERE stream_id BETWEEN 262 AND 288;
+
+INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT q.qualification_id, cs.stream_id
+        FROM qualification q
+        CROSS JOIN custom_stream cs
+        WHERE cs.stream_id IN (215)
+        AND q.qualification_id =1;
+INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT q.qualification_id, cs.stream_id
+        FROM qualification q
+        CROSS JOIN custom_stream cs
+        WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
+        AND q.qualification_id BETWEEN 3 AND 60;
+
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT q.qualification_id, cs.stream_id
+                FROM qualification q
+                CROSS JOIN custom_stream cs
+                WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
+                AND q.qualification_id BETWEEN 3 AND 60;
+    END IF;
+>>>>>>> b43793c776443306b84d72f22279d122e26865e7
 
       INSERT INTO stream_subject (stream_id, subject_id)
       SELECT * FROM (VALUES
@@ -1973,6 +2169,11 @@ BEGIN
       ) AS tmp(stream_id, subject_id)
       WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
       ON CONFLICT DO NOTHING;
+
+IF NOT EXISTS (SELECT 1 FROM stream_subject LIMIT 1)THEN
+      ALTER TABLE public.stream_subject
+      ADD CONSTRAINT stream_subject_unique UNIQUE (stream_id, subject_id);
+END IF;
 --
 --
 -- IF NOT EXISTS (SELECT 1 FROM typing_text LIMIT 1) THEN
@@ -2059,6 +2260,7 @@ BEGIN
 --    END IF;
 --
 --    -- Check and insert into custom_document table
+<<<<<<< HEAD
 --   IF NOT EXISTS (SELECT 1 FROM custom_document LIMIT 1)THEN
 --             INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,
 --                 is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order,min_width_dimension_in_mm,max_width_dimension_in_mm,min_height_dimension_in_mm,max_height_dimension_in_mm,dpi)
@@ -2102,6 +2304,156 @@ BEGIN
 --            (37, 'Pdf','A pdf which service provider uploads to give skill test','300KB','100KB',FALSE,FALSE,FALSE,35,NULL,NULL,NULL,NULL,NULL),
 --            (38, 'Signature_Image','Signature image which service provider uploads to give skill test','50KB','30KB',FALSE,FALSE,FALSE,36,60.0,60.0,30.0,30.0,300.0);
 --    END IF;
+=======
+   IF NOT EXISTS (SELECT 1 FROM custom_document LIMIT 1)THEN
+             INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,
+                 is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order,min_width_dimension_in_mm,max_width_dimension_in_mm,min_height_dimension_in_mm,max_height_dimension_in_mm,dpi)
+             VALUES
+            (1, 'Aadhaar_Card_Front', 'Front side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 2,NULL,NULL,NULL,NULL,NULL),
+            (2, 'Pan_Card', 'A permanent account number card for tax purposes in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 4,NULL,NULL,NULL,NULL,NULL),
+            (3, 'Live_Passport_Size_Photo', 'A live photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 5,NULL,NULL,NULL,NULL,NULL),
+            (4, 'Signature', 'A handwritten sign used to authenticate documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 1,NULL,NULL,NULL,NULL,NULL),
+            (5, 'Ews_Certificate', 'Certificate for individuals and families below a certain income threshold to access various benefits and concessions.', '300KB', '200KB', FALSE, FALSE, FALSE, 29,NULL,NULL,NULL,NULL,NULL),
+            (6, 'Caste_Certificate', 'Certifies an individuals caste for reservations and benefits in education and employment.', '300KB', '200KB', FALSE, FALSE, FALSE, 6,NULL,NULL,NULL,NULL,NULL),
+            (7, 'Address_Certificate', 'Verifies an individuals residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26,NULL,NULL,NULL,NULL,NULL),
+            (8, 'Income_Certificate', 'Confirms an individuals or family annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27,NULL,NULL,NULL,NULL,NULL),
+            (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28,NULL,NULL,NULL,NULL,NULL),
+            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, FALSE, FALSE, 9,NULL,NULL,NULL,NULL,NULL),
+            (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities, person with a disability is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10,NULL,NULL,NULL,NULL,NULL),
+            (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25,NULL,NULL,NULL,NULL,NULL),
+            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '500KB', '50KB', FALSE, FALSE, FALSE, 1000,NULL,NULL,NULL,NULL,NULL),
+            (14, 'C_Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24,NULL,NULL,NULL,NULL,NULL),
+            (15, 'Ex_Service_Men', 'Ex Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11,NULL,NULL,NULL,NULL,NULL),
+            (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23,NULL,NULL,NULL,NULL,NULL),
+            (17, 'Personal_Photo', 'A Personal Photograph of SP.', '200KB', '100KB', FALSE, FALSE, FALSE, 0,NULL,NULL,NULL,NULL,NULL),
+            (18, 'NCC_Certificate_A', 'Ncc CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 12,NULL,NULL,NULL,NULL,NULL),
+            (19, 'NCC_Certificate_B', 'NCC CERTIFICATE B', '500KB', '100KB', FALSE, FALSE, FALSE, 13,NULL,NULL,NULL,NULL,NULL),
+            (20, 'NCC_Certificate_C', 'NCC CERTIFICATE C', '500KB', '100KB', FALSE, FALSE, FALSE, 14,NULL,NULL,NULL,NULL,NULL),
+            (21, 'NSS_Certificate_A', 'NSS CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 15,NULL,NULL,NULL,NULL,NULL),
+            (22, 'Sports_Certificate_State', 'SPORTS CERTIFICATE FOR STATE LEVEL', '200KB', '100KB', FALSE, FALSE, FALSE, 18,NULL,NULL,NULL,NULL,NULL),
+            (23, 'Sports_Certificate_Centre', 'SPORTS CERTIFICATE FOR CENTRE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 19,NULL,NULL,NULL,NULL,NULL),
+            (24, 'Aadhaar_Card_Backside', 'Back side of a government issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 3,NULL,NULL,NULL,NULL,NULL),
+            (25, 'Left_Thumb_Impression', 'The left thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 20,NULL,NULL,NULL,NULL,NULL),
+            (26, 'Right_Thumb_Impression', 'The right thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 21,NULL,NULL,NULL,NULL,NULL),
+            (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22,NULL,NULL,NULL,NULL,NULL),
+            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', FALSE, FALSE, FALSE, 16,NULL,NULL,NULL,NULL,NULL),
+            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', FALSE, FALSE, FALSE, 17,NULL,NULL,NULL,NULL,NULL),
+            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, FALSE, FALSE,7,NULL,NULL,NULL,NULL,NULL),
+            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8,NULL,NULL,NULL,NULL,NULL),
+            (32, 'Ticket_Document', 'Ticket Document', '5MB', '5KB', FALSE, FALSE, FALSE, 30,NULL,NULL,NULL,NULL,NULL),
+            (33, 'Random_Resized_Image','A Random image which will be downloaded by Service Provider to give the skill test','1MB','101KB',FALSE,FALSE,FALSE,31,30.0,40.0,40.0,50.0,300.0),
+            (34, 'Random_Pdf_Image','A dummy image for pdf which the service provider needs to download','1MB','101KB',FALSE,FALSE,FALSE,32,NULL,NULL,NULL,NULL,NULL),
+            (35, 'Random_Signature_Image','A dummy image for signature which the service provider needs to download','350KB','300KB',FALSE,FALSE,FALSE,33,NULL,NULL,NULL,NULL,NULL),
+            (36, 'Resized_Image','A resized image which service provider uploads to give skill test','100KB','50KB',FALSE,FALSE,FALSE,34,NULL,NULL,NULL,NULL,NULL),
+            (37, 'Pdf','A pdf which service provider uploads to give skill test','300KB','100KB',FALSE,FALSE,FALSE,35,NULL,NULL,NULL,NULL,NULL),
+            (38, 'Signature_Image','Signature image which service provider uploads to give skill test','50KB','30KB',FALSE,FALSE,FALSE,36,60.0,60.0,30.0,30.0,300.0);
+    END IF;
+--
+    -- Check and insert into file_type_name table
+    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
+        INSERT INTO filetype (file_type_id,file_type_name)
+        VALUES
+            (1, 'PNG'),
+            (2, 'JPG'),
+            (3, 'PDF'),
+            (4, 'JPEG'),
+            (5, 'PLAIN'),
+            (6, 'X-MSDOS-PROGRAM'),
+            (7, 'JSON'),
+            (8, 'DOC'),
+            (9, 'DOCX'),
+            (10, 'TXT'),
+            (11, 'RTF'),
+            (12, 'HTML'),
+            (13, 'CSV'),
+            (14, 'XLS'),
+            (15, 'XLSX'),
+            (16, 'GIF'),
+            (17, 'SVG'),
+            (18, 'MP3'),
+            (19, 'MP4'),
+            (20, 'AVI'),
+            (21, 'ZIP'),
+            (22, 'TIFF');
+    END IF;
+--
+	  IF NOT EXISTS (SELECT 1 FROM document_file_types LIMIT 1) THEN
+        -- Insert records into document_file_types
+        INSERT INTO document_file_types (document_type_id, file_type_id)
+        VALUES
+            (1, 2), (1, 4),
+            (2, 2), (2, 4),
+            (3, 2), (3, 4),
+            (4, 2), (4, 4),
+            (5, 2), (5, 4),
+            (6, 1), (6, 2), (6, 4),
+            (7, 2), (7, 4),
+            (8, 2), (8, 4),
+            (9, 1), (9, 2), (9, 4),
+            (10, 2), (10, 4),
+            (11, 2), (11, 4),
+            (12, 2), (12, 4),
+            (13, 1), (13, 2),(13,3) ,(13, 4),
+            (14, 2), (14, 4),
+            (15, 2), (15, 4),
+            (16, 2), (16, 4),
+            (17, 2), (17, 4),
+            (18, 2), (18, 4),
+            (19, 2), (19, 4),
+            (20, 2), (20, 4),
+            (21, 1), (21, 2), (21, 4),
+            (22, 2), (22, 4),
+            (23, 1), (23, 2), (23, 4),
+            (24, 2), (24, 4),
+            (25, 2), (25, 4),
+            (26, 2), (26, 4),
+            (27, 2), (27, 4),
+            (28, 1), (28, 2), (28, 4),
+            (29, 1), (29, 2), (29, 4),
+            (30, 1), (30, 2), (30, 4),
+            (31, 1), (31, 2), (31, 4),
+            (32, 1), (32, 2), (32, 4), (32, 3), (32, 8), (32, 9), (32, 10), (32, 11), (32, 12), (32, 13), (32, 14), (32, 15), (32, 16), (32, 17), (32, 18), (32, 19), (32, 20), (32, 21), (32, 22),
+           (33,1),(33,2),(33,4),(34,1),(34,2),(34,4),(35,1),(35,2),(35,4),(36,1),(36,2),(36,4),(37,3),(38,1),(38,2),(38,4);
+
+      ALTER TABLE public.document_file_types
+      ADD CONSTRAINT uq_document_file_types UNIQUE (document_type_id, file_type_id);
+    END IF;
+--
+   IF (SELECT COUNT(*) FROM board_university) = 0 THEN
+    INSERT INTO board_university (board_university_id, board_university_name, board_university_location, board_university_code, board_university_type, created_date, modified_date, created_by, modified_by,sort_order)
+    VALUES
+        (1, 'Others', 'Others', 'Others', 'Others', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',1000000),
+        (2, 'Jammu and Kashmir Board of School Education', 'Jammu', 'JKBOSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',2),
+        (3, 'Jammu and Kashmir Board of Technical Education', 'Jammu', 'JKBOTE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',3),
+        (4, 'Punjab School Education Board', 'Punjab', 'PSEB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',4),
+        (5, 'Board of School Education Haryana', 'Haryana', 'BSEH', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',5),
+        (6, 'Himachal Pradesh  Board of School Education', 'Himachal Pradesh', 'HPBOSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',6),
+        (7, 'Delhi Board of School Education', 'Delhi', 'DBSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',7),
+        (8, 'University of Jammu', 'Jammu', 'JU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',8),
+        (9, 'Cluster University of Jammu', 'Jammu', 'CLUJ', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',9),
+        (10, 'Central University of Jammu', 'Jammu', 'CUJ', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',10),
+        (11, 'Central Board of Secondary Education', 'Delhi', 'CBSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',11),
+        (12, 'Jawaharlal Nehru University', 'Delhi', 'JNU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',12),
+        (13, 'Uttar Pradesh Board', 'Lucknow', 'UPB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',13),
+        (14, 'Punjab University', 'Chandigarh', 'PU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',14),
+        (15, 'Maharashtra State Board', 'Mumbai', 'MSB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',15),
+        (16, 'Rajasthan University', 'Jaipur', 'RU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',16),
+        (17, 'Karnataka State Board', 'Bangalore', 'KSB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',17),
+        (18, 'Tamil Nadu State Board', 'Chennai', 'TNSB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',18),
+        (19, 'University of Mumbai', 'Mumbai', 'UM', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',19),
+        (20, 'Osmania University', 'Hyderabad', 'OU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',20),
+        (21, 'West Bengal State University', 'Kolkata', 'WBSU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',21),
+        (22, 'University of Calcutta', 'Kolkata', 'CU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',22),
+        (23, 'Andhra Pradesh Board', 'Vijayawada', 'APB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',23),
+        (24, 'University of Madras', 'Chennai', 'UM', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',24),
+        (25, 'University of Kerala', 'Thiruvananthapuram', 'UK', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',25),
+        (26, 'Gujarat Secondary and Higher Secondary Education Board', 'Gandhinagar', 'GSHSEB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',26),
+        (27, 'University of Pune', 'Pune', 'PU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',27),
+        (28, 'University of Rajasthan', 'Jaipur', 'UR', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',28),
+        (29, 'University of Allahabad', 'Allahabad', 'UA', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',29),
+        (30, 'State Board of School Education', 'India', 'SBSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',1);
+END IF;
+>>>>>>> b43793c776443306b84d72f22279d122e26865e7
 ----
 
 --    -- Check and insert into file_type_name table

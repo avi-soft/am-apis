@@ -33,6 +33,7 @@ BEGIN
                   AND c.ticket_state_id = ticket_state_to_do
                   AND c.ticket_type_id = ticket_type_review
                   AND pt.ticket_type_id = ticket_type_primary  -- Ensure parent is primary
+                  AND c.archived = false
                 ORDER BY c.ticket_id, sku.active_end_date DESC
             ) ordered_tickets;
 

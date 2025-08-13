@@ -5,6 +5,7 @@ import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -57,5 +58,9 @@ public class Document {
 
     @JsonIgnore
     private String otherDocument;
+
+    @Column(name = "created_date")
+    @JsonProperty("created_date")
+    private Date createdDate;
 
 }

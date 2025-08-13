@@ -27,6 +27,7 @@ BEGIN
              WHERE c.assignee_user_id IS NULL
                AND c.ticket_state_id = ticket_state_returned
                AND c.ticket_type_id = ticket_type_primary
+               AND c.archived = false
              ORDER BY c.ticket_id, sku.active_end_date DESC
          ) ordered_tickets;
 

@@ -37,11 +37,10 @@ public class BackupService {
     @Value("${email.from}")
     private String fromEmail;
 
-
     @Autowired
     private RestTemplate restTemplate;
     private static final Long SCHEDULE_ID = 4L;
-    private static final String TARGET_IP = "192.168.0.107";
+    private static final String TARGET_IP = "192.168.20.106";
     private static final String BACKUP_ENDPOINT = "http://" + TARGET_IP + ":8081/run-backup";
     @Async
     @Transactional
@@ -74,6 +73,7 @@ public class BackupService {
 
         return CompletableFuture.completedFuture(null);
     }
+
     @Async
     public void sendFailureMail(String scheduleName,String desc, LocalDateTime lastRun, LocalDateTime nextRun) {
         try {
