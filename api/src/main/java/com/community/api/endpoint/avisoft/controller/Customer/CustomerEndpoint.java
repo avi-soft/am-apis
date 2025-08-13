@@ -2637,8 +2637,13 @@ public class CustomerEndpoint {
             Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(role.getRole_name().equals(roleServiceProvider)) {
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                }
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
