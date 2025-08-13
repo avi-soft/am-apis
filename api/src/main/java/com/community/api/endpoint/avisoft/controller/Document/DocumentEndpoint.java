@@ -316,20 +316,29 @@ public class DocumentEndpoint {
 
             // Extract ID
             Long id = null;
-            Matcher matcher = Pattern.compile("CUSTOMER[\\\\/](\\d+)[\\\\/]").matcher(filePath);
+            Matcher matcher = Pattern.compile("(CUSTOMER|SERVICE_PROVIDER|ADMIN)[\\\\/](\\d+)[\\\\/]").matcher(filePath);
+
             if (matcher.find()) {
-                id = Long.parseLong(matcher.group(1));
-                System.out.println("✅ Extracted customer ID: " + id);
+                String role = matcher.group(1); // CUSTOMER, SERVICE_PROVIDER, or ADMIN
+                id = Long.parseLong(matcher.group(2)); // The ID
+                System.out.println("Role: " + role + ", Extracted ID: " + id);
             } else {
-                System.out.println("❌ ID not found in filePath");
+                System.out.println(" ID not found in filePath");
                 throw new IllegalArgumentException("Invalid file path");
             }
 
             // Generate token for remote fetch
             String ip = request.getHeader("X-Forwarded-For");
             System.out.println("➡ Client IP: " + ip);
-
-            int roleId = 5;
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id);
+            ServiceProviderEntity sp=null;
+            if(customCustomer==null)
+            {
+                sp=entityManager.find(ServiceProviderEntity.class,id);
+            }
+            int roleId=4;
+            if(customCustomer!=null)
+                 roleId = 5;
             String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
             System.out.println("✅ Generated short-lived token: " + tokenToAdd);
 
@@ -340,7 +349,6 @@ public class DocumentEndpoint {
             System.out.println("✅ Secured file URL for remote fetch: " + securedFileUrl);
 
             // Prepare actual name & extension from remote content-type
-            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id);
             String folderName = filePath.split("\\\\")[filePath.split("\\\\").length - 2];
             System.out.println("➡ Folder name from file path: " + folderName);
 
@@ -358,10 +366,18 @@ public class DocumentEndpoint {
             else extension = ".bin";
 
             System.out.println("✅ Determined file extension: " + extension);
-
-            String downloadFileName = customCustomer.getFirstName() + " " +
-                    customCustomer.getLastName() + " " +
-                    folderName + extension;
+            String downloadFileName=null;
+            if(customCustomer!=null) {
+                downloadFileName   = customCustomer.getFirstName() + " " +
+                        customCustomer.getLastName() + " " +
+                        folderName + extension;
+            }
+            else
+            {
+                 downloadFileName = sp.getFirst_name() + " " +
+                        sp.getLast_name() + " " +
+                        folderName + extension;
+            }
             System.out.println("✅ Final custom download filename: " + downloadFileName);
 
             String encodedFileName = URLEncoder.encode(downloadFileName, StandardCharsets.UTF_8.toString()).replace("+", "%20");
