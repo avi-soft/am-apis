@@ -81,6 +81,15 @@ public class DocumentEndpoint {
         this.exceptionHandling = exceptionHandling;
         this.responseService = responseService;
     }
+    @Value("${policy.path}")
+    private String policyPath;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+    @GetMapping("/policy")
+    public ResponseEntity<?>getPolicy() throws Exception {
+        System.out.println(fileServerUrl+"/"+policyPath);
+        return ResponseService.generateSuccessResponse("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath),HttpStatus.OK);
+    }
 
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
