@@ -1907,7 +1907,7 @@ public class CustomerEndpoint {
             }
             Customer existingCustomerByUsername = null;
             Query query = entityManager.createNativeQuery(
-                    "SELECT COUNT(*) FROM blc_customer WHERE LOWER(username) = :username"
+                    "SELECT COUNT(*) FROM blc_customer WHERE LOWER(user_name) = :username"
             );
             query.setParameter("username", username.toLowerCase());
 
