@@ -121,6 +121,7 @@
         <class>com.community.api.entity.QualificationRelation</class>
         <class>com.community.api.entity.QualificationGroup</class>
         <class>com.community.api.entity.ExternalUseToken</class>
+        <class>com.community.api.entity.UserAcknowledgement</class>
         <class>com.community.api.entity.EmailQueue</class>
         <exclude-unlisted-classes/>
     </persistence-unit>

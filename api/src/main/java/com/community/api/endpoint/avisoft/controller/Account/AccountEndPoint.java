@@ -316,6 +316,7 @@ public class AccountEndPoint {
 
             String mobileNumber = (String) loginDetails.get("mobileNumber");
             String countryCode = (String) loginDetails.get("countryCode");
+            String ackId = (String) loginDetails.get("ack");
             Integer role = (Integer) loginDetails.get("role");
             if (mobileNumber == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_MOBILE_NUMBER, HttpStatus.BAD_REQUEST);
@@ -343,7 +344,7 @@ public class AccountEndPoint {
                 }
                 Customer customer = customerService.readCustomerById(customerRecords.getId());
                 if (customer != null) {
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null,ackId);
                     Map<String, Object> responseBody = otpResponse.getBody();
 
                     if (responseBody.get("otp") != null) {
@@ -616,7 +617,7 @@ public class AccountEndPoint {
                 if (customCustomer != null) {
                     String storedOtp = customCustomer.getOtp();
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null,null);
                     Map<String, Object> responseBody = otpResponse.getBody();
                     if (responseBody.get("otp") != null) {
                         return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);

@@ -13,6 +13,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.util.IntEnumeration;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,16 +34,22 @@ import java.io.OutputStream;
 import java.net.*;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 
 import java.util.Date;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.community.api.component.Constant.CHARACTERS;
+import static com.community.api.component.Constant.random;
 
 import static io.jsonwebtoken.JwsHeader.ALGORITHM;
 
@@ -86,6 +93,24 @@ public class DocumentEndpoint {
     @Value("${file.server.url}")
     private String fileServerUrl;
 
+    @Autowired
+    PdfEditService pdfEditService;
+    public  String generateUniqueId() {
+        long timestamp = Instant.now().toEpochMilli();  // Time-based component
+        StringBuilder id = new StringBuilder();
+
+        // Add 5 random alphanumeric characters
+        for (int i = 0; i < 5; i++) {
+
+            id.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
+        }
+
+        // Add last 5 digits of timestamp to reduce collision chance
+        String timeComponent = Long.toString(timestamp);
+        id.append(timeComponent.substring(timeComponent.length() - 5));
+
+        return id.toString();
+    }
     @Transactional
     @GetMapping("/policy")
     public ResponseEntity<?>getPolicy(HttpServletRequest request) throws Exception {
@@ -114,8 +139,16 @@ public class DocumentEndpoint {
             shortAccessToken.setExpired(false);
             entityManager.merge(shortAccessToken);
         }
-        return ResponseService.generateSuccessResponse("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token,HttpStatus.OK);
+        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+        Map<String,String>respone=new HashMap<>();
+        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
+        respone.put("seed",generateUniqueId());
+        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
     }
+
+
+
+
 
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
