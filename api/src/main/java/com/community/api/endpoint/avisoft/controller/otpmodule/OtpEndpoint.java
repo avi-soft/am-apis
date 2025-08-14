@@ -299,7 +299,7 @@ public class OtpEndpoint {
                         }
                     }
                 } else {
-                    return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
+                    return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
                 }
             } else if (!roleService.findRoleName(role).equals(Constant.roleUser)) {
                 return serviceProviderService.verifyOtp(loginDetails, session, request);

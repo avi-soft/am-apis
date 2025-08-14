@@ -30,8 +30,6 @@ public class CustomReserveCategory {
     @JsonProperty("reserve_category_name")
     protected String reserveCategoryName;
 
-
-
     @Column(name = "reserve_category_description")
     @JsonProperty("reserve_category_description")
     protected String reserveCategoryDescription;
