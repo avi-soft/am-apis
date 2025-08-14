@@ -300,11 +300,14 @@ public class SectorController {
                 products.add(wrapper);
             }
         }
-        sectorDTO.setProducts(products);
-        int totalItems = count.intValue();
+
+        int totalItems = products.size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
         int fromIndex = offset * limit;
         int toIndex = Math.min(fromIndex + limit, totalItems);
+
+        products.subList(fromIndex, toIndex);
+        sectorDTO.setProducts(products);
 
         if (fromIndex >= totalItems && offset != 0) {
             return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
