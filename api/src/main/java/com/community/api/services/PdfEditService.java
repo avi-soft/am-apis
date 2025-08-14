@@ -109,9 +109,9 @@ public class PdfEditService {
         body.add("removeFileTypes","0");
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
+
         String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId="+customerId+"&extUpdate=true";
         System.out.println(apiUrl);
-
         try {
             ResponseEntity<String> response = new RestTemplate()
                     .postForEntity(apiUrl, requestEntity, String.class);
