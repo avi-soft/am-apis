@@ -433,6 +433,7 @@ public class AdvertisementController {
                     }
                     /* activeCategories.add(dto);*/
                 }
+
                 int totalItems = count.intValue();
                 int totalPages = (int) Math.ceil((double) totalItems / limit);
                 int fromIndex = offset * limit;
@@ -441,9 +442,10 @@ public class AdvertisementController {
                 if (fromIndex >= totalItems && offset != 0) {
                     return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
                 }
+
                 // Construct paginated response
                 Map<String, Object> response = new HashMap<>();
-                response.put("advertisements", adv);
+                response.put("advertisements", adv.subList(fromIndex, toIndex));
                 response.put("totalItems", totalItems);
                 response.put("totalPages", totalPages);
                 response.put("currentPage", offset);
