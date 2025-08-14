@@ -99,6 +99,11 @@ public class PdfEditService {
                         .add("The Service Provider with ID: " + userId + " has agreed to the terms and conditions of this policy.");
             }
 
+            Paragraph timestampLine = new Paragraph("Agreement Timestamp: " + new Date())
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setFontColor(infoColor);
+
             // Additional info lines
             Paragraph agreementIdLine = new Paragraph("Agreement ID: " + ackId)
                     .setFont(font)
@@ -112,10 +117,7 @@ public class PdfEditService {
                     .setFontColor(infoColor)
                     .setMarginBottom(8);
 
-            Paragraph timestampLine = new Paragraph("Agreement Timestamp: " + new Date())
-                    .setFont(font)
-                    .setFontSize(12)
-                    .setFontColor(infoColor);
+
 
             // Define the area on the last page to put the text block
             PdfPage lastPageObj = pdfDoc.getPage(lastPage);
