@@ -162,7 +162,7 @@ public class OtpEndpoint {
 
                 }
 
-                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode, authHeader,null);
+                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode, authHeader, null);
                 Map<String, Object> responseBody = otpResponse.getBody();
 
                 if (responseBody.get("otp") != null) {
@@ -184,11 +184,13 @@ public class OtpEndpoint {
             return responseService.generateErrorResponse("Some error occurred: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Autowired
     PdfEditService pdfEditService;
+
     @Transactional
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization",required = false)String authHeadReq) {
+    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
         try {
 
             if (authHeadReq != null) {
@@ -215,7 +217,7 @@ public class OtpEndpoint {
             String countryCode = (String) loginDetails.get("countryCode");
             String username = (String) loginDetails.get("username");
             String mobileNumber = (String) loginDetails.get("mobileNumber");
-            String ackId=(String) loginDetails.get("ack");
+            String ackId = (String) loginDetails.get("ack");
             if (role == null) {
                 return responseService.generateErrorResponse(ApiConstants.ROLE_EMPTY, HttpStatus.BAD_REQUEST);
             }
@@ -262,26 +264,23 @@ public class OtpEndpoint {
                 Customer customer = customerService.readCustomerById(existingCustomer.getId());
 
                 if (otpEntered.equals(storedOtp)) {
-                    if(!existingCustomer.getIsAcknowledged()&&(ackId==null||ackId.isEmpty()))
-                        return ResponseService.generateErrorResponse("Need acknowledgement for user",HttpStatus.BAD_REQUEST);
-                    else if (existingCustomer.getIsAcknowledged()&&ackId!=null) {
+                    if (!existingCustomer.getIsAcknowledged() && (ackId == null || ackId.isEmpty()))
+                        return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
+                    else if (existingCustomer.getIsAcknowledged() && ackId != null) {
                         return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
-                    }
-                    else if(!existingCustomer.getIsAcknowledged()&&(ackId!=null||!ackId.isEmpty()))
-                        {
-                            try {
-                                UserAcknowledgement userAcknowledgement = new UserAcknowledgement();
-                                userAcknowledgement.setUserId(existingCustomer.getId());
-                                userAcknowledgement.setAcknowledgementVersion("v1");
-                                userAcknowledgement.setAcknowledgementId(ackId);
-                                userAcknowledgement.setAcknowledgedAt(new Date());
-                                em.merge(userAcknowledgement);
-                                existingCustomer.setIsAcknowledged(true);
-                        }catch (Exception exception)
-                            {
-                                exception.printStackTrace();
-                                return ResponseService.generateErrorResponse("Internal Server Error",HttpStatus.INTERNAL_SERVER_ERROR);
-                            }
+                    } else if (!existingCustomer.getIsAcknowledged() && (ackId != null || !ackId.isEmpty())) {
+                        try {
+                            UserAcknowledgement userAcknowledgement = new UserAcknowledgement();
+                            userAcknowledgement.setUserId(existingCustomer.getId());
+                            userAcknowledgement.setAcknowledgementVersion("v1");
+                            userAcknowledgement.setAcknowledgementId(ackId);
+                            userAcknowledgement.setAcknowledgedAt(new Date());
+                            em.merge(userAcknowledgement);
+                            existingCustomer.setIsAcknowledged(true);
+                        } catch (Exception exception) {
+                            exception.printStackTrace();
+                            return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
+                        }
                     }
                     System.out.println("ack set");
                     existingCustomer.setOtp(null);
@@ -307,14 +306,16 @@ public class OtpEndpoint {
                             }
                         }
                         ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                        pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber);
+                        if(!existingCustomer.getIsAcknowledged())
+                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                         return ResponseEntity.ok(response);
                     } else {
                         String existingToken = existingCustomer.getToken();
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                             authHeader = authHeader + existingToken;
                             ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber);
+                            if(!existingCustomer.getIsAcknowledged())
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                             return ResponseEntity.ok(response);
 
                         } else {
@@ -324,7 +325,8 @@ public class OtpEndpoint {
                             authHeader = authHeader + newToken;
                             em.persist(existingCustomer);
                             ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber);
+                            if(!existingCustomer.getIsAcknowledged())
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                             return ResponseEntity.ok(response);
                         }
                     }
@@ -342,20 +344,31 @@ public class OtpEndpoint {
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
-        }catch (Exception exception) {
-            exception.printStackTrace();
-           /* exceptionHandling.handleException(exception);*/
-            return responseService.generateErrorResponse("Otp verification error:" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }/* catch (NotAuthorizedException notAuthorizedException) {
-            notAuthorizedException.printStackTrace();
-            exceptionHandling.handleException(notAuthorizedException);
-            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
-        } catch (PersistenceException persistenceException) {
-            persistenceException.printStackTrace();
-            exceptionHandling.handleException(persistenceException);
-            return ResponseService.generateErrorResponse("Error verifying otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } */
+        }
+    catch(
+    NotAuthorizedException notAuthorizedException)
+
+    {
+        notAuthorizedException.printStackTrace();
+        exceptionHandling.handleException(notAuthorizedException);
+        return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
+    } catch(
+    PersistenceException persistenceException)
+
+    {
+        persistenceException.printStackTrace();
+        exceptionHandling.handleException(persistenceException);
+        return ResponseService.generateErrorResponse("Error verifying otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }catch(
+    Exception exception)
+
+    {
+        exception.printStackTrace();
+        /* exceptionHandling.handleException(exception);*/
+        return responseService.generateErrorResponse("Otp verification error:" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+
     }
+}
 
     @Transactional
     @PostMapping("/service-provider-signup")
