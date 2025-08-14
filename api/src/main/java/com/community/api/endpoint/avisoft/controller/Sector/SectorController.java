@@ -306,7 +306,7 @@ public class SectorController {
         int fromIndex = offset * limit;
         int toIndex = Math.min(fromIndex + limit, totalItems);
 
-        products.subList(fromIndex, toIndex);
+        products = products.subList(fromIndex, toIndex);
         sectorDTO.setProducts(products);
 
         if (fromIndex >= totalItems && offset != 0) {
