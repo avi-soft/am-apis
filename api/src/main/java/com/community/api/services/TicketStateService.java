@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
@@ -86,6 +87,9 @@ public class TicketStateService {
     EmailQueueService emailQueueService;
     @Autowired
     ServiceProviderActionController serviceProviderActionController;
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
 
     public List<CustomTicketState> getAllTicketState() throws Exception {
         try {
@@ -910,7 +914,19 @@ public class TicketStateService {
         return product;
     }
 
-    @Scheduled(cron = "0 50 7,15 * * *") // 7:50 AM and 3:50 PM every day
+    // Schedules separated as No EntityManager with actual transaction available for current thread exception came.
+    @Scheduled(cron = "0 50 12 * * *") // // 7:50 AM and 3:50 PM every day
+    public void ticketAllocationMailScheduler() {
+        transactionTemplate.execute(status -> {
+            try {
+                ticketAllocationMail(); // Now it runs inside a transaction
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return null;
+        });
+    }
+
     @Transactional
     public List<Map<String, Long>> ticketAllocationMail() throws Exception {
         try {
@@ -919,6 +935,7 @@ public class TicketStateService {
             List<EmailQueue> emailQueues = emailQueueService.getAllEmailQueue();
 
             for (EmailQueue emailQueue : emailQueues) {
+                log.info("called for id: {}", emailQueue.getId());
                 Map<String, Long> mailDetails = new HashMap<>();
                 Long userId = emailQueue.getUserId();
                 Role role = emailQueue.getRole();
@@ -972,8 +989,10 @@ public class TicketStateService {
                     mailDetails.put("ticket_id", ticket.getTicketId());
                     mailDetails.put("assignee_id", serviceProvider.getService_provider_id());
                     response.add(mailDetails);
+
                     emailQueue.setArchived(true);
                     entityManager.merge(emailQueue);
+                    entityManager.flush();
 
                 } else {
                     log.info("Invalid Role");
