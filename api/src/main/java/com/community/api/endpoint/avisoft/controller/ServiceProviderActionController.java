@@ -151,7 +151,7 @@ public class ServiceProviderActionController {
                 throw new IllegalArgumentException("Modes cannot be null");
             }
             if (modesList.isEmpty()) {
-                throw new IllegalArgumentException("You have to select atleast one mode");
+                throw new IllegalArgumentException("You have to select at-least one mode");
             }
 
             // Process comma-separated customerIds if needed
@@ -203,6 +203,7 @@ public class ServiceProviderActionController {
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
             }*/
+
             if (request.getContentText() == null && (request.getFiles() == null || request.getFiles().isEmpty())) {
                 return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null", HttpStatus.BAD_REQUEST);
             }
@@ -236,6 +237,7 @@ public class ServiceProviderActionController {
                         HttpStatus.BAD_REQUEST
                 );
             }
+
             // Create communication content
             CommunicationContent content = new CommunicationContent();
             if (serviceProvider != null) {
@@ -266,7 +268,6 @@ public class ServiceProviderActionController {
                     contentFiles = processFiles(request.getFiles(), content);
                     content.setContentFiles(contentFiles);
                 }
-
             }
 
             entityManager.persist(content);
@@ -918,7 +919,7 @@ public class ServiceProviderActionController {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "bypass", defaultValue = "false") Boolean bypass) {
         try {
-            System.out.println("I have been called");
+
             if (role == null)
                 return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
             if (roleService.findRoleName(role) == null)

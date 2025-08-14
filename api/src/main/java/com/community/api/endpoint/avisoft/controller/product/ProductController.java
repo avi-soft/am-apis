@@ -1365,10 +1365,8 @@ public class ProductController extends CatalogEndpoint {
             Role roleEntity = roleService.getRoleByRoleId(roleId);
             Long createdById = null;
 
-            if ((roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name()))&&!preview) {
-                myProducts = true;
-            }
-            if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && !myProducts) {
+
+            if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) && !myProducts) {
                 createdById = null;
             } else if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && myProducts) {
                 createdById = tokenUserId;
