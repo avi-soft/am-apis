@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.ServiceProviderReRankingScoreDto;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
@@ -13,6 +14,7 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
+import com.community.api.entity.EmailQueue;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
@@ -26,7 +28,10 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
@@ -34,6 +39,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -77,6 +83,13 @@ public class TicketStateService {
     ServiceProviderServiceImpl serviceProviderService;
     @Autowired
     ServiceProviderReRankingScoreService serviceProviderReRankingScoreService;
+    @Autowired
+    EmailQueueService emailQueueService;
+    @Autowired
+    ServiceProviderActionController serviceProviderActionController;
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
 
     public List<CustomTicketState> getAllTicketState() throws Exception {
         try {
@@ -255,6 +268,7 @@ public class TicketStateService {
             }
 
             // Assignee change logic
+            ServiceProviderEntity serviceProvider = null;
             if (createTicketDTO.getAssigneeRole() != null) {
                 Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
                 if (role == null)
@@ -262,7 +276,7 @@ public class TicketStateService {
                 else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)) && (!role.getRole_name().equals(Constant.roleSuperAdmin)))
                     throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
                 if (createTicketDTO.getAssignee() != null) {
-                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
+                    serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                     if (serviceProvider == null) {
                         throw new NotFoundException("Assignee not found");
                     }
@@ -362,7 +376,6 @@ public class TicketStateService {
                 throw new IllegalArgumentException("Assignee and role must be provided together.");
 
             // STATE CHANGE LOGIC.
-            Query query = null;
             CustomTicketState ticketState = null;
             CustomTicketStatus ticketStatus = null;
 
@@ -703,6 +716,10 @@ public class TicketStateService {
                 ticket.setComment(createTicketDTO.getComment().trim());
             }
 
+            if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
+                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
+            }
+
             // If there exists some files then upload them as well.
             if (files != null) {
 
@@ -735,6 +752,7 @@ public class TicketStateService {
             } else {
                 ticket = entityManager.merge(ticket);
             }
+
             return ticket;
 
         } catch (PersistenceException persistenceException) {
@@ -793,7 +811,6 @@ public class TicketStateService {
             throw new Exception("Error updating ticket :" + exception.getMessage());
         }
     }
-
 
     public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId, String roleName, Long customTicketStatus) throws Exception {
         try {
@@ -896,4 +913,97 @@ public class TicketStateService {
         Product product = catalogService.findProductById(productId);
         return product;
     }
+
+    // Schedules separated as No EntityManager with actual transaction available for current thread exception came.
+    @Scheduled(cron = "0 50 7,15 * * *") // // 7:50 AM and 3:50 PM every day
+    public void ticketAllocationMailScheduler() {
+        transactionTemplate.execute(status -> {
+            try {
+                ticketAllocationMail(); // Now it runs inside a transaction
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return null;
+        });
+    }
+
+    @Transactional
+    public List<Map<String, Long>> ticketAllocationMail() throws Exception {
+        try {
+
+            List<Map<String, Long>> response = new ArrayList<>();
+            List<EmailQueue> emailQueues = emailQueueService.getAllEmailQueue();
+
+            for (EmailQueue emailQueue : emailQueues) {
+                log.info("called for id: {}", emailQueue.getId());
+                Map<String, Long> mailDetails = new HashMap<>();
+                Long userId = emailQueue.getUserId();
+                Role role = emailQueue.getRole();
+
+//                Role role = roleService.getRoleByRoleId(roleId);
+                CustomServiceProviderTicket ticket = null;
+                if(emailQueue.getTicket() != null) {
+                    ticket = emailQueue.getTicket();
+
+                    if(ticket == null) {
+                        log.info("Ticket not found with id: {}", ticket.getTicketId());
+                        continue;
+                    } else if (ticket.getArchived()) {
+                        log.info("Ticket is archived with id: {}", ticket.getTicketId());
+                        continue;
+                    }
+
+                } else {
+                    log.info("Ticket is null");
+                    continue;
+                }
+
+                /*if (role.getRole_name().equals(Constant.USER)) {
+                    CustomCustomer customCustomer = customCustomerService.findCustomCustomerById(userId) ;
+                    Customer customer = customerService.readCustomerById(userId);
+                    if (customer == null) {
+                        log.info("customer not found with id: {}", customer.getId());
+                        continue;
+                    }
+//                    if(customer.get) {
+//                        log.info("customer is archived with id: {}", customer.getId());
+//                        continue;
+//                    }
+
+                    serviceProviderActionController.sendTicketAllocationMail(customer, ticket);
+
+                } */
+                if (role.getRole_name().equals(Constant.ADMIN) || role.getRole_name().equals(Constant.SUPER_ADMIN) || role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
+
+                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(userId);
+                    if(serviceProvider == null) {
+                        log.info("service provider not found with id: {}", userId);
+                        continue;
+                    }
+                    if(serviceProvider.getIsArchived()) {
+                        log.info("Service provider is archived with id: {}", serviceProvider.getService_provider_id());
+                        continue;
+                    }
+
+                    serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
+                    mailDetails.put("ticket_id", ticket.getTicketId());
+                    mailDetails.put("assignee_id", serviceProvider.getService_provider_id());
+                    response.add(mailDetails);
+
+                    emailQueue.setArchived(true);
+                    entityManager.merge(emailQueue);
+                    entityManager.flush();
+
+                } else {
+                    log.info("Invalid Role");
+                }
+            }
+            return response;
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
 }

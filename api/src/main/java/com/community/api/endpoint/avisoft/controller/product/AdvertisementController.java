@@ -140,19 +140,18 @@ public class AdvertisementController {
     }
 
     @PutMapping("/update/{advertisementId}")
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
-    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId,@RequestHeader(value = "Authorization")String authHeader) {
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
+    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto, @PathVariable Long advertisementId, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
 
-            Advertisement advertisement=advertisementService.updateAdvertisement(addAdvertisementDto,advertisementId);
-            if(roleName.equals(Constant.roleServiceProvider)&&(!advertisement.getUserId().equals(tokenUserId)))
-            {
-                return ResponseService.generateErrorResponse("Not Authorized to update advertisement",HttpStatus.FORBIDDEN);
-                }
+            Advertisement advertisement = advertisementService.updateAdvertisement(addAdvertisementDto, advertisementId);
+            if (roleName.equals(Constant.roleServiceProvider) && (!advertisement.getUserId().equals(tokenUserId))) {
+                return ResponseService.generateErrorResponse("Not Authorized to update advertisement", HttpStatus.FORBIDDEN);
+            }
             if (advertisement.getArchived() != 'Y') {
                 List<CustomProductWrapper> products = new ArrayList<>();
 
@@ -188,16 +187,16 @@ public class AdvertisementController {
     }
 
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
-    public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath,   @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath, @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         try {
             CustomCustomer customCustomer = null;
-            String role=Constant.roleUser;
+            String role = Constant.roleUser;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-                 role= roleService.findRoleName(roleId);
+                role = roleService.findRoleName(roleId);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
             }
@@ -221,22 +220,20 @@ public class AdvertisementController {
 
                 List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                 for (CustomProduct customProduct : customProducts) {
-                    if(role.equalsIgnoreCase(Constant.roleUser))
-                    {
+                    if (role.equalsIgnoreCase(Constant.roleUser)) {
                         if (customProduct != null &&
                                 ((Status) customProduct).getArchived() != 'Y' &&
                                 customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
                                 !customProduct.getGoLiveDate().after(new Date()) &&
-                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
-                                customProduct.getIsApproved())  {
+                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) &&
+                                customProduct.getIsApproved()) {
                             CustomProductWrapper wrapper = new CustomProductWrapper();
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                             products.add(wrapper);
                         }
-                    }
-                    else {
+                    } else {
                         if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
-                                && !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&& customProduct.getGoLiveDate().before(new Date())) {
+                                && !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) && customProduct.getGoLiveDate().before(new Date())) {
                             CustomProductWrapper wrapper = new CustomProductWrapper();
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                             products.add(wrapper);
@@ -262,41 +259,38 @@ public class AdvertisementController {
         }
     }
 
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
     @GetMapping("/get-filter-advertisement")
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "creatorId", required = false) Long creatorId,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
-            @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
-            @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
-            @RequestParam(value = "id",required = false)Long id,
+            @RequestParam(value = "all", required = false, defaultValue = "false") Boolean all,
+            @RequestParam(value = "preview", required = false, defaultValue = "false") Boolean preview,
+            @RequestParam(value = "id", required = false) Long id,
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "30") int limit,@RequestHeader(value = "Authorization")String authHeader) {
+            @RequestParam(defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
 
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories,subCategories,creatorId,all);
-            if(preview) {
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories, subCategories, creatorId, all);
+            if (preview) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 String roleName = roleService.findRoleName(roleId);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-                if (roleName.equals(Constant.roleServiceProvider))
-                {
-                    if(!creatorId.equals(tokenUserId))
-                        return ResponseService.generateErrorResponse("Not authorized",HttpStatus.FORBIDDEN);
-                    if(id!=null) {
+                if (roleName.equals(Constant.roleServiceProvider)) {
+                    if (!creatorId.equals(tokenUserId))
+                        return ResponseService.generateErrorResponse("Not authorized", HttpStatus.FORBIDDEN);
+                    if (id != null) {
                         Query query = entityManager.createNativeQuery("SELECT Count(advertisement_id) from advertisement where creator_user_id = :id and advertisement_id = :aid");
                         query.setParameter("id", tokenUserId);
                         query.setParameter("aid", id);
@@ -310,13 +304,12 @@ public class AdvertisementController {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
             List<AdvertisementWrapper> responses = new ArrayList<>();
-            if(id!=null)
-            {
-                Advertisement advertisement=entityManager.find(Advertisement.class,id);
-                if(advertisement!=null) {
+            if (id != null) {
+                Advertisement advertisement = entityManager.find(Advertisement.class, id);
+                if (advertisement != null) {
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
-                    if(advertisement.getArchived().equals('Y'))
-                        return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.NOT_FOUND);
+                    if (advertisement.getArchived().equals('Y'))
+                        return ResponseService.generateErrorResponse("Advertisement not found", HttpStatus.NOT_FOUND);
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                     Map<String, Object> response = new HashMap<>();
@@ -324,10 +317,9 @@ public class AdvertisementController {
                     response.put("totalItems", 1);
                     response.put("totalPages", 1);
                     response.put("currentPage", 1);
-                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
-                }
-                else
-                    return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+                } else
+                    return ResponseService.generateErrorResponse("Advertisement not found", HttpStatus.OK);
             }
 
             if ("ASC".equalsIgnoreCase(sortOrder)) {
@@ -372,7 +364,7 @@ public class AdvertisementController {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -392,15 +384,15 @@ public class AdvertisementController {
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "30") int limit,
-            @RequestParam(defaultValue = "false",required = false)Boolean ext) {
+            @RequestParam(defaultValue = "false", required = false) Boolean ext) {
 
         try {
             CustomCustomer customCustomer = null;
-            String role=Constant.roleUser;
+            String role = Constant.roleUser;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                 role  = roleService.findRoleName(roleId);
+                role = roleService.findRoleName(roleId);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
@@ -411,14 +403,13 @@ public class AdvertisementController {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            if(ext)
-            {
-                List<Object[]> rows =advertisementService.getAdvCompressed(longList,offset,limit);
+            if (ext) {
+                List<Object[]> rows = advertisementService.getAdvCompressed(longList, offset, limit);
 
-                BigInteger count=advertisementService.getAdvCompressedCount(longList);
-                List<AdvertisementCompressedDTO>adv=new ArrayList<>();
+                BigInteger count = advertisementService.getAdvCompressedCount(longList);
+                List<AdvertisementCompressedDTO> adv = new ArrayList<>();
                 for (Object[] row : rows) {
-                    AdvertisementCompressedDTO dto=new AdvertisementCompressedDTO();
+                    AdvertisementCompressedDTO dto = new AdvertisementCompressedDTO();
                     dto.setAdvertisement_id(((BigInteger) row[0]).longValue());
                     dto.setAdvertisementDesc((String) row[1]);
                     dto.setAdvertisementTitle((String) row[2]);
@@ -431,8 +422,8 @@ public class AdvertisementController {
                             Long id = Long.parseLong(idStr.trim());
                             CustomProduct product = entityManager.find(CustomProduct.class, id);
                             if (product != null) {
-                                CompressedProductWrapper compressedProductWrapper=new CompressedProductWrapper();
-                                compressedProductWrapper.wrapDetails(product,request,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
+                                CompressedProductWrapper compressedProductWrapper = new CompressedProductWrapper();
+                                compressedProductWrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                                 dto.getProductList().add(compressedProductWrapper);
                             }
                         } catch (NumberFormatException e) {
@@ -442,6 +433,7 @@ public class AdvertisementController {
                     }
                     /* activeCategories.add(dto);*/
                 }
+
                 int totalItems = count.intValue();
                 int totalPages = (int) Math.ceil((double) totalItems / limit);
                 int fromIndex = offset * limit;
@@ -450,15 +442,16 @@ public class AdvertisementController {
                 if (fromIndex >= totalItems && offset != 0) {
                     return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
                 }
+
                 // Construct paginated response
                 Map<String, Object> response = new HashMap<>();
-                response.put("advertisements", adv);
+                response.put("advertisements", adv.subList(fromIndex, toIndex));
                 response.put("totalItems", totalItems);
                 response.put("totalPages", totalPages);
                 response.put("currentPage", offset);
                 return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
             }
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null,null,false);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList, null, null, false);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
@@ -496,24 +489,30 @@ public class AdvertisementController {
                                 })
                                 // Sorting
                                 .sorted((p1, p2) -> {
-                                    if (p1.getCreatedDate() == null && p2.getModifiedDate() == null) return 0;
-                                    if (p1.getCreatedDate() == null) return 1;
-                                    if (p2.getCreatedDate() == null) return -1;
-                                    return p2.getCreatedDate().compareTo(p1.getModifiedDate()); // DESC order
+                                    if (p1.getModifiedDate() == null && p2.getModifiedDate() == null) return 0;
+                                    if (p1.getModifiedDate() == null) return 1;  // nulls go last
+                                    if (p2.getModifiedDate() == null) return -1; // nulls go last
+                                    return p2.getModifiedDate().compareTo(p1.getModifiedDate()); // DESC
                                 })
                                 .collect(Collectors.toList());
 
                         activeProducts = filteredProducts;
                     } else {
 
-                    // Filter products: Keep only active products
-                      activeProducts = customProducts.stream()
-                            .filter(customProduct -> customProduct != null &&
-                                    (((Status) customProduct).getArchived() != 'Y' &&
-                                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
-                                            customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
-                             && customProduct.getGoLiveDate().before(new Date()))
-                            .collect(Collectors.toList());
+                        // Filter products: Keep only active products
+                        activeProducts = customProducts.stream()
+                                .filter(customProduct -> customProduct != null &&
+                                        (((Status) customProduct).getArchived() != 'Y' &&
+                                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) &&
+                                                customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                                        && customProduct.getGoLiveDate().before(new Date()))
+                                .sorted((p1, p2) -> {
+                                    if (p1.getModifiedDate() == null && p2.getModifiedDate() == null) return 0;
+                                    if (p1.getModifiedDate() == null) return 1;  // nulls go last
+                                    if (p2.getModifiedDate() == null) return -1; // nulls go last
+                                    return p2.getModifiedDate().compareTo(p1.getModifiedDate()); // DESC
+                                })
+                                .collect(Collectors.toList());
 
                     }
 // Clear products list before adding new ones to prevent duplicates
@@ -527,8 +526,7 @@ public class AdvertisementController {
                         CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
                         if (authHeader == null) {
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
-                        }
-                        else
+                        } else
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                         products.add(wrapper);
                     }
@@ -573,7 +571,7 @@ public class AdvertisementController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider})
     @DeleteMapping("/delete/{advertisementId}")
     @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable("advertisementId") String advertisementIdPath,
@@ -589,34 +587,31 @@ public class AdvertisementController {
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId);
-            if(advertisement==null)
-                return ResponseService.generateErrorResponse("Advertisement does not exist",HttpStatus.NOT_FOUND);
+            if (advertisement == null)
+                return ResponseService.generateErrorResponse("Advertisement does not exist", HttpStatus.NOT_FOUND);
 
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                String role  = roleService.findRoleName(roleId);
+                String role = roleService.findRoleName(roleId);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-                if (roleId == 4)
-                {
+                if (roleId == 4) {
                     System.out.println(advertisement.getUserId());
                     System.out.println(tokenUserId);
-                    if(!advertisement.getUserId().equals(tokenUserId))
-                    {
-                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement",HttpStatus.FORBIDDEN);
+                    if (!advertisement.getUserId().equals(tokenUserId)) {
+                        return ResponseService.generateErrorResponse("Not authorized to delete the advertisement", HttpStatus.FORBIDDEN);
                     }
                 }
             }
-            if(advertisement.getProductCount()!=0)
-            {
-               return ResponseService.generateErrorResponse("Cannot delete live advertisement",HttpStatus.FORBIDDEN);                               // Find the Custom Product
+            if (advertisement.getProductCount() != 0) {
+                return ResponseService.generateErrorResponse("Cannot delete live advertisement", HttpStatus.FORBIDDEN);                               // Find the Custom Product
             }
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
             }
 
-            if(advertisement.getArchived() == 'Y') {
+            if (advertisement.getArchived() == 'Y') {
                 return ResponseService.generateErrorResponse("Advertisement is Already Archived", HttpStatus.NOT_FOUND);
             }
             advertisement.setArchived('Y');
@@ -631,7 +626,7 @@ public class AdvertisementController {
             advertisement.setModifierId(modifierUserId);
             advertisement.setModifierRole(role);
             advertisement.setArchived('Y');
-            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement("+advertisementId.toString()+")");
+            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement(" + advertisementId.toString() + ")");
             entityManager.merge(advertisement);
 
             return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", advertisement, HttpStatus.OK);
@@ -647,7 +642,7 @@ public class AdvertisementController {
 
     @GetMapping("/get-new-all-advertisement-by-categoryId")
     public ResponseEntity<?> getFilterAdvertisementNew(
-            @RequestParam(value = "summarize",required = false)Boolean summarise,
+            @RequestParam(value = "summarize", required = false) Boolean summarise,
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
@@ -655,11 +650,11 @@ public class AdvertisementController {
 
         try {
             CustomCustomer customCustomer = null;
-            String role=Constant.roleUser;
+            String role = Constant.roleUser;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                role  = roleService.findRoleName(roleId);
+                role = roleService.findRoleName(roleId);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
@@ -671,7 +666,7 @@ public class AdvertisementController {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null,null,false);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList, null, null, false);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
@@ -723,7 +718,7 @@ public class AdvertisementController {
                         activeProducts = customProducts.stream()
                                 .filter(customProduct -> customProduct != null &&
                                         (((Status) customProduct).getArchived() != 'Y' &&
-                                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
+                                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) &&
                                                 customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
                                         && customProduct.getGoLiveDate().before(new Date()))
                                 .collect(Collectors.toList());
@@ -740,8 +735,7 @@ public class AdvertisementController {
                         CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
                         if (authHeader == null) {
                             wrapper.wrapDetailsSimplified(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
-                        }
-                        else
+                        } else
                             wrapper.wrapDetailsSimplified(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                         products.add(wrapper);
                     }

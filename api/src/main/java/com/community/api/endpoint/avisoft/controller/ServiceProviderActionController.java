@@ -1475,6 +1475,55 @@ public class ServiceProviderActionController {
         }
     }
 
+    // TODO- Mail for ticket assignment.
+    public void sendTicketAllocationMail(ServiceProviderEntity serviceProvider, CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+
+            String subject = "Ticket Assignment Notification";
+            String imageUrl = "https://cdn-icons-png.flaticon.com/512/726/726448.png"; // assignment icon
+
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src="%s" alt="Assignment Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #34495e; margin: 10px 0; font-size: 24px;">Ticket Assigned</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">A new ticket has been assigned to you.</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #27ae60; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Please review and take appropriate action.</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    ticket.getTicketId(),
+                    LocalDate.now()
+            );
+
+            // Prepare and send email
+            sendEmail(htmlContent, subject, serviceProvider);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
     @Async
     public void sendEmail(String htmlContent, String subject, ServiceProviderEntity serviceProvider) {
         try {

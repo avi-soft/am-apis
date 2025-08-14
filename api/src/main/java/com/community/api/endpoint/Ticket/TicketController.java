@@ -6,9 +6,9 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketHistoryWrapper;
 import com.community.api.dto.CustomTicketWrapper;
-import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.TicketDocumentWrapper;
 import com.community.api.dto.TicketStatisticsDto;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -20,8 +20,10 @@ import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Role;
+import com.community.api.services.CustomCustomerService;
 import com.community.api.services.CustomerAddressFetcher;
 import com.community.api.services.DocumentStorageService;
+import com.community.api.services.EmailQueueService;
 import com.community.api.services.FileService;
 import com.community.api.services.OrderDTOService;
 import com.community.api.services.ProductService;
@@ -61,6 +63,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.nio.file.AccessDeniedException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -108,6 +111,9 @@ public class TicketController {
     CustomerService customerService;
 
     @Autowired
+    CustomCustomerService customCustomerService;
+
+    @Autowired
     FileService fileService;
 
     @Autowired
@@ -124,6 +130,12 @@ public class TicketController {
 
     @Autowired
     CustomerAddressFetcher addressFetcher;
+
+    @Autowired
+    EmailQueueService emailQueueService;
+
+    @Autowired
+    ServiceProviderActionController serviceProviderActionController;
 
     @PersistenceContext
     EntityManager entityManager;
@@ -175,46 +187,46 @@ public class TicketController {
 
             // PRIMARY TICKET
             ticketTypes.add(1L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto primaryTicketStats = new TicketStatisticsDto();
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
             primaryTicketStats.setTicketType(ticketType);
             primaryTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
             primaryTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
             response.add(primaryTicketStats);
             // REVIEW TICKET
             ticketTypes.set(0, 2L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto reviewTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L);
             reviewTicketStats.setTicketType(ticketType);
             reviewTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
             reviewTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
             reviewTicketStats.setDueInThreeDays(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
             ticketTypes.set(0, 3L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
             miscellaneousTicketStats.setTicketType(ticketType);
             miscellaneousTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
             miscellaneousTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
             response.add(miscellaneousTicketStats);
 
@@ -254,12 +266,12 @@ public class TicketController {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role tokenRole = roleService.getRoleByRoleId(roleId);
 
-            if(ticket.getArchived() && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN) && !tokenRole.getRole_name().equals(Constant.ADMIN) ) {
+            if (ticket.getArchived() && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN) && !tokenRole.getRole_name().equals(Constant.ADMIN)) {
                 return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.FORBIDDEN);
             }
 
             Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
-            for(ServiceProviderDocument document: ticket.getServiceProviderDocuments()) {
+            for (ServiceProviderDocument document : ticket.getServiceProviderDocuments()) {
                 TicketDocumentWrapper ticketDocumentWrapper = new TicketDocumentWrapper();
                 String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                 ticketDocumentWrapper.wrapDetails(document, fileUrl, request);
@@ -271,11 +283,11 @@ public class TicketController {
 
             List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList = new ArrayList<>();
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
-            for(CustomTicketHistory ticketHistory: ticketHistoryList) {
+            for (CustomTicketHistory ticketHistory : ticketHistoryList) {
                 CustomTicketHistoryWrapper customTicketHistoryWrapper = new CustomTicketHistoryWrapper();
 
                 List<TicketDocumentWrapper> ticketHistoryDocumentWrapperList = new ArrayList<>();
-                for(ServiceProviderDocument document: ticketHistory.getServiceProviderDocuments()) {
+                for (ServiceProviderDocument document : ticketHistory.getServiceProviderDocuments()) {
                     TicketDocumentWrapper ticketDocumentWrapper = new TicketDocumentWrapper();
                     String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                     ticketDocumentWrapper.wrapDetails(document, fileUrl, request);
@@ -287,14 +299,14 @@ public class TicketController {
                 customTicketHistoryWrapperList.add(customTicketHistoryWrapper);
             }
 
-            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                 wrapper.customWrapDetails(ticket, orderDto, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
-            } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getParentTicket().getOrder().getCustomer().getId());
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -364,7 +376,7 @@ public class TicketController {
 
             if (role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
                 userId = jwtTokenUtil.extractId(jwtToken);
-                if(archived) {
+                if (archived) {
                     throw new IllegalArgumentException("Forbidden Access");
                 }
             } else {
@@ -424,7 +436,7 @@ public class TicketController {
 
                     CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                     wrapper.customWrapDetails(ticket, orderDto, entityManager);
-                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
                     Customer customer = customerService.readCustomerById(ticket.getParentTicket().getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -454,7 +466,7 @@ public class TicketController {
             response.put("currentPage", offset);
 
             log.info("Total tickets: {}", responses.size());
-            if(responses.isEmpty()) {
+            if (responses.isEmpty()) {
                 return ResponseService.generateSuccessResponse("Ticket Not Found with provided constraints.", response, HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("Tickets Found successfully", response, HttpStatus.OK);
@@ -484,7 +496,7 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
 
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
@@ -658,7 +670,7 @@ public class TicketController {
 
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setModifiedDate(createdDate);
-            if(createTicketDto.getAssignee() != null) {
+            if (createTicketDto.getAssignee() != null) {
                 customServiceProviderTicket.setTicketAssignDate(createdDate);
             }
 
@@ -674,6 +686,9 @@ public class TicketController {
             }
             customServiceProviderTicket.setTitle(createTicketDto.getTitle().trim());
             customServiceProviderTicket.setDesc(createTicketDto.getTask().trim());
+
+
+            ServiceProviderEntity assignee = null;
 
             // validation for assignee and assignee role and handling the auto-handling the bandwidth of individual.
             if (createTicketDto.getAssignee() != null && createTicketDto.getAssigneeRole() != null) {
@@ -695,7 +710,7 @@ public class TicketController {
                 }
 
                 if (assigneeRole.getRole_name().equals(Constant.roleSuperAdmin) && role.getRole_name().equals(Constant.roleSuperAdmin)) {
-                    ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
+                    assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
                     if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
@@ -706,7 +721,7 @@ public class TicketController {
                     assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
                 } else if (assigneeRole.getRole_name().equals(Constant.roleAdmin)) {
-                    ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
+                    assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
                     if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
@@ -717,7 +732,7 @@ public class TicketController {
                     assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
                 } else if (assigneeRole.getRole_name().equals(Constant.roleAdminServiceProvider)) {
-                    ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
+                    assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
                     if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
@@ -728,7 +743,7 @@ public class TicketController {
                     assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
                 } else if (assigneeRole.getRole_name().equals(Constant.roleServiceProvider)) {
-                    ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
+                    assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
                     if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
@@ -749,7 +764,12 @@ public class TicketController {
             }
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
-            if(files != null) {
+
+            if(assignee != null) {
+                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
+            }
+
+            if (files != null) {
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
                 entityManager.merge(customServiceProviderTicket);
@@ -806,12 +826,12 @@ public class TicketController {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role tokenRole = roleService.getRoleByRoleId(roleId);
 
-            if(!tokenRole.getRole_name().equals(Constant.ADMIN) && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN)) {
+            if (!tokenRole.getRole_name().equals(Constant.ADMIN) && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN)) {
                 throw new IllegalArgumentException("Forbidden Access");
             }
 
             ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(tokenUserId);
-            if(serviceProvider == null) {
+            if (serviceProvider == null) {
                 throw new IllegalArgumentException("No Admin or SuperAdmin found with this userId.");
             } else if (serviceProvider.getIsArchived()) {
                 throw new IllegalArgumentException("Admin or SuperAdmin is suspended.");
@@ -821,17 +841,53 @@ public class TicketController {
                 throw new IllegalArgumentException("Ticket Id not provided");
             }
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
-            if(ticket == null) {
+            if (ticket == null) {
                 throw new IllegalArgumentException("Ticket not Found.");
             }
 
-            if(ticket.getArchived()) {
+            if (ticket.getArchived()) {
                 throw new IllegalArgumentException("Ticket already Archived");
             }
             serviceProviderTicketService.deleteTicketLogic(ticket, serviceProvider);
 
             return ResponseService.generateSuccessResponse("TICKET ARCHIVED SUCCESSFULLY", ticket, HttpStatus.OK);
 
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/ticket-allocation-mail")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
+    public ResponseEntity<?> ticketAllocationMail(@RequestHeader(value = "authorization") String authHeader) {
+        try {
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
+            }
+
+            String jwtToken = authHeader.substring(7);
+            Integer tokenRoleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Role tokenRole = roleService.getRoleByRoleId(tokenRoleId);
+
+            if (!tokenRole.getRole_name().equals(Constant.ADMIN) && !tokenRole.getRole_name().equals(Constant.SUPER_ADMIN)) {
+                throw new AccessDeniedException("Forbidden Access");
+            }
+
+            List<Map<String, Long>> response = ticketStateService.ticketAllocationMail();
+            if(!response.isEmpty()) {
+                return ResponseService.generateSuccessResponse("Mail Sent Successfully", response, HttpStatus.OK);
+            } else {
+                return ResponseService.generateSuccessResponse("No recipient to send Mail", response, HttpStatus.OK);
+            }
+
+        } catch (AccessDeniedException accessDeniedException) {
+            exceptionHandlingService.handleException(accessDeniedException);
+            return ResponseService.generateErrorResponse(accessDeniedException.getMessage(), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

@@ -247,6 +247,8 @@ public class AdvertisementService {
             if (creatorId != null) {
                 jpql.append("AND a.userId = :uid  ");
             }
+            jpql.append("ORDER BY a.modifiedDate DESC");
+
             System.out.println(jpql);
             // Create the query with the final JPQL string
             TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
@@ -425,14 +427,11 @@ public class AdvertisementService {
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "GROUP BY a.advertisement_id, a.description, a.title " +
-                "ORDER BY a.advertisement_id " +
-                "LIMIT ?2 OFFSET ?3";
+                "ORDER BY a.modified_date DESC";
 
         try {
             List<Object[]> rows = entityManager.createNativeQuery(sql)
                     .setParameter(1, categoryIds)
-                    .setParameter(2, limit)
-                    .setParameter(3, offset)
                     .getResultList();
 
             return rows;
