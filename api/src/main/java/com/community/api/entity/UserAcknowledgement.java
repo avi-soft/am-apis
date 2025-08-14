@@ -21,9 +21,8 @@ import java.util.Date;
 @NoArgsConstructor
 public class UserAcknowledgement {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "acknowledgement_id")
-    Long acknowledgementId;
+    String acknowledgementId;
     @Column(name = "acknowledged_by")
     Long userId;
     @Column(name = "acknowledged_at")
