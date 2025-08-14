@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.component.JwtUtil;
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.kernel.colors.Color;
 import com.itextpdf.kernel.colors.ColorConstants;
@@ -17,6 +18,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 import io.swagger.models.auth.In;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -54,6 +56,7 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import org.springframework.core.io.Resource;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Date;
@@ -138,8 +141,9 @@ public class PdfEditService {
         }
     }
 
-
-    public void sendPdfToApi(byte[] pdfBytes,Long customerId) {
+@Autowired
+JwtUtil jwtUtil;
+    public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request) {
         if (pdfBytes == null || pdfBytes.length == 0) {
             System.out.println("PDF bytes are null or empty, skipping upload.");
             return;
@@ -160,6 +164,7 @@ public class PdfEditService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        String token=jwtUtil.generateShortLivedToken(22L,1, request.getRemoteAddr());
         headers.setBearerAuth("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiMjYzODdmOS1hZDU4LTQ2ZjYtYjZjMy1kYmQ2Y2JlMWVkZTUiLCJpZCI6MjIsInJvbGUiOjEsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNDUuMCIsImlwQWRkcmVzcyI6IjA6MDowOjA6MDowOjA6MSIsImlhdCI6MTc1NTE1MDQ1OSwiZXhwIjoxNzU1MTg2NDU5fQ.nR0nxFN3-XqfrFq_CqRiEvXaL6BRdCU1OIXfQx8dVGU");
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();

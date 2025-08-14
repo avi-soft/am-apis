@@ -28,6 +28,7 @@ import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.swagger.annotations.ApiResponse;
+import jakarta.jws.soap.SOAPBinding;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -270,7 +271,10 @@ public class OtpEndpoint {
                         return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
                     } else if (!existingCustomer.getIsAcknowledged() && (ackId != null || !ackId.isEmpty())) {
                         try {
-                            UserAcknowledgement userAcknowledgement = new UserAcknowledgement();
+                            UserAcknowledgement userAcknowledgement= em.find(UserAcknowledgement.class,ackId);
+                                    if(userAcknowledgement!=null)
+                                        return ResponseService.generateErrorResponse("Acknowledgement ID has already been registered with other user",HttpStatus.BAD_REQUEST);
+                            userAcknowledgement = new UserAcknowledgement();
                             userAcknowledgement.setUserId(existingCustomer.getId());
                             userAcknowledgement.setAcknowledgementVersion("v1");
                             userAcknowledgement.setAcknowledgementId(ackId);
@@ -306,7 +310,7 @@ public class OtpEndpoint {
                         }
                         ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                         if(ackId!=null)
-                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
+                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
                         return ResponseEntity.ok(response);
                     } else {
                         String existingToken = existingCustomer.getToken();
@@ -314,7 +318,7 @@ public class OtpEndpoint {
                             authHeader = authHeader + existingToken;
                             ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                             if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
                             return ResponseEntity.ok(response);
 
                         } else {
@@ -325,7 +329,7 @@ public class OtpEndpoint {
                             em.persist(existingCustomer);
                             ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                             if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
                             return ResponseEntity.ok(response);
                         }
                     }

@@ -19,7 +19,7 @@ import java.util.Date;
 public class SPAcknowledgement {
         @Id
         @Column(name = "acknowledgement_id")
-        Long acknowledgementId;
+        String acknowledgementId;
         @Column(name = "acknowledged_by")
         Long userId;
         @Column(name = "acknowledged_at")

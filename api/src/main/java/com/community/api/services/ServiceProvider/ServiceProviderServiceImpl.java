@@ -8,6 +8,7 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.SPAcknowledgement;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
@@ -23,6 +24,7 @@ import com.community.api.services.CustomCustomerService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.FileService;
+import com.community.api.services.PdfEditService;
 import com.community.api.services.RateLimiterService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -1827,7 +1829,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
         return username;
     }
-
+    @Autowired
+    PdfEditService pdfEditService;
     @Transactional
     public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) throws NotAuthorizedException {
         try {
@@ -1835,6 +1838,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             String otpEntered = (String) serviceProviderDetails.get("otpEntered");
             String mobileNumber = (String) serviceProviderDetails.get("mobileNumber");
             String countryCode = (String) serviceProviderDetails.get("countryCode");
+            String ackId = (String) serviceProviderDetails.get("ack");
             if (countryCode == null || countryCode.isEmpty()) {
                 countryCode = Constant.COUNTRY_CODE;
             }
@@ -1877,6 +1881,27 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
+                if (!existingServiceProvider.getIsAcknowledged() && (ackId == null || ackId.isEmpty()))
+                    return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
+                else if (existingServiceProvider.getIsAcknowledged() && ackId != null) {
+                    return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
+                } else if (!existingServiceProvider.getIsAcknowledged() && (ackId != null || !ackId.isEmpty())) {
+                    try {
+                        SPAcknowledgement userAcknowledgement= entityManager.find(SPAcknowledgement.class,ackId);
+                        if(userAcknowledgement!=null)
+                            return ResponseService.generateErrorResponse("Acknowledgement ID has already been registered with other user",HttpStatus.BAD_REQUEST);
+                        userAcknowledgement = new SPAcknowledgement();
+                        userAcknowledgement.setUserId(existingServiceProvider.getService_provider_id());
+                        userAcknowledgement.setAcknowledgementVersion("v1");
+                        userAcknowledgement.setAcknowledgementId(ackId);
+                        userAcknowledgement.setAcknowledgedAt(new Date());
+                        entityManager.merge(userAcknowledgement);
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                        return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+                }
+                System.out.println("ack set");
                 existingServiceProvider.setOtp(null);
                 entityManager.merge(existingServiceProvider);
 
@@ -1890,7 +1915,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     Map<String, Object> responseBody = createAuthResponse(existingToken, serviceProviderResponse).getBody();
 
-
+                    if(ackId!=null)
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request);
                     return ResponseEntity.ok(responseBody);
                 } else {
                     String newToken = jwtUtil.generateToken(existingServiceProvider.getService_provider_id(), role, ipAddress, userAgent);
@@ -1904,7 +1930,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         entityManager.merge(existingServiceProvider);
                         responseBody.put("message", "User has been signed up");
                     }
-
+                    if(ackId!=null)
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request);
                     return ResponseEntity.ok(responseBody);
                 }
             } else {
