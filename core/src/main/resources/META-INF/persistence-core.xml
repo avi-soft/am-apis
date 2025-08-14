@@ -123,6 +123,7 @@
         <class>com.community.api.entity.ExternalUseToken</class>
         <class>com.community.api.entity.UserAcknowledgement</class>
         <class>com.community.api.entity.EmailQueue</class>
+        <class>com.community.api.entity.SPAcknowledgement</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
