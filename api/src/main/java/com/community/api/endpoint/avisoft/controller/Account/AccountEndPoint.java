@@ -6,7 +6,8 @@ import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
-
+import com.community.api.entity.ExternalUseToken;
+import com.community.api.entity.Role;
 import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ApiConstants;
@@ -315,6 +316,7 @@ public class AccountEndPoint {
 
             String mobileNumber = (String) loginDetails.get("mobileNumber");
             String countryCode = (String) loginDetails.get("countryCode");
+            String ackId = (String) loginDetails.get("ack");
             Integer role = (Integer) loginDetails.get("role");
             if (mobileNumber == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_MOBILE_NUMBER, HttpStatus.BAD_REQUEST);
@@ -342,7 +344,7 @@ public class AccountEndPoint {
                 }
                 Customer customer = customerService.readCustomerById(customerRecords.getId());
                 if (customer != null) {
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null,ackId);
                     Map<String, Object> responseBody = otpResponse.getBody();
 
                     if (responseBody.get("otp") != null) {
@@ -615,7 +617,7 @@ public class AccountEndPoint {
                 if (customCustomer != null) {
                     String storedOtp = customCustomer.getOtp();
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null,null);
                     Map<String, Object> responseBody = otpResponse.getBody();
                     if (responseBody.get("otp") != null) {
                         return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);
@@ -723,14 +725,16 @@ public class AccountEndPoint {
 
     @Transactional
     @GetMapping("/genAuth")
-    public ResponseEntity<?> generateShortLivedToken(@RequestHeader(required = true, value = "Authorization") String authHeader, HttpServletRequest request, @RequestParam(required = false, name = "xcd1s") Long id) {
-        Long userId = null;
-        Integer roleId = null;
+    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request,@RequestParam(required = false,name = "xcd1s")Long id,@RequestParam(required = false,name = "3a9f",defaultValue ="false")Boolean ext)
+    {
+        Long userId=null;
+        Integer roleId=null;
         if (authHeader != null) {
             String jwtToken = authHeader.substring(7);
             userId = jwtUtil.extractId(jwtToken);
             roleId = jwtUtil.extractRoleId(jwtToken);
         }
+
         System.out.println("user"+userId);
         System.out.println("role"+roleId);
         String ip = request.getHeader("X-Forwarded-For");
@@ -742,7 +746,13 @@ public class AccountEndPoint {
         }
 
         String token=null;
-        if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
+        if(roleId==4&&ext)
+        {
+            ExternalUseToken externalUseToken=em.find(ExternalUseToken.class,userId);
+            Long uid=jwtUtil.extractId(externalUseToken.getToken());
+            token = jwtUtil.generateShortLivedToken(uid,5, ip);
+        }
+        else if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
         {
             System.out.println("case1");
             token = jwtUtil.generateShortLivedToken(id,5, ip);

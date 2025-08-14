@@ -6,6 +6,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.ProductDetailsDTO;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -1764,7 +1765,7 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "exUpdate", defaultValue = "false", required = false) Boolean extUpdate,
+            @RequestParam(value = "extUpdate", defaultValue = "false", required = false) Boolean extUpdate,
             @RequestHeader(value = "extAuth", required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
@@ -1905,9 +1906,21 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Username cannot be changed once created", HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
+            Query query = entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM blc_customer WHERE LOWER(user_name) = :username"
+            );
+            query.setParameter("username", username.toLowerCase());
+
+            Number count = (Number) query.getSingleResult();
+            if (count.intValue() > 0) {
+                return ResponseService.generateErrorResponse(
+                        "Username already exists",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
 
-            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)) {
+            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equals(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
 
             } else {
@@ -2474,7 +2487,8 @@ public class CustomerEndpoint {
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
+@Autowired
+    AcknowledgementWebhook webhook;
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
@@ -2483,9 +2497,18 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 throw new IllegalArgumentException("Customer with id " + customerId + " not found");
@@ -2511,6 +2534,15 @@ public class CustomerEndpoint {
                 customCustomer.setProfileComplete(false);
             }
             customCustomer.setProfileComplete(true);
+            /*if(!webhook.checkRef(customerId,5))
+            {
+              return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+            }
+            UserAcknowledgement userAcknowledgement=new UserAcknowledgement();
+            userAcknowledgement.setAcknowledgedAt(new Date());
+            userAcknowledgement.setUserId(customerId);
+            userAcknowledgement.setAcknowledgementVersion("v.1");
+            entityManager.persist(userAcknowledgement);*/
             return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
         } catch (NumberFormatException e) {
             exceptionHandling.handleException(e);
@@ -2605,8 +2637,13 @@ public class CustomerEndpoint {
             Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(role.getRole_name().equals(roleServiceProvider)) {
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                }
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)

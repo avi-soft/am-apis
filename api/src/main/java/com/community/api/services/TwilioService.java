@@ -5,6 +5,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.UserAcknowledgement;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import javax.persistence.EntityManager;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 import java.util.Random;
 
@@ -53,8 +55,10 @@ public class TwilioService {
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
-
     private CustomerService customerService;
+
+    @Autowired
+    private PdfEditService pdfEditService;
 
     public TwilioService(ExceptionHandlingImplement exceptionHandlingImplement, CustomCustomerService customCustomerService, EntityManager entityManager, HttpSession httpSession, CustomerService customerService) {
         this.exceptionHandling = exceptionHandlingImplement;
@@ -65,7 +69,8 @@ public class TwilioService {
     }
 
     @Transactional
-    public ResponseEntity<Map<String, Object>> sendOtpToMobile(String mobileNumber, String countryCode, String authHeader) {
+    public ResponseEntity<Map<String, Object>> sendOtpToMobile(String mobileNumber, String countryCode, String authHeader,String ackId) {
+
         String role = null;
         Long tokenUserId = null;
         Integer roleId = 0;
@@ -129,10 +134,11 @@ public class TwilioService {
                     customerDetails.setCreatedById(customer.getId());
                     entityManager.merge(customerDetails);
                 }
-                return ResponseEntity.ok(Map.of(
-                        "otp", otp,
-                        "message", "Otp has been sent successfully on " + maskedNumber
-                ));
+                    return ResponseEntity.ok(Map.of(
+                            "otp", otp,
+                            "message", "Otp has been sent successfully on " + maskedNumber
+                    ));
+
             } else if (serviceProvider != null) {
                 if (serviceProvider.getIsArchived())
                     return ResponseEntity.ok(Map.of(

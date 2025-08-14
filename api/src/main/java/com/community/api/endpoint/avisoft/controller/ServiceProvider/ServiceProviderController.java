@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -163,7 +164,8 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Autowired
+    AcknowledgementWebhook webhook;
     @Authorize(value = {Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
@@ -285,6 +287,15 @@ public class ServiceProviderController {
         }
         serviceProvider.setCompleted(true);
         serviceProvider.setRejected(false);
+     /*   if(!webhook.checkRef(spId,4))
+        {
+            return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+        }*/
+        /*SPAcknowledgement userAcknowledgement=new SPAcknowledgement();
+        userAcknowledgement.setAcknowledgedAt(new Date());
+        userAcknowledgement.setUserId(spId);
+        userAcknowledgement.setAcknowledgementVersion("v.1");
+        entityManager.persist(userAcknowledgement);*/
         entityManager.merge(serviceProvider);
         return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
     }
@@ -610,6 +621,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
+            @RequestParam(value = "a4dh",defaultValue = "false")Boolean ext,
             @RequestParam(required = false) Long ticketId,
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
@@ -621,7 +633,7 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId && roleId != 5))
+            if (role != null && (role <= roleId && roleId != 5)&&Boolean.TRUE.equals(!ext))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             // Validate input
