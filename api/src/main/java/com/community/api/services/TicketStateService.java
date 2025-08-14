@@ -915,7 +915,7 @@ public class TicketStateService {
     }
 
     // Schedules separated as No EntityManager with actual transaction available for current thread exception came.
-    @Scheduled(cron = "0 50 12 * * *") // // 7:50 AM and 3:50 PM every day
+    @Scheduled(cron = "0 50 7,15 * * *") // // 7:50 AM and 3:50 PM every day
     public void ticketAllocationMailScheduler() {
         transactionTemplate.execute(status -> {
             try {
