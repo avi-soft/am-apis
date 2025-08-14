@@ -247,6 +247,8 @@ public class AdvertisementService {
             if (creatorId != null) {
                 jpql.append("AND a.userId = :uid  ");
             }
+            jpql.append("ORDER BY a.modifiedDate DESC");
+
             System.out.println(jpql);
             // Create the query with the final JPQL string
             TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
