@@ -276,7 +276,6 @@ public class OtpEndpoint {
                             userAcknowledgement.setAcknowledgementId(ackId);
                             userAcknowledgement.setAcknowledgedAt(new Date());
                             em.merge(userAcknowledgement);
-                            existingCustomer.setIsAcknowledged(true);
                         } catch (Exception exception) {
                             exception.printStackTrace();
                             return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -306,7 +305,7 @@ public class OtpEndpoint {
                             }
                         }
                         ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                        if(!existingCustomer.getIsAcknowledged())
+                        if(ackId!=null)
                             pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                         return ResponseEntity.ok(response);
                     } else {
@@ -314,7 +313,7 @@ public class OtpEndpoint {
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                             authHeader = authHeader + existingToken;
                             ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            if(!existingCustomer.getIsAcknowledged())
+                            if(ackId!=null)
                                 pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                             return ResponseEntity.ok(response);
 
@@ -325,7 +324,7 @@ public class OtpEndpoint {
                             authHeader = authHeader + newToken;
                             em.persist(existingCustomer);
                             ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            if(!existingCustomer.getIsAcknowledged())
+                            if(ackId!=null)
                                 pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId());
                             return ResponseEntity.ok(response);
                         }
