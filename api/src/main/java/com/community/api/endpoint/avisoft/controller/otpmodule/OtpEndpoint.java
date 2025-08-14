@@ -276,6 +276,7 @@ public class OtpEndpoint {
                                 userAcknowledgement.setAcknowledgementId(ackId);
                                 userAcknowledgement.setAcknowledgedAt(new Date());
                                 em.merge(userAcknowledgement);
+                                existingCustomer.setIsAcknowledged(true);
                         }catch (Exception exception)
                             {
                                 exception.printStackTrace();
