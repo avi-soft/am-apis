@@ -122,7 +122,7 @@ public class PdfEditService {
             // Define the area on the last page to put the text block
             PdfPage lastPageObj = pdfDoc.getPage(lastPage);
             PdfCanvas pdfCanvas = new PdfCanvas(lastPageObj);
-            Rectangle rect = new Rectangle(50, 450, 500, 100); // adjust position & size as needed
+            Rectangle rect = new Rectangle(50, 420, 500, 150);
 
             // Corrected Canvas constructor: only pass PdfCanvas and Rectangle
             Canvas canvas = new Canvas(pdfCanvas, rect);
