@@ -1,8 +1,17 @@
 package com.community.api.services;
 
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.colors.Color;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
@@ -29,6 +38,26 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Date;
 
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.colors.Color;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.layout.Canvas;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import org.springframework.core.io.Resource;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.Date;
+
 @Service
 public class PdfEditService {
 
@@ -38,47 +67,75 @@ public class PdfEditService {
         this.resourceLoader = resourceLoader;
     }
 
-    public byte[] createPdfInMemory(String ackId, Integer role,Long userId,String phoneNumber) throws Exception {
+    public byte[] createPdfInMemory(String ackId, Integer role, Long userId, String phoneNumber) throws Exception {
         Resource resource = resourceLoader.getResource("classpath:Acknowledgement/policy.pdf");
         try (InputStream inputStream = resource.getInputStream();
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
             PdfReader reader = new PdfReader(inputStream);
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdfDoc = new PdfDocument(reader, writer);
             Document document = new Document(pdfDoc);
+
             int lastPage = pdfDoc.getNumberOfPages();
-            if(role==5) {
-                document.showTextAligned(new Paragraph(
-                                "The user with ID: "+userId+" has agreed to the terms and conditions of this policy."),
-                        60, 510, lastPage, TextAlignment.LEFT,
-                        VerticalAlignment.BOTTOM, 0);
+
+            // Font and colors
+            PdfFont font = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            Color userColor = ColorConstants.BLUE;
+            Color providerColor = ColorConstants.GREEN;
+            Color infoColor = ColorConstants.BLACK;
+
+            // Create signature line with color and spacing
+            Paragraph signatureLine = new Paragraph()
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setMarginBottom(10);
+
+            if (role == 5) {
+                signatureLine.setFontColor(userColor)
+                        .add("The user with ID: " + userId + " has agreed to the terms and conditions of this policy.");
+            } else {
+                signatureLine.setFontColor(providerColor)
+                        .add("The Service Provider with ID: " + userId + " has agreed to the terms and conditions of this policy.");
             }
-            else
-            {
-                document.showTextAligned(new Paragraph(
-                                "The Service Provider with ID: "+userId+" has agreed to the terms and conditions of this policy."),
-                        60, 510, lastPage, TextAlignment.LEFT,
-                        VerticalAlignment.BOTTOM, 0);
-            }
-            document.showTextAligned(new Paragraph(
-                            "Agreement ID: "+ackId),
-                    60, 495, lastPage, TextAlignment.LEFT,
-                    VerticalAlignment.BOTTOM, 0);
 
+            // Additional info lines
+            Paragraph agreementIdLine = new Paragraph("Agreement ID: " + ackId)
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setFontColor(infoColor)
+                    .setMarginBottom(8);
 
-            document.showTextAligned(new Paragraph(
-                            "User Phone Number: +91 "+phoneNumber),
-                    60, 480, lastPage, TextAlignment.LEFT,
-                    VerticalAlignment.BOTTOM, 0);
+            Paragraph phoneLine = new Paragraph("User Phone Number: +91 " + phoneNumber)
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setFontColor(infoColor)
+                    .setMarginBottom(8);
 
-            document.showTextAligned(new Paragraph(
-                            "Agreement Timestamp: " + new Date()),
-                    60, 465, lastPage, TextAlignment.LEFT,
-                    VerticalAlignment.BOTTOM, 0);
+            Paragraph timestampLine = new Paragraph("Agreement Timestamp: " + new Date())
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setFontColor(infoColor);
+
+            // Define the area on the last page to put the text block
+            PdfPage lastPageObj = pdfDoc.getPage(lastPage);
+            PdfCanvas pdfCanvas = new PdfCanvas(lastPageObj);
+            Rectangle rect = new Rectangle(50, 450, 500, 100); // adjust position & size as needed
+
+            // Corrected Canvas constructor: only pass PdfCanvas and Rectangle
+            Canvas canvas = new Canvas(pdfCanvas, rect);
+            canvas.add(signatureLine);
+            canvas.add(agreementIdLine);
+            canvas.add(phoneLine);
+            canvas.add(timestampLine);
+            canvas.close();
+
             document.close();
+
             return baos.toByteArray();
         }
     }
+
 
     public void sendPdfToApi(byte[] pdfBytes,Long customerId) {
         if (pdfBytes == null || pdfBytes.length == 0) {
