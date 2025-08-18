@@ -1501,6 +1501,7 @@ public class ServiceProviderActionController {
                                 
                                 <div style="background-color: #f9f9f9; border-left: 4px solid #27ae60; padding: 15px; margin: 20px 0;">
                                     <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                    <p style="margin: 0; font-weight: 500;">Assigned At: <strong>%s</strong></p>
                                 </div>
                                 
                                 <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
@@ -1513,6 +1514,7 @@ public class ServiceProviderActionController {
                     """,
                     imageUrl,
                     ticket.getTicketId(),
+                    ticket.getTicketAssignDate(),
                     LocalDate.now()
             );
 
