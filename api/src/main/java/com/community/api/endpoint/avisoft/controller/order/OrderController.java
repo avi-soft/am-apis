@@ -674,7 +674,6 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
             }
 
-
             ServiceProviderEntity serviceProvider = null;
 
             Long assignedUserId;

@@ -1916,7 +1916,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Map<String, Object> responseBody = createAuthResponse(existingToken, serviceProviderResponse).getBody();
 
                     if(ackId!=null)
-                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request);
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request,4);
                     return ResponseEntity.ok(responseBody);
                 } else {
                     String newToken = jwtUtil.generateToken(existingServiceProvider.getService_provider_id(), role, ipAddress, userAgent);
@@ -1931,7 +1931,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         responseBody.put("message", "User has been signed up");
                     }
                     if(ackId!=null)
-                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request);
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request,4);
                     return ResponseEntity.ok(responseBody);
                 }
             } else {

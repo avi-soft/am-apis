@@ -143,7 +143,7 @@ public class PdfEditService {
 
 @Autowired
 JwtUtil jwtUtil;
-    public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request) {
+    public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request,Integer role) {
         if (pdfBytes == null || pdfBytes.length == 0) {
             System.out.println("PDF bytes are null or empty, skipping upload.");
             return;
@@ -165,15 +165,16 @@ JwtUtil jwtUtil;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         String token=jwtUtil.generateShortLivedToken(22L,1, request.getRemoteAddr());
-        headers.setBearerAuth("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiMjYzODdmOS1hZDU4LTQ2ZjYtYjZjMy1kYmQ2Y2JlMWVkZTUiLCJpZCI6MjIsInJvbGUiOjEsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNDUuMCIsImlwQWRkcmVzcyI6IjA6MDowOjA6MDowOjA6MSIsImlhdCI6MTc1NTE1MDQ1OSwiZXhwIjoxNzU1MTg2NDU5fQ.nR0nxFN3-XqfrFq_CqRiEvXaL6BRdCU1OIXfQx8dVGU");
+        headers.setBearerAuth(token);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("fileTypes", "42"); // send as string, backend will map to Integer
         body.add("files", contentsAsResource);
         body.add("removeFileTypes","0");
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-        String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId="+customerId+"&extUpdate=true";
+        String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId="+customerId;
+        if(role==5)
+            apiUrl=apiUrl+"&extUpdate=true";
         System.out.println(apiUrl);
         try {
             ResponseEntity<String> response = new RestTemplate()
