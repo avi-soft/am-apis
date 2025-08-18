@@ -703,6 +703,7 @@ public class OrderController {
             }
 
             CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, assignedUserId, assignedRoleId, roleId, tokenUserId);
+
             if(createTicketDto.getAssigneeRole() != null && createTicketDto.getAssigneeRole() != null) {
                 serviceProviderActionController.sendTicketAllocationMail(serviceProvider, customServiceProviderTicket);
             }

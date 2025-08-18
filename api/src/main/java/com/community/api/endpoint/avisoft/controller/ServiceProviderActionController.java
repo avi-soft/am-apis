@@ -16,6 +16,7 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.FileType;
+import com.community.api.services.CustomCustomerService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.EmailService;
 import com.community.api.services.FileService;
@@ -53,6 +54,7 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -89,6 +91,8 @@ public class ServiceProviderActionController {
     private FileService fileService;
     @Autowired
     private PrivilegeService privilegeService;
+    @Autowired
+    private CustomCustomerService customCustomerService;
 
     @Autowired
     @Qualifier("blMailSender")
@@ -139,9 +143,9 @@ public class ServiceProviderActionController {
                 }
             }
             if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
-                customAdmin = entityManager.find(ServiceProviderEntity.class, userId);
-                if (customAdmin == null) {
-                    return ResponseService.generateErrorResponse("Custom Admin with id" + userId + " does not exist", HttpStatus.NOT_FOUND);
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if (serviceProvider == null) {
+                    return ResponseService.generateErrorResponse("Admin not found", HttpStatus.NOT_FOUND);
                 }
             }
 
@@ -153,11 +157,20 @@ public class ServiceProviderActionController {
             if (modesList.isEmpty()) {
                 throw new IllegalArgumentException("You have to select at-least one mode");
             }
-
             // Process comma-separated customerIds if needed
             List<Long> customerIdsList = getCustomerIdsListFromRequest(request);
+            if(customerIdsList.isEmpty()) {
+                List<Long> serviceProviderIds = new ArrayList<>();
+                serviceProviderIds.add(serviceProvider.getService_provider_id());
+                List<BigInteger> bigIntList = customCustomerService.filterCustomer(serviceProviderIds, null, null, null, null, null, null, true, authHeader, 0, 0, "DESC");
+                log.info("list of size is: {}", bigIntList.size());
+                customerIdsList = bigIntList.stream()
+                        .map(BigInteger::longValue)
+                        .collect(Collectors.toList());
+            }
+
             if (customerIdsList == null || customerIdsList.isEmpty()) {
-                return ResponseService.generateErrorResponse("You have to select atleast one user to communicate with", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("You have to select least one user to communicate with", HttpStatus.BAD_REQUEST);
             }
             for (Long customerId : customerIdsList) {
                 if (roleId >= role)
