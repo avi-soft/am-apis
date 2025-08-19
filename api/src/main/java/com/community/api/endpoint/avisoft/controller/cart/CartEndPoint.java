@@ -942,7 +942,7 @@ public class CartEndPoint extends BaseEndpoint {
 
                 }
             }
-            responseMap.put("Orders", individualOrders);
+//            responseMap.put("Orders",  );
             customCustomer.setNumberOfOrders(batchNumber);
 
             entityManager.merge(cart);
