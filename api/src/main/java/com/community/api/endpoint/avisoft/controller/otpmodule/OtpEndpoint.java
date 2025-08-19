@@ -265,11 +265,11 @@ public class OtpEndpoint {
                 Customer customer = customerService.readCustomerById(existingCustomer.getId());
 
                 if (otpEntered.equals(storedOtp)) {
-                    if (!existingCustomer.getIsAcknowledged() && (ackId == null || ackId.isEmpty()))
+                    if (!existingCustomer.getPolicyAcknowledgement() && (ackId == null || ackId.isEmpty()))
                         return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
-                    else if (existingCustomer.getIsAcknowledged() && ackId != null) {
-                        return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
-                    } else if (!existingCustomer.getIsAcknowledged() && (ackId != null || !ackId.isEmpty())) {
+                    else if (existingCustomer.getPolicyAcknowledgement() && ackId != null) {
+                        return ResponseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
+                    } else if (!existingCustomer.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
                         try {
                             UserAcknowledgement userAcknowledgement= em.find(UserAcknowledgement.class,ackId);
                                     if(userAcknowledgement!=null)
@@ -280,6 +280,7 @@ public class OtpEndpoint {
                             userAcknowledgement.setAcknowledgementId(ackId);
                             userAcknowledgement.setAcknowledgedAt(new Date());
                             em.merge(userAcknowledgement);
+                            existingCustomer.setPolicyAcknowledgement(true);
                         } catch (Exception exception) {
                             exception.printStackTrace();
                             return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
