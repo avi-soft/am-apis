@@ -5,21 +5,26 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.EligibilityResult;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
+import com.community.api.endpoint.avisoft.controller.Document.DocumentEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderConsent;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Post;
 import com.community.api.entity.RazorpayDetails;
 import com.community.api.entity.Role;
+import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.CartService;
 import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.DocumentStorageService;
 import com.community.api.services.GenderService;
 import com.community.api.services.OrderDTOService;
 import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PdfEditService;
 import com.community.api.services.ProductReserveCategoryFeePostRefService;
 import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ResponseService;
@@ -56,6 +61,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -72,6 +78,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
@@ -610,11 +618,57 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Autowired
+    DocumentEndpoint documentEndpoint;
+    @Value("${order.policy.path}")
+    private String policyPath;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+    @Autowired
+    JwtUtil jwtUtil;
+    @Autowired
+    DocumentStorageService documentStorageService;
+    @Transactional
+    @GetMapping("/policy")
+    public ResponseEntity<?>getOrderPolicy(HttpServletRequest request) throws Exception {
+        System.out.println(fileServerUrl+"/"+policyPath);
+        TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                ShortAccessToken.class
+        );
+        query.setParameter("uid", 22L);
+        query.setParameter("role", 1);
+        String ip = request.getRemoteAddr();
+        String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
+        List<ShortAccessToken> resultList = query.getResultList();
 
+        if (resultList.isEmpty()) {
+            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                    .userId(22L)
+                    .token(token)
+                    .role(1)
+                    .expired(false)
+                    .build();
+            entityManager.persist(shortAccessToken);
+        } else {
+            ShortAccessToken shortAccessToken = resultList.get(0);
+            shortAccessToken.setToken(token);
+            shortAccessToken.setExpired(false);
+            entityManager.merge(shortAccessToken);
+        }
+        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+        Map<String,String>respone=new HashMap<>();
+        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
+        respone.put("seed", documentEndpoint.generateUniqueId());
+        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+    }
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String orderAcknowledgementId= (String) map.get("ack");
+            if(orderAcknowledgementId==null)
+                return ResponseService.generateErrorResponse("Need to provide user consent",HttpStatus.BAD_REQUEST);
             Boolean bypass=false;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -878,7 +932,14 @@ public class CartEndPoint extends BaseEndpoint {
                     //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
                     customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), false, authHeader);
+                    OrderConsent orderConsent=new OrderConsent();
+                    orderConsent.setOrderId(individualOrder.getId());
+                    orderConsent.setUserId(individualOrder.getCustomer().getId());
+                    orderConsent.setAckId(orderAcknowledgementId);
+                    orderConsent.setTimeStamp(new Date());
+                    entityManager.persist(orderConsent);
                     individualOrders.add(individualOrder);
+
                 }
             }
             responseMap.put("Orders", individualOrders);
