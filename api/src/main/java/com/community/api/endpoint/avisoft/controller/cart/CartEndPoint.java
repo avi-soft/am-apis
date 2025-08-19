@@ -628,6 +628,7 @@ public class CartEndPoint extends BaseEndpoint {
     JwtUtil jwtUtil;
     @Autowired
     DocumentStorageService documentStorageService;
+    @Transactional
     @GetMapping("/policy")
     public ResponseEntity<?>getOrderPolicy(HttpServletRequest request) throws Exception {
         System.out.println(fileServerUrl+"/"+policyPath);
