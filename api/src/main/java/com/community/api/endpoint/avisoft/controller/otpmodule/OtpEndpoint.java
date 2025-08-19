@@ -311,7 +311,7 @@ public class OtpEndpoint {
                         }
                         ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                         if(ackId!=null)
-                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
+                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
                         return ResponseEntity.ok(response);
                     } else {
                         String existingToken = existingCustomer.getToken();
@@ -319,7 +319,7 @@ public class OtpEndpoint {
                             authHeader = authHeader + existingToken;
                             ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                             if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
                             return ResponseEntity.ok(response);
 
                         } else {
@@ -330,7 +330,7 @@ public class OtpEndpoint {
                             em.persist(existingCustomer);
                             ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
                             if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request);
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
                             return ResponseEntity.ok(response);
                         }
                     }

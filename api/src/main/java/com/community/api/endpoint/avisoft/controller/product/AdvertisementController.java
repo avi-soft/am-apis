@@ -434,7 +434,7 @@ public class AdvertisementController {
                     /* activeCategories.add(dto);*/
                 }
 
-                int totalItems = count.intValue();
+                int totalItems = adv.size();
                 int totalPages = (int) Math.ceil((double) totalItems / limit);
                 int fromIndex = offset * limit;
                 int toIndex = Math.min(fromIndex + limit, totalItems);

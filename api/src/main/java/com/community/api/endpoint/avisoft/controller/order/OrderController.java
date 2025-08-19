@@ -6,6 +6,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.dto.SPDto;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.dto.OrderStateGroupDto;
@@ -130,6 +131,8 @@ public class OrderController {
     private OrderStateRefService orderStateRefService;
     @Autowired
     private ProductService productService;
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     @Autowired
     public void setEntityManager(EntityManager entityManager) {
@@ -671,7 +674,6 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
             }
 
-
             ServiceProviderEntity serviceProvider = null;
 
             Long assignedUserId;
@@ -702,6 +704,9 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, assignedUserId, assignedRoleId, roleId, tokenUserId);
 
+            if(createTicketDto.getAssigneeRole() != null && createTicketDto.getAssigneeRole() != null) {
+                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, customServiceProviderTicket);
+            }
             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
             entityManager.merge(customOrderState);
 

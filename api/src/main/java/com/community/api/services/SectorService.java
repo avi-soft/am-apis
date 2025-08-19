@@ -229,16 +229,13 @@ public class SectorService {
             sql.append("AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                     "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                     "AND c.sector_id = :sectorId " +
-                    "ORDER BY c.product_id DESC " +
-                    "LIMIT :limit OFFSET :offset");
+                    "ORDER BY c.last_modified DESC");
 
             Query query = entityManager.createNativeQuery(sql.toString());
             query.setParameter("sectorId", sectorId);
             if (categoryId != null && !categoryId.isEmpty()) {
                 query.setParameter("categoryId", categoryId);
             }
-            query.setParameter("limit", limit);
-            query.setParameter("offset", offset);
 
             return query.getResultList();
         } catch (Exception e) {
