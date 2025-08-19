@@ -312,6 +312,10 @@ public class ServiceProviderEntity {
     @Column(name = "updated_date")
     private Date updatedDate;
 
+    @Column(name = "policy_acknowledgement", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean policyAcknowledgement = false;
+
+
 }
 
 

@@ -69,7 +69,7 @@ public class AcknowledgementWebhook {
         }
         else
         {
-           return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
+           return ResponseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
             }
         }
 

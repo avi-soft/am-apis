@@ -11,7 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Date;
 @Entity
-@Table(name = "user_acknowledgement")
+@Table(name = "sp_acknowledgement")
 @Getter
 @Setter
 @AllArgsConstructor
