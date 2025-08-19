@@ -2,13 +2,9 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
-import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.BoardUniversity;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Role;
-import com.community.api.services.exception.EntityAlreadyExistsException;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -32,25 +28,21 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class AdvertisementService {
 
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-    @Autowired
-    ExceptionHandlingService exceptionHandlingService;
-
     @Autowired
     protected CatalogService catalogService;
-
     @Autowired
     protected ProductService productService;
-
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
     @Autowired
     EntityManager entityManager;
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     public Category validateSubCategory(Long categoryId) throws Exception {
         try {
@@ -59,7 +51,7 @@ public class AdvertisementService {
             if (category == null || ((Status) category).getArchived() == 'Y') {
                 throw new IllegalArgumentException("Category not found with this Id.");
             }
-            if(category.getDefaultParentCategory() == null) {
+            if (category.getDefaultParentCategory() == null) {
                 throw new IllegalArgumentException("Category is not a sub category.");
             }
             return category;
@@ -74,12 +66,12 @@ public class AdvertisementService {
 
     public void validateAdvertisement(AddAdvertisementDto addAdvertisementDto) throws Exception {
         try {
-            if(addAdvertisementDto.getTitle() == null || addAdvertisementDto.getTitle().trim().isEmpty()) {
+            if (addAdvertisementDto.getTitle() == null || addAdvertisementDto.getTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Title cannot be null or empty");
             }
             addAdvertisementDto.setTitle(addAdvertisementDto.getTitle().trim());
 
-            if(addAdvertisementDto.getDescription() != null) {
+            if (addAdvertisementDto.getDescription() != null) {
            /*     if (addAdvertisementDto.getDescription().trim().isEmpty()) {
                     throw new IllegalArgumentException("Advertisement Description cannot be Empty");
                 }*/
@@ -89,7 +81,7 @@ public class AdvertisementService {
           /*  if(addAdvertisementDto.getUrl() == null || addAdvertisementDto.getUrl().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Url cannot be null or empty");
             }*/
-            if(addAdvertisementDto.getUrl()!=null) {
+            if (addAdvertisementDto.getUrl() != null) {
                 if ((!isValidUrl(addAdvertisementDto.getUrl().trim()))) {
                     throw new IllegalArgumentException("Invalid Advertisement URL format");
                 }
@@ -100,8 +92,8 @@ public class AdvertisementService {
             /*if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Notifying Authority cannot be null or empty");
             }*/
-            if(addAdvertisementDto.getNotifyingAuthority() != null && !addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
-            addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
+            if (addAdvertisementDto.getNotifyingAuthority() != null && !addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+                addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
             }
 
          /*   if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
@@ -121,7 +113,7 @@ public class AdvertisementService {
                 }
             }
 
-            if(addAdvertisementDto.getNotificationStartDate() == null) {
+            if (addAdvertisementDto.getNotificationStartDate() == null) {
                 throw new IllegalArgumentException("Notification Start Date is required");
             }
             String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
@@ -130,7 +122,7 @@ public class AdvertisementService {
        /*     if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
                 throw new IllegalArgumentException("Notification Start Date cannot be of future");
             }*/
-            if(addAdvertisementDto.getNotificationEndDate() == null) {
+            if (addAdvertisementDto.getNotificationEndDate() == null) {
                 addAdvertisementDto.setNotificationEndDate(null);
             } else {
                 formattedDate = dateFormat.format(addAdvertisementDto.getNotificationEndDate());
@@ -172,44 +164,11 @@ public class AdvertisementService {
     }
 
     @Transactional
-    public Advertisement saveAdvertisement (AddAdvertisementDto addAdvertisementDto, Long creatorUserId, Role role, CategoryImpl category) throws Exception {
+    public Advertisement saveAdvertisement(AddAdvertisementDto addAdvertisementDto, Long creatorUserId, Role role, CategoryImpl category) throws Exception {
         try {
 
-           /* // Start building the SQL query
-            StringBuilder sql = new StringBuilder("INSERT INTO advertisement (title, number, creator_user_id, creator_role_id, created_date, active_start_date, active_end_date, url, category_id");
-            StringBuilder values = new StringBuilder("VALUES (:title, :number , :creatorUserId, :role, :currentDate, :url, :categoryId");
-
-            // Dynamically add columns and values based on non-null fields
-            if (addAdvertisementDto.getDescription() != null) {
-                sql.append(", description");
-                values.append(", :description");
-            }
-
-            // Complete the SQL statement
-            sql.append(") ").append(values).append(")");
-
             String formattedDate = dateFormat.format(new Date());
-            Date createdDate  = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
-            // Create the query
-            var query = entityManager.createNativeQuery(sql.toString())
-                    .setParameter("title", addAdvertisementDto.getTitle())
-                    .setParameter("creatorUserId", creatorUserId)
-                    .setParameter("role", role)
-                    .setParameter("number", addAdvertisementDto.getNumber())
-                    .setParameter("url", addAdvertisementDto.getUrl())
-                    .setParameter("categoryId", category.getId())
-                    .setParameter("currentDate", createdDate);
-
-            // Set parameters conditionally
-            if (addAdvertisementDto.getDescription() != null) {
-                query.setParameter("description", addAdvertisementDto.getDescription());
-            }
-
-            // Execute the update
-            query.executeUpdate();
-*/
-            String formattedDate = dateFormat.format(new Date());
-            Date createdDate  = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
+            Date createdDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
             Advertisement advertisement = new Advertisement();
             advertisement.setTitle(addAdvertisementDto.getTitle());
@@ -217,6 +176,7 @@ public class AdvertisementService {
             advertisement.setDescription(addAdvertisementDto.getDescription());
             advertisement.setNumber(addAdvertisementDto.getNumber());
             advertisement.setCreatedDate(createdDate);
+            advertisement.setModifiedDate(createdDate);
             advertisement.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority());
             advertisement.setNotificationStartDate(addAdvertisementDto.getNotificationStartDate());
             advertisement.setNotificationEndDate(addAdvertisementDto.getNotificationEndDate());
@@ -229,15 +189,13 @@ public class AdvertisementService {
         } catch (PersistenceException persistenceException) {
             exceptionHandlingService.handleException(persistenceException);
             throw new DataIntegrityViolationException("Advertisement number must be unique");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new Exception("Failed to save Advertisement: " + e.getMessage(), e);
         }
     }
- @Autowired
-    JdbcTemplate jdbcTemplate;
-    public List<Advertisement> filterAdvertisements(String title, List<Long> categories, List<Long> subCategories,Long creatorId,Boolean all) throws Exception {
+
+    public List<Advertisement> filterAdvertisements(String title, List<Long> categories, List<Long> subCategories, Long creatorId, Boolean all) throws Exception {
         jdbcTemplate.execute("CALL update_advertisement_product_counts()");
         try {
 
@@ -263,80 +221,75 @@ public class AdvertisementService {
             if (subCategories != null && !subCategories.isEmpty()) {
                 for (Long id : subCategories) {
                     Category subCategory = catalogService.findCategoryById(id);
-                    if(subCategory==null)
-                    {
+                    if (subCategory == null) {
                         throw new IllegalArgumentException("NO SUB CATEGORY FOUND WITH THIS ID: " + id);
                     }
-                    if(subCategory.getDefaultParentCategory()==null)
-                    {
+                    if (subCategory.getDefaultParentCategory() == null) {
                         throw new IllegalArgumentException("Advertisement with id " + id + " is not a sub category");
                     }
 
                     boolean isActive = (((Status) subCategory).getArchived() != 'Y' && subCategory.getActiveEndDate() == null) ||
                             (((Status) subCategory).getArchived() != 'Y' && subCategory.getActiveEndDate().after(new Date()));
-                    if(!isActive)
-                    {
+                    if (!isActive) {
                         throw new IllegalArgumentException("Advertisement is either archived or expired");
                     }
-                        subCategoryList.add(subCategory);
+                    subCategoryList.add(subCategory);
                 }
                 jpql.append("AND a.category IN :subCategories ");
             }
-            if(!all) {
+            if (!all) {
                 jpql.append(" AND a.productCount > 0 AND (a.notificationEndDate is null or a.notificationEndDate > CURRENT_TIMESTAMP)  ");
             }
             jpql.append(" AND a.archived = 'N' ");
-                if (title != null && !title.isEmpty()) {
-                    jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
-                }
-                if(creatorId!=null)
-                {
-                    jpql.append("AND a.userId = :uid  ");
-                }
-            System.out.println(jpql);
-                // Create the query with the final JPQL string
-                TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
-
-                if (!categoryList.isEmpty()) {
-                    query.setParameter("categories", categoryList);
-                }
-                if (title != null && !title.isEmpty()) {
-                    query.setParameter("title", "%" + title + "%");
-                }
-                if(creatorId!=null)
-                {
-                    query.setParameter("uid",creatorId);
-                }
-                if(!subCategoryList.isEmpty())
-                {
-                    query.setParameter("subCategories",subCategoryList);
-                }
-
-                // Execute and return the result
-                return query.getResultList();
-
-            } catch(IllegalArgumentException illegalArgumentException){
-                exceptionHandlingService.handleException(illegalArgumentException);
-                throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
-            } catch(Exception exception){
-                exceptionHandlingService.handleException(exception);
-                throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
+            if (title != null && !title.isEmpty()) {
+                jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
             }
+            if (creatorId != null) {
+                jpql.append("AND a.userId = :uid  ");
+            }
+            jpql.append("ORDER BY a.modifiedDate DESC");
+
+            System.out.println(jpql);
+            // Create the query with the final JPQL string
+            TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
+
+            if (!categoryList.isEmpty()) {
+                query.setParameter("categories", categoryList);
+            }
+            if (title != null && !title.isEmpty()) {
+                query.setParameter("title", "%" + title + "%");
+            }
+            if (creatorId != null) {
+                query.setParameter("uid", creatorId);
+            }
+            if (!subCategoryList.isEmpty()) {
+                query.setParameter("subCategories", subCategoryList);
+            }
+
+            // Execute and return the result
+            return query.getResultList();
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
+        }
     }
 
     @Transactional
-    public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto,Long advertisementId) throws Exception {
+    public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto, Long advertisementId) throws Exception {
         jdbcTemplate.execute("CALL update_advertisement_product_counts()");
-        Date notificationStartDate=null;
-        Date notificationEndDate=null;
-        Advertisement advertisementToUpdate= entityManager.find(Advertisement.class,advertisementId);
-        if(advertisementToUpdate==null)
-        {
-            throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
+        Date notificationStartDate = null;
+        Date notificationEndDate = null;
+        Advertisement advertisementToUpdate = entityManager.find(Advertisement.class, advertisementId);
+        if (advertisementToUpdate == null) {
+            throw new IllegalArgumentException("Advertisement with id " + advertisementId + " not found");
         }
-        if(advertisementDto.getNotificationStartDate()==null||advertisementDto.getNotificationEndDate()==null)
+        if (advertisementDto.getNotificationStartDate() == null || advertisementDto.getNotificationEndDate() == null)
             throw new IllegalArgumentException("Both the Notification start date and end date cannot be null");
-        if(advertisementDto.getNewNotificationStartDate()!=null) {
+        if (advertisementDto.getNewNotificationStartDate() != null) {
             Date today = org.apache.commons.lang3.time.DateUtils.truncate(new Date(), java.util.Calendar.DAY_OF_MONTH);
             Date notificationStart = org.apache.commons.lang3.time.DateUtils.truncate(advertisementDto.getNewNotificationStartDate(), java.util.Calendar.DAY_OF_MONTH);
 
@@ -344,29 +297,26 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Notification start date cannot be in the past");
             }
         }
-        if(advertisementToUpdate.getArchived().equals('Y'))
-            throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
-        if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+        if (advertisementToUpdate.getArchived().equals('Y'))
+            throw new IllegalArgumentException("Advertisement with id " + advertisementId + " is archived");
+        if (advertisementDto.getNewNotificationStartDate() != null && !advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()) && advertisementToUpdate.getProductCount() > 0)
             throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
-        if(advertisementToUpdate.getCategory()!=null)
-        {
+        if (advertisementToUpdate.getCategory() != null) {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
-            if(customProducts!=null && !customProducts.isEmpty())
-            {
-                if(advertisementDto.getNewNotificationStartDate()!=null&&!advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate())&&advertisementToUpdate.getProductCount()>0)
+            if (customProducts != null && !customProducts.isEmpty()) {
+                if (advertisementDto.getNewNotificationStartDate() != null && !advertisementDto.getNewNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()) && advertisementToUpdate.getProductCount() > 0)
                     throw new IllegalArgumentException("Cannot edit the advertisement as it is currently LIVE. Modifying the start date may impact the associated products.");
             }
         }
 
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
-        if(Objects.nonNull(advertisementDto.getTitle()))
-        {
-            if(advertisementDto.getTitle().trim().isEmpty()) {
+        if (Objects.nonNull(advertisementDto.getTitle())) {
+            if (advertisementDto.getTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Title cannot be empty");
             }
             advertisementToUpdate.setTitle(advertisementDto.getTitle().trim());
         }
-        if(advertisementDto.getDescription() != null) {
+        if (advertisementDto.getDescription() != null) {
            /* if (advertisementDto.getDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Description cannot be Empty");
             }*/
@@ -397,18 +347,15 @@ public class AdvertisementService {
                 String number = advertisementDto.getNumber().trim();
                 String queryStr = "SELECT q FROM Advertisement q";
                 TypedQuery<Advertisement> query = entityManager.createQuery(queryStr, Advertisement.class);
-               List< Advertisement> existingAdvertisements = query.getResultList();
-               for(Advertisement existingAdvertisement: existingAdvertisements)
-               {
-                   if(existingAdvertisement.getNumber()!=null)
-                   {
-                       if(existingAdvertisement.getNumber().equalsIgnoreCase(advertisementDto.getNumber()) && !existingAdvertisement.getAdvertisementId().equals(advertisementId))
-                       {
-                           throw new IllegalArgumentException("Advertisement with number " + number + " already exists.");
-                       }
-                   }
+                List<Advertisement> existingAdvertisements = query.getResultList();
+                for (Advertisement existingAdvertisement : existingAdvertisements) {
+                    if (existingAdvertisement.getNumber() != null) {
+                        if (existingAdvertisement.getNumber().equalsIgnoreCase(advertisementDto.getNumber()) && !existingAdvertisement.getAdvertisementId().equals(advertisementId)) {
+                            throw new IllegalArgumentException("Advertisement with number " + number + " already exists.");
+                        }
+                    }
 
-               }
+                }
                 advertisementDto.setNumber(number);
             }
 
@@ -418,17 +365,15 @@ public class AdvertisementService {
         if (Objects.nonNull(advertisementDto.getNotificationStartDate())) {
             String formattedDate = dateFormat.format(advertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate);
-            notificationStartDate=advertisementDto.getNotificationStartDate();
-        }
-        else {
-            notificationStartDate=advertisementToUpdate.getNotificationStartDate();
+            notificationStartDate = advertisementDto.getNotificationStartDate();
+        } else {
+            notificationStartDate = advertisementToUpdate.getNotificationStartDate();
         }
 
      /*   if(notificationStartDate.after(new Date())) {
             throw new IllegalArgumentException("Notification Start Date cannot be of future");
         }*/
-        if(advertisementDto.getNewNotificationStartDate()!=null)
-        {
+        if (advertisementDto.getNewNotificationStartDate() != null) {
             advertisementToUpdate.setNotificationStartDate(advertisementDto.getNewNotificationStartDate());
         }
        /* else
@@ -437,13 +382,11 @@ public class AdvertisementService {
         if (Objects.nonNull(advertisementDto.getNotificationEndDate())) {
             String formattedDate = dateFormat.format(advertisementDto.getNotificationEndDate());
             dateFormat.parse(formattedDate);
-            notificationEndDate=advertisementDto.getNotificationEndDate();
+            notificationEndDate = advertisementDto.getNotificationEndDate();
+        } else {
+            notificationEndDate = advertisementToUpdate.getNotificationEndDate();
         }
-        else {
-            notificationEndDate=advertisementToUpdate.getNotificationEndDate();
-        }
-        if(advertisementDto.getNewNotificationStartDate()!=null&&advertisementDto.getNewNotificationStartDate().after(notificationEndDate))
-        {
+        if (advertisementDto.getNewNotificationStartDate() != null && advertisementDto.getNewNotificationStartDate().after(notificationEndDate)) {
             throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
         }
         if (notificationEndDate != null && notificationEndDate.before(notificationStartDate)) {
@@ -451,6 +394,7 @@ public class AdvertisementService {
         }
         advertisementToUpdate.setNotificationEndDate(notificationEndDate);
 
+        advertisementToUpdate.setModifiedDate(new Date());
         entityManager.merge(advertisementToUpdate);
         return advertisementToUpdate;
     }
@@ -463,6 +407,7 @@ public class AdvertisementService {
             return false;
         }
     }
+
     public List<Object[]> getAdvCompressed(List<Long> categoryIds, Integer offset, Integer limit) {
         String sql = "SELECT " +
                 "a.advertisement_id, " +
@@ -482,14 +427,11 @@ public class AdvertisementService {
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "GROUP BY a.advertisement_id, a.description, a.title " +
-                "ORDER BY a.advertisement_id " +
-                "LIMIT ?2 OFFSET ?3";
+                "ORDER BY a.modified_date DESC";
 
         try {
             List<Object[]> rows = entityManager.createNativeQuery(sql)
                     .setParameter(1, categoryIds)
-                    .setParameter(2, limit)
-                    .setParameter(3, offset)
                     .getResultList();
 
             return rows;
@@ -497,9 +439,10 @@ public class AdvertisementService {
             throw new RuntimeException("Failed to fetch compressed advertisements: " + e.getMessage(), e);
         }
     }
+
     public BigInteger getAdvCompressedCount(List<Long> categoryIds) {
         String sql = "SELECT " +
-                " COUNT(DISTINCT a.advertisement_id) "+
+                " COUNT(DISTINCT a.advertisement_id) " +
                 "FROM advertisement a " +
                 "JOIN custom_product c ON c.advertisement_id = a.advertisement_id " +
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
@@ -518,8 +461,7 @@ public class AdvertisementService {
                     .getSingleResult();
 
             return count;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to fetch compressed advertisements: " + e.getMessage(), e);
         }
     }

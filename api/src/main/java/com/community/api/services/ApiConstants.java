@@ -22,7 +22,7 @@ public class ApiConstants {
     public static final String MOBILE_NUMBER_REGISTERED = "Number already exists as service provider";
     public static final String INVALID_MOBILE_NUMBER = "Invalid mobile number";
     public static final String CUSTOMER_ALREADY_EXISTS = "Customer already exists";
-    public static final String RATE_LIMIT_EXCEEDED = "Rate limit exceeded. Please try after some time";
+    public static final String RATE_LIMIT_EXCEEDED = "You’ve made too many requests. Please wait a moment and try again later";
 
     public static final String INVALID_DATA = "Invalid data provided";
     public static final String NUMBER_REGISTERED_AS_CUSTOMER = "Number already registered as customer";

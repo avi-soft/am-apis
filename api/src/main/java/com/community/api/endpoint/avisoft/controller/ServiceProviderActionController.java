@@ -16,6 +16,7 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.FileType;
+import com.community.api.services.CustomCustomerService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.EmailService;
 import com.community.api.services.FileService;
@@ -53,6 +54,7 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -89,6 +91,8 @@ public class ServiceProviderActionController {
     private FileService fileService;
     @Autowired
     private PrivilegeService privilegeService;
+    @Autowired
+    private CustomCustomerService customCustomerService;
 
     @Autowired
     @Qualifier("blMailSender")
@@ -139,9 +143,9 @@ public class ServiceProviderActionController {
                 }
             }
             if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
-                customAdmin = entityManager.find(ServiceProviderEntity.class, userId);
-                if (customAdmin == null) {
-                    return ResponseService.generateErrorResponse("Custom Admin with id" + userId + " does not exist", HttpStatus.NOT_FOUND);
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if (serviceProvider == null) {
+                    return ResponseService.generateErrorResponse("Admin not found", HttpStatus.NOT_FOUND);
                 }
             }
 
@@ -151,13 +155,22 @@ public class ServiceProviderActionController {
                 throw new IllegalArgumentException("Modes cannot be null");
             }
             if (modesList.isEmpty()) {
-                throw new IllegalArgumentException("You have to select atleast one mode");
+                throw new IllegalArgumentException("You have to select at-least one mode");
             }
-
             // Process comma-separated customerIds if needed
             List<Long> customerIdsList = getCustomerIdsListFromRequest(request);
+            if(customerIdsList.isEmpty()) {
+                List<Long> serviceProviderIds = new ArrayList<>();
+                serviceProviderIds.add(serviceProvider.getService_provider_id());
+                List<BigInteger> bigIntList = customCustomerService.filterCustomer(serviceProviderIds, null, null, null, null, null, null, true, authHeader, 0, 0, "DESC");
+                log.info("list of size is: {}", bigIntList.size());
+                customerIdsList = bigIntList.stream()
+                        .map(BigInteger::longValue)
+                        .collect(Collectors.toList());
+            }
+
             if (customerIdsList == null || customerIdsList.isEmpty()) {
-                return ResponseService.generateErrorResponse("You have to select atleast one user to communicate with", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("You have to select least one user to communicate with", HttpStatus.BAD_REQUEST);
             }
             for (Long customerId : customerIdsList) {
                 if (roleId >= role)
@@ -203,6 +216,7 @@ public class ServiceProviderActionController {
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
             }*/
+
             if (request.getContentText() == null && (request.getFiles() == null || request.getFiles().isEmpty())) {
                 return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null", HttpStatus.BAD_REQUEST);
             }
@@ -236,6 +250,7 @@ public class ServiceProviderActionController {
                         HttpStatus.BAD_REQUEST
                 );
             }
+
             // Create communication content
             CommunicationContent content = new CommunicationContent();
             if (serviceProvider != null) {
@@ -266,7 +281,6 @@ public class ServiceProviderActionController {
                     contentFiles = processFiles(request.getFiles(), content);
                     content.setContentFiles(contentFiles);
                 }
-
             }
 
             entityManager.persist(content);
@@ -918,7 +932,7 @@ public class ServiceProviderActionController {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "bypass", defaultValue = "false") Boolean bypass) {
         try {
-            System.out.println("I have been called");
+
             if (role == null)
                 return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
             if (roleService.findRoleName(role) == null)
@@ -1463,6 +1477,57 @@ public class ServiceProviderActionController {
                     imageUrl,
                     ticket.getTicketId(),
                     adminName,
+                    LocalDate.now()
+            );
+
+            // Prepare and send email
+            sendEmail(htmlContent, subject, serviceProvider);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
+    // TODO- Mail for ticket assignment.
+    public void sendTicketAllocationMail(ServiceProviderEntity serviceProvider, CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+
+            String subject = "Ticket Assignment Notification";
+            String imageUrl = "https://cdn-icons-png.flaticon.com/512/726/726448.png"; // assignment icon
+
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src="%s" alt="Assignment Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #34495e; margin: 10px 0; font-size: 24px;">Ticket Assigned</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">A new ticket has been assigned to you.</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #27ae60; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                    <p style="margin: 0; font-weight: 500;">Assigned At: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Please review and take appropriate action.</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    ticket.getTicketId(),
+                    ticket.getTicketAssignDate(),
                     LocalDate.now()
             );
 

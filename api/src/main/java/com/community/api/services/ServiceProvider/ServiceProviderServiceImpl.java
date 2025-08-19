@@ -8,6 +8,7 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.SPAcknowledgement;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
@@ -23,13 +24,13 @@ import com.community.api.services.CustomCustomerService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.FileService;
+import com.community.api.services.PdfEditService;
 import com.community.api.services.RateLimiterService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderInfraService;
 import com.community.api.services.ServiceProviderLanguageService;
 import com.community.api.services.ServiceProviderReRankingEligibilityService;
-import com.community.api.services.ServiceProviderReRankingScoreService;
 import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
@@ -38,6 +39,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
@@ -230,7 +232,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.", "authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
 
-
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId;
@@ -242,17 +243,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             updates = sharedUtilityService.trimStringValues(updates);
             Map<String, String> errorMessages = new HashMap<>();
 
-
             // Find existing ServiceProviderEntity
             existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (existingServiceProvider == null) {
                 errorMessages.put("service_provider_id", "ServiceProvider with ID " + userId + " not found");
             }
 
-
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
 
             if (existingServiceProvider != null) {
                 originalCopy = cloneServiceProvider(existingServiceProvider);
@@ -576,7 +574,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<String> businessKeys = new ArrayList<>();
             businessKeys.add("business_name");
 
-
 //            businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
@@ -632,19 +629,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     businessAddresssKeys.add("business_longitude");
                     businessAddresssKeys.add("business_latitude");
                     businessAddresssKeys.add("business_geo_location");
-//                    int businessKeysCount = 0;
-//                    for (String key : updates.keySet()) {
-//                        if (businessAddresssKeys.contains(key))
-//                            businessKeysCount++;
-//                    }
-//                    if (businessKeysCount > 0 && businessKeysCount < businessAddresssKeys.size())
-//                    {
-//                        for (String key : businessAddresssKeys) {
-//                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
-//                                errorMessages.put(key, key + " is required to add or update business address");
-//                            }
-//                        }
-//                    }
+                    /*int businessKeysCount = 0;
+                    for (String key : updates.keySet()) {
+                        if (businessAddresssKeys.contains(key))
+                            businessKeysCount++;
+                    }
+                    if (businessKeysCount > 0 && businessKeysCount < businessAddresssKeys.size())
+                    {
+                        for (String key : businessAddresssKeys) {
+                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+                                errorMessages.put(key, key + " is required to add or update business address");
+                            }
+                        }
+                    }*/
                     if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address") && updates.containsKey("business_longitude") && updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
                         existingServiceProvider.setIsAcknowledged(false);
                         if (validateBusinessAddressFields(updates).isEmpty()) {
@@ -706,7 +703,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 );
 
                                 errorMessages.putAll(addressErrors);
-
                             }
                         } else {
                             errorMessages.putAll(validateBusinessAddressFields(updates));
@@ -720,7 +716,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
                         } else
                             errorMessages.put("registration_number", "Registration Number can not be empty or null");
-
 
                     } else
                         existingServiceProvider.setRegistration_number(null);
@@ -779,7 +774,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Object workExpMonths = updates.get("work_experience_in_months");
                 int months = 0;
 
-
                 if (workExpMonths != null && !workExpMonths.toString().trim().isEmpty()) {
                     try {
                         months = Integer.parseInt(workExpMonths.toString().trim());
@@ -803,7 +797,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-
 
             if (updates.containsKey("user_name")) {
                 updates.remove("user_name");
@@ -1013,7 +1006,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 updates.remove("secondary_email");
             }
 
-
             if (updates.containsKey("aadhaar_number")) {
                 String newAadhaarNumber = (String) updates.get("aadhaar_number");
 
@@ -1036,7 +1028,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             errorMessages.put("aadhaar_number", "Aadhaar number already exists");
                         }
                     }
-
                 }
             }
 
@@ -1147,6 +1138,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             // Merge the updated entity
+
+            existingServiceProvider.setUpdatedDate(new Date());
             entityManager.merge(existingServiceProvider);
             if (existingServiceProvider.getUser_name() == null && !existingServiceProvider.getSpAddresses().isEmpty()) {
                 String username = generateUsernameForServiceProvider(existingServiceProvider);
@@ -1674,7 +1667,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1682,7 +1675,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
         if (existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1693,12 +1686,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
         if (serviceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
         if (passwordEncoder.matches(password, serviceProvider.getPassword())) {
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenServiceProvider_" + serviceProvider.getMobileNumber();
-
 
             String existingToken = serviceProvider.getToken();
 
@@ -1719,10 +1711,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 Map<String, Object> responseBody = createAuthResponse(newToken, serviceProviderResponse).getBody();
 
-
                 return ResponseEntity.ok(responseBody);
-
-
             }
         } else {
             return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
@@ -1840,14 +1829,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
         return username;
     }
-
+    @Autowired
+    PdfEditService pdfEditService;
     @Transactional
-    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) {
+    public ResponseEntity<?> verifyOtp(Map<String, Object> serviceProviderDetails, HttpSession session, HttpServletRequest request) throws NotAuthorizedException {
         try {
             String username = (String) serviceProviderDetails.get("username");
             String otpEntered = (String) serviceProviderDetails.get("otpEntered");
             String mobileNumber = (String) serviceProviderDetails.get("mobileNumber");
             String countryCode = (String) serviceProviderDetails.get("countryCode");
+            String ackId = (String) serviceProviderDetails.get("ack");
             if (countryCode == null || countryCode.isEmpty()) {
                 countryCode = Constant.COUNTRY_CODE;
             }
@@ -1873,8 +1864,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
 
             if (existingServiceProvider == null) {
-                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.BAD_REQUEST);
+            }
 
+            if(existingServiceProvider.getIsArchived()) {
+                throw new NotAuthorizedException("Your account is suspended please contact support");
             }
             Integer role = existingServiceProvider.getRole();
             String storedOtp = existingServiceProvider.getOtp();
@@ -1887,6 +1881,28 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
+                if (!existingServiceProvider.getPolicyAcknowledgement() && (ackId == null || ackId.isEmpty()))
+                    return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
+                else if (existingServiceProvider.getPolicyAcknowledgement() && ackId != null) {
+                    return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
+                } else if (!existingServiceProvider.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
+                    try {
+                        SPAcknowledgement userAcknowledgement= entityManager.find(SPAcknowledgement.class,ackId);
+                        if(userAcknowledgement!=null)
+                            return ResponseService.generateErrorResponse("Acknowledgement ID has already been registered with other user",HttpStatus.BAD_REQUEST);
+                        userAcknowledgement = new SPAcknowledgement();
+                        userAcknowledgement.setUserId(existingServiceProvider.getService_provider_id());
+                        userAcknowledgement.setAcknowledgementVersion("v1");
+                        userAcknowledgement.setAcknowledgementId(ackId);
+                        userAcknowledgement.setAcknowledgedAt(new Date());
+                        entityManager.merge(userAcknowledgement);
+                        existingServiceProvider.setPolicyAcknowledgement(true);
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                        return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+                }
+                System.out.println("ack set");
                 existingServiceProvider.setOtp(null);
                 entityManager.merge(existingServiceProvider);
 
@@ -1900,7 +1916,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     Map<String, Object> responseBody = createAuthResponse(existingToken, serviceProviderResponse).getBody();
 
-
+                    if(ackId!=null)
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request,4);
                     return ResponseEntity.ok(responseBody);
                 } else {
                     String newToken = jwtUtil.generateToken(existingServiceProvider.getService_provider_id(), role, ipAddress, userAgent);
@@ -1914,7 +1931,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         entityManager.merge(existingServiceProvider);
                         responseBody.put("message", "User has been signed up");
                     }
-
+                    if(ackId!=null)
+                        pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 4, existingServiceProvider.getService_provider_id(), mobileNumber), existingServiceProvider.getService_provider_id(),request,4);
                     return ResponseEntity.ok(responseBody);
                 }
             } else {
@@ -1922,6 +1940,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             }
 
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            throw new NotAuthorizedException(notAuthorizedException.getMessage());
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -2165,7 +2186,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-
             // Build dynamic query based on address filtering logic
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT DISTINCT s FROM ServiceProviderEntity s ");
@@ -2342,6 +2362,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
+        serviceProviderDetails.put("created_date", serviceProvider.getDateJoined());
+        serviceProviderDetails.put("updated_date", serviceProvider.getUpdatedDate());
 
         if (serviceProvider.getType() != null && serviceProvider.getType().equalsIgnoreCase("INDIVIDUAL")) {
             serviceProviderDetails.put("part_time_or_full_time", serviceProvider.getPartTimeOrFullTime());

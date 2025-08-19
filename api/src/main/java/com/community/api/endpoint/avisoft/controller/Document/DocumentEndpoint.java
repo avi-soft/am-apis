@@ -1,4 +1,4 @@
-package com.community.api.endpoint.avisoft.controller.Document;
+  package com.community.api.endpoint.avisoft.controller.Document;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
@@ -13,6 +13,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.util.IntEnumeration;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,16 +34,22 @@ import java.io.OutputStream;
 import java.net.*;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 
 import java.util.Date;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.community.api.component.Constant.CHARACTERS;
+import static com.community.api.component.Constant.random;
 
 import static io.jsonwebtoken.JwsHeader.ALGORITHM;
 
@@ -81,6 +88,67 @@ public class DocumentEndpoint {
         this.exceptionHandling = exceptionHandling;
         this.responseService = responseService;
     }
+    @Value("${policy.path}")
+    private String policyPath;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+
+    @Autowired
+    PdfEditService pdfEditService;
+    public  String generateUniqueId() {
+        long timestamp = Instant.now().toEpochMilli();  // Time-based component
+        StringBuilder id = new StringBuilder();
+
+        // Add 5 random alphanumeric characters
+        for (int i = 0; i < 5; i++) {
+
+            id.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
+        }
+
+        // Add last 5 digits of timestamp to reduce collision chance
+        String timeComponent = Long.toString(timestamp);
+        id.append(timeComponent.substring(timeComponent.length() - 5));
+
+        return id.toString();
+    }
+    @Transactional
+    @GetMapping("/policy")
+    public ResponseEntity<?>getPolicy(HttpServletRequest request) throws Exception {
+        System.out.println(fileServerUrl+"/"+policyPath);
+        TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                ShortAccessToken.class
+        );
+        query.setParameter("uid", 22L);
+        query.setParameter("role", 1);
+        String ip = request.getRemoteAddr();
+        String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
+        List<ShortAccessToken> resultList = query.getResultList();
+
+        if (resultList.isEmpty()) {
+            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                    .userId(22L)
+                    .token(token)
+                    .role(1)
+                    .expired(false)
+                    .build();
+            entityManager.persist(shortAccessToken);
+        } else {
+            ShortAccessToken shortAccessToken = resultList.get(0);
+            shortAccessToken.setToken(token);
+            shortAccessToken.setExpired(false);
+            entityManager.merge(shortAccessToken);
+        }
+        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+        Map<String,String>respone=new HashMap<>();
+        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
+        respone.put("seed",generateUniqueId());
+        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+    }
+
+
+
+
 
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
@@ -292,108 +360,117 @@ public class DocumentEndpoint {
     }
     @Autowired
     JwtUtil jwtUtil;
-    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider})
+
+
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @Transactional
     @PostMapping("/download")
-    public ResponseEntity<?> downloadFile(
+    public void downloadFile(
             @RequestBody Map<String, Object> loginDetails,
-            HttpServletResponse response,HttpServletRequest request
+            HttpServletResponse response,
+            HttpServletRequest request
     ) {
         try {
+            System.out.println("📌 downloadFile() called");
+
             String fileUrl1 = (String) loginDetails.get("filePath");
+            System.out.println("➡ Original filePath param from UI: " + fileUrl1);
+
             String token = fileUrl1.substring(fileUrl1.indexOf(".io/") + 4);
+            System.out.println("➡ Extracted token from filePath: " + token);
+
             String filePath = decrypt(token);
-// Example: avisoftdocument\CUSTOMER\6416\Disability_Certificate\imresizer-1731964770170 (1) (1).jpg
+            System.out.println("➡ Decrypted filePath: " + filePath);
 
-// Extract ID from filePath
+            // Extract ID
             Long id = null;
-            java.util.regex.Pattern pattern = Pattern.compile("CUSTOMER[\\\\/](\\d+)[\\\\/]");
-            Matcher matcher = pattern.matcher(filePath);
+            Matcher matcher = Pattern.compile("(CUSTOMER|SERVICE_PROVIDER|ADMIN)[\\\\/](\\d+)[\\\\/]").matcher(filePath);
+
             if (matcher.find()) {
-                id = Long.parseLong(matcher.group(1));
+                String role = matcher.group(1); // CUSTOMER, SERVICE_PROVIDER, or ADMIN
+                id = Long.parseLong(matcher.group(2)); // The ID
+                System.out.println("Role: " + role + ", Extracted ID: " + id);
             } else {
-                throw new IllegalArgumentException("Invalid file path format, ID not found");
+                System.out.println(" ID not found in filePath");
+                throw new IllegalArgumentException("Invalid file path");
             }
 
+            // Generate token for remote fetch
             String ip = request.getHeader("X-Forwarded-For");
-// Set roleId = 5
-            int roleId = 5;
-            System.out.println("id is"+id+" and role is"+roleId);
-
-// Generate short-lived token
+            System.out.println("➡ Client IP: " + ip);
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id);
+            ServiceProviderEntity sp=null;
+            if(customCustomer==null)
+            {
+                sp=entityManager.find(ServiceProviderEntity.class,id);
+            }
+            int roleId=4;
+            if(customCustomer!=null)
+                 roleId = 5;
             String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
+            System.out.println("✅ Generated short-lived token: " + tokenToAdd);
 
-// Get the download URL
             String fileUrl = fileService.getDownloadFileUrl(filePath, request);
+            System.out.println("➡ Base file service URL: " + fileUrl);
 
-// Append token as query parameter
-            String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8.toString());
-            System.out.println("Now url is"+securedFileUrl);
+            String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8);
+            System.out.println("✅ Secured file URL for remote fetch: " + securedFileUrl);
 
-            TypedQuery<ShortAccessToken> query = entityManager.createQuery(
-                    "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
-                    ShortAccessToken.class
-            );
-            query.setParameter("uid", id);
-            query.setParameter("role", roleId);
-            String encryptedFileName = filePath.substring(fileUrl1.lastIndexOf('/') + 1);
-            // Extract "Aadhaar_Card_Backside" (the folder name before the filename)
-            String[] pathParts = filePath.split("\\\\");
-            String folderName = pathParts[pathParts.length - 2]; // Gets the second-last part
-            String downloadFileName = folderName + ".jpg";
-            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
-            downloadFileName=customCustomer.getFirstName()+" "+customCustomer.getLastName()+" "+downloadFileName;
-            System.out.println("fileName"+downloadFileName);
-            List<ShortAccessToken> resultList = query.getResultList();
+            // Prepare actual name & extension from remote content-type
+            String folderName = filePath.split("\\\\")[filePath.split("\\\\").length - 2];
+            System.out.println("➡ Folder name from file path: " + folderName);
 
-            if (resultList.isEmpty()) {
-                ShortAccessToken shortAccessToken = ShortAccessToken.builder()
-                        .userId(id)
-                        .token(token)
-                        .role(roleId)
-                        .expired(false)
-                        .build();
-                entityManager.persist(shortAccessToken);
-            } else {
-                ShortAccessToken shortAccessToken = resultList.get(0);
-                shortAccessToken.setToken(token);
-                shortAccessToken.setExpired(false);
-                entityManager.merge(shortAccessToken);
+            URL url = new URL(securedFileUrl);
+            URLConnection conn = url.openConnection();
+            String contentType = conn.getContentType();
+            System.out.println("✅ Remote content-type: " + contentType);
+
+            response.setContentType(contentType);
+
+            String extension = "";
+            if ("image/png".equalsIgnoreCase(contentType)) extension = ".png";
+            else if ("image/jpeg".equalsIgnoreCase(contentType)) extension = ".jpg";
+            else if ("application/pdf".equalsIgnoreCase(contentType)) extension = ".pdf";
+            else extension = ".bin";
+
+            System.out.println("✅ Determined file extension: " + extension);
+            String downloadFileName=null;
+            if(customCustomer!=null) {
+                downloadFileName   = customCustomer.getFirstName() + " " +
+                        customCustomer.getLastName() + " " +
+                        folderName + extension;
             }
-            System.out.println(filePath);
-
-            URI uri = URI.create(securedFileUrl);
-            URL url = uri.toURL();
-            // Download logic
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("response-content-disposition",
-                    "attachment; filename=\"" + downloadFileName + "\"");
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                return responseService.generateErrorResponse("Download failed", HttpStatus.BAD_REQUEST);
+            else
+            {
+                 downloadFileName = sp.getFirst_name() + " " +
+                        sp.getLast_name() + " " +
+                        folderName + extension;
             }
+            System.out.println("✅ Final custom download filename: " + downloadFileName);
 
-            // Set Content-Disposition with the custom filename
-            response.setContentType(connection.getContentType());
-            response.setHeader(
-                    "Content-Disposition",
-                    "attachment; filename=\"" + downloadFileName + "\""
-            );
+            String encodedFileName = URLEncoder.encode(downloadFileName, StandardCharsets.UTF_8.toString()).replace("+", "%20");
+            System.out.println("➡ Encoded filename for header: " + encodedFileName);
 
-            // Stream the file to response
-            try (InputStream in = new URL(securedFileUrl).openStream();  // Use the original fileUrl, not securedFileUrl
-                 OutputStream out = response.getOutputStream()) {
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + downloadFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+            System.out.println("📤 Starting file streaming to client...");
+            try (InputStream in = conn.getInputStream(); OutputStream out = response.getOutputStream()) {
                 IOUtils.copy(in, out);
             }
-
-            return ResponseEntity.ok().build();
+            System.out.println("✅ File streaming completed successfully");
 
         } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(
-                    "Error downloading file: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            System.out.println("❌ Exception in downloadFile(): " + e.getMessage());
+            e.printStackTrace();
+
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            try {
+                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                response.getWriter().write("Error downloading file: " + e.getMessage());
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
         }
     }
 

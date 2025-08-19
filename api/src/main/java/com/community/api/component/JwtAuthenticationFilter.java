@@ -98,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 token = token.trim();
                 String jwtToken = token.substring(7);
                 if (sharedUtilityService.isBlackListed(jwtToken)) {
-                    handleException(response, 403, "Your account is suspended please contact support.");
+                    handleException(response, 401, "Your account is suspended please contact support.");
                 }
             }
 
@@ -165,7 +165,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
                 Pattern.compile("^/api/v1/cart/order-events$"),
                 Pattern.compile("^/api/v1/get-products-by-sector-id$"),
-                Pattern.compile("^/api/v1/get-products-by-sectors$")
+                Pattern.compile("^/api/v1/get-products-by-sectors$"),
+                Pattern.compile("^/api/v1/document-type/policy$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -200,12 +201,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id")
                 || requestURI.startsWith("/api/v1/cart/order-events")
                 || requestURI.startsWith("/api/v1/get-products-by-sector-id")
+                || requestURI.startsWith("/api/v1/document-type/policy")
                 || requestURI.startsWith("/api/v1/get-products-by-sectors");
     }
 
     @Transactional
     private boolean authenticateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        System.out.println("hiiiii");
+
         final String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             respondWithUnauthorized(response, "JWT token cannot be empty");
@@ -288,9 +290,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     System.out.println("checking");
                     customAdmin = entityManager.find(ServiceProviderEntity.class, id);
                     System.out.println("checked");
-                }catch (Exception e)
+                }catch (Exception exception)
                 {
-                    System.out.println(e);
+                    System.out.println(exception);
                 }
                 if (customAdmin != null && jwtUtil.validateToken(jwt, ipAdress, User_Agent)) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

@@ -63,7 +63,7 @@ public class SectorController {
     public ResponseEntity<?> addSubject(@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!staticDataService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.FORBIDDEN);
             }
 
             sectorService.validateAddSubjectDto(addSectorDto);
@@ -82,7 +82,7 @@ public class SectorController {
     public ResponseEntity<?> editSector(@PathVariable Long sectorId,@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!staticDataService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.FORBIDDEN);
             }
             sectorService.validateAddSubjectDto(addSectorDto);
             sectorService.editSector(sectorId,addSectorDto);
@@ -162,7 +162,7 @@ public class SectorController {
     @GetMapping("/get-products-by-sectors")
     public ResponseEntity<?> getProductsByAdvertisementId(
             @RequestParam(value = "sectors", required = false) String sectors,
-            @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit,
+            @RequestParam(value = "limit", required = false, defaultValue = "30") Integer limit,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "name-only", required = false, defaultValue = "true") Boolean nameOnly,
@@ -259,7 +259,7 @@ public class SectorController {
 
     @GetMapping("/get-products-by-sector-id")
     public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
-            ,@RequestParam(value = "limit",required = false,defaultValue = "1000")Integer limit
+            ,@RequestParam(value = "limit",required = false,defaultValue = "30")Integer limit
             ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
             ,@RequestHeader(value = "Authorization", required = false) String authHeader
             ,@RequestParam(value = "categoryId", required = false) List<Long> categoryId)
@@ -300,11 +300,14 @@ public class SectorController {
                 products.add(wrapper);
             }
         }
-        sectorDTO.setProducts(products);
-        int totalItems = count.intValue();
+
+        int totalItems = products.size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
         int fromIndex = offset * limit;
         int toIndex = Math.min(fromIndex + limit, totalItems);
+
+        products = products.subList(fromIndex, toIndex);
+        sectorDTO.setProducts(products);
 
         if (fromIndex >= totalItems && offset != 0) {
             return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);

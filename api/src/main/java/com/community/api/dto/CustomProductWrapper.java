@@ -727,7 +727,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
         this.feeComments=product.getFeeAdditionalComments();
-        this.modifiedDate = product.getActiveStartDate();
+        this.modifiedDate = product.getModifiedDate();
         this.creatorUserId = product.getUserId();
         this.counsellingDate=product.getCounsellingDate();
         this.creatorRoleId = product.getCreatoRole();
@@ -925,7 +925,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
         this.feeComments=product.getFeeAdditionalComments();
-        this.modifiedDate = product.getActiveStartDate();
+        this.modifiedDate = product.getModifiedDate();
         this.creatorUserId = product.getUserId();
         this.counsellingDate=product.getCounsellingDate();
         this.creatorRoleId = product.getCreatoRole();

@@ -102,7 +102,9 @@ public class OrderDTOService {
                         order.getSubTotal(),
                         orderState.getOrderStateId(),
                 orderStateName,
-                assigneeId
+                assigneeId,
+                order.getAuditable().getDateCreated(),
+                order.getAuditable().getDateUpdated()
                 );
     OrderItem orderItem=order.getOrderItems().get(0);
     Long productId=Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
@@ -171,7 +173,9 @@ public class OrderDTOService {
                 order.getSubTotal(),
                 orderState.getOrderStateId(),
                 orderStateName,
-                assigneeId
+                assigneeId,
+                order.getAuditable().getDateCreated(),
+                order.getAuditable().getDateUpdated()
         );
 
         OrderItem orderItem = order.getOrderItems().get(0);
@@ -206,10 +210,10 @@ public class OrderDTOService {
         if (Arrays.asList(1,0,3).contains(orderStateId)) return "New";
         if (Arrays.asList(2,  4, 6, 8).contains(orderStateId)) return "In Progress";
         if (orderStateId.equals(7)) return "Fulfilled";
-        if (Arrays.asList(999, 5).contains(orderStateId)) return "Canceled";
+        if (Arrays.asList(999, 5, 9).contains(orderStateId)) return "Canceled";
+        if (Arrays.asList(10, 11).contains(orderStateId)) return "Refund";
 
         return "Unknown";
     }
-
 
 }

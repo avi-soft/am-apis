@@ -32,5 +32,7 @@ public class OrderDTO
     private Integer orderStateId;
     private String orderStateName;
     private Long spAssigneeId;
+    private Date createdDate;
+    private Date updatedDate;
 }
 

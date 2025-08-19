@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -42,6 +43,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -162,7 +164,8 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Autowired
+    AcknowledgementWebhook webhook;
     @Authorize(value = {Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
@@ -284,6 +287,15 @@ public class ServiceProviderController {
         }
         serviceProvider.setCompleted(true);
         serviceProvider.setRejected(false);
+     /*   if(!webhook.checkRef(spId,4))
+        {
+            return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+        }*/
+        /*SPAcknowledgement userAcknowledgement=new SPAcknowledgement();
+        userAcknowledgement.setAcknowledgedAt(new Date());
+        userAcknowledgement.setUserId(spId);
+        userAcknowledgement.setAcknowledgementVersion("v.1");
+        entityManager.persist(userAcknowledgement);*/
         entityManager.merge(serviceProvider);
         return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
     }
@@ -418,7 +430,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String spAdmin,
             @RequestParam(required = false) String sp,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             HttpServletRequest request) {
         try {
             if (offset < 0) {
@@ -562,7 +574,7 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "1000") int limit) {
+            @RequestParam(defaultValue = "30") int limit) {
         try {
             int startPosition = page * limit;
 
@@ -609,7 +621,9 @@ public class ServiceProviderController {
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
+            @RequestParam(value = "a4dh",defaultValue = "false")Boolean ext,
             @RequestParam(required = false) Long ticketId,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
 
         try {
@@ -619,9 +633,9 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId && roleId != 5))
+            if (role != null && (role <= roleId && roleId != 5)&&Boolean.TRUE.equals(!ext))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            System.out.println("bypassed");
+
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -709,7 +723,6 @@ public class ServiceProviderController {
                 finalResponse.put("currentPage", currentPage);
                 String message = resultList.isEmpty() ? "No Details Found" : "Details found";
                 return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
-
             }
 
             // Handle search by full name (split into first and last names)
@@ -757,12 +770,20 @@ public class ServiceProviderController {
             List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
 
             finalList.sort((a, b) -> {
-                Object idA = a.get("service_provider_id");
-                Object idB = b.get("service_provider_id");
-                if (idA instanceof Number && idB instanceof Number) {
-                    return Long.compare(((Number) idA).longValue(), ((Number) idB).longValue());
+                Date dateA = (Date) a.get("updated_date");
+                Date dateB = (Date) b.get("updated_date");
+
+                if (dateA == null && dateB == null) return 0;
+
+                if ("ASC".equalsIgnoreCase(sortOrder)) {
+                    if (dateA == null) return -1; // nulls first
+                    if (dateB == null) return 1;
+                    return dateA.compareTo(dateB);
+                } else {
+                    if (dateA == null) return 1; // nulls last
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
                 }
-                return 0;
             });
 
             int totalItems = finalList.size();
@@ -771,7 +792,6 @@ public class ServiceProviderController {
 
             int fromIndex = Math.min(offset * limit, totalItems);
             int toIndex = Math.min(fromIndex + limit, totalItems);
-
 
             List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
@@ -811,7 +831,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -863,7 +883,7 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
-    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
+    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "30") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
         try {
             int startPosition = page * limit;
             Query query = null;
@@ -1024,15 +1044,15 @@ public class ServiceProviderController {
             actionReq = action + "ed";
         else
             actionReq = action + "d";
-        for (Long customerId : ids) {
-            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+        for (Long serviceProviderId : ids) {
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
 
             if (serviceProvider == null) {
-                skippedIds.put(customerId, "SP Not Found");
+                skippedIds.put(serviceProviderId, "SP Not Found");
                 continue;
             }
             if (serviceProvider.getRole() == 1) {
-                skippedIds.put(customerId, "Action not Authorized");
+                skippedIds.put(serviceProviderId, "Action not Authorized");
                 continue;
             }
             if (action.equals(Constant.ACTION_APPROVE)) {
@@ -1041,12 +1061,12 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
                 if (serviceProvider.getApproved().equals(true)) {
-                    skippedIds.put(customerId, "User Already approved");
+                    skippedIds.put(serviceProviderId, "User Already approved");
                     ++actionCount;
                     continue;
                 }
                 if (!serviceProvider.getCompleted()) {
-                    skippedIds.put(customerId, "Profile not completed");
+                    skippedIds.put(serviceProviderId, "Profile not completed");
                     continue;
                 }
                 serviceProvider.setApproved(true);
@@ -1081,12 +1101,12 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
                 if (serviceProvider.getRejected() != null && serviceProvider.getRejected().equals(true)) {
-                    skippedIds.put(customerId, "User Already rejected");
+                    skippedIds.put(serviceProviderId, "User Already rejected");
                     ++actionCount;
                     continue;
                 }
                 if (serviceProvider.getRejected() != null && serviceProvider.getApproved()) {
-                    skippedIds.put(customerId, "Cannot reject,User is approved");
+                    skippedIds.put(serviceProviderId, "Cannot reject,User is approved");
                     ++actionCount;
                     continue;
                 }
@@ -1102,7 +1122,7 @@ public class ServiceProviderController {
             //checking valid permissions
             else if (action.equals(Constant.ACTION_SUSPEND)) {
                 if (serviceProvider.getIsArchived().equals(true)) {
-                    skippedIds.put(customerId, "User Already Suspended");
+                    skippedIds.put(serviceProviderId, "User Already Suspended");
                     ++actionCount;
                     continue;
                 }
@@ -1115,7 +1135,7 @@ public class ServiceProviderController {
                 serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
             } else {
                 if (serviceProvider.getIsArchived().equals(false)) {
-                    skippedIds.put(customerId, "User Already Activate");
+                    skippedIds.put(serviceProviderId, "User Already Activate");
                     ++actionCount;
                     continue;
                 }
@@ -1135,7 +1155,7 @@ public class ServiceProviderController {
                 sharedUtilityService.removeToken(serviceProvider.getToken());
             }
 
-            actionedIds.add(customerId);
+            actionedIds.add(serviceProviderId);
             ++successCount;
             entityManager.merge(serviceProvider);
 
@@ -1182,7 +1202,7 @@ public class ServiceProviderController {
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
-    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "1000", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
+    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "30", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
         Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);
@@ -1232,7 +1252,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NotAuthorizedException notAuthorizedException) {
             exceptionHandlingService.handleException(notAuthorizedException);
-            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.UNAUTHORIZED);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

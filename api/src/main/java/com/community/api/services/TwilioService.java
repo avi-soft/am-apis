@@ -5,37 +5,30 @@ import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.UserAcknowledgement;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.tomcat.util.bcel.Const;
-import org.broadleafcommerce.common.audit.Auditable;
-import org.broadleafcommerce.common.audit.AuditableListener;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.client.HttpClientErrorException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.Random;
 
+@Slf4j
 @Service
 public class TwilioService {
 
@@ -51,8 +44,6 @@ public class TwilioService {
     private String twilioPhoneNumber;
 
 
-
-
     @Autowired
     private JwtUtil jwtTokenUtil;
     @Autowired
@@ -64,8 +55,10 @@ public class TwilioService {
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
-
     private CustomerService customerService;
+
+    @Autowired
+    private PdfEditService pdfEditService;
 
     public TwilioService(ExceptionHandlingImplement exceptionHandlingImplement, CustomCustomerService customCustomerService, EntityManager entityManager, HttpSession httpSession, CustomerService customerService) {
         this.exceptionHandling = exceptionHandlingImplement;
@@ -76,11 +69,12 @@ public class TwilioService {
     }
 
     @Transactional
-    public ResponseEntity<Map<String, Object>> sendOtpToMobile(String mobileNumber, String countryCode,String authHeader) {
-        String role=null;
-        Long tokenUserId=null;
-        Integer roleId=0;
-        if(authHeader!=null) {
+    public ResponseEntity<Map<String, Object>> sendOtpToMobile(String mobileNumber, String countryCode, String authHeader,String ackId) {
+
+        String role = null;
+        Long tokenUserId = null;
+        Integer roleId = 0;
+        if (authHeader != null) {
             String jwtToken = authHeader.substring(7);
             roleId = jwtTokenUtil.extractRoleId(jwtToken);
             tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -118,8 +112,8 @@ public class TwilioService {
                 customerDetails.setMobileNumber(mobileNumber);
                 customerDetails.setOtp(otp);
                 entityManager.persist(customerDetails);
-                Customer customer=customerService.readCustomerById(customerDetails.getId());
-                if(role!=null&&(role.equals(Constant.roleServiceProvider)||role.equals(Constant.roleSuperAdmin)||role.equals(Constant.roleAdmin))) {
+                Customer customer = customerService.readCustomerById(customerDetails.getId());
+                if (role != null && (role.equals(Constant.roleServiceProvider) || role.equals(Constant.roleSuperAdmin) || role.equals(Constant.roleAdmin))) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, tokenUserId);
                     CustomerReferrer customerReferrer = new CustomerReferrer();
                     customerReferrer.setCreatedAt(LocalDateTime.now());
@@ -129,41 +123,40 @@ public class TwilioService {
                     customerDetails.getMyReferrer().add(customerReferrer);
 //                    System.out.println("User id is "+tokenUserId);
 //                    System.out.println("Role id is "+roleId);
-                customerDetails.setRegisteredBySp(true);
-                customerDetails.setCreatedById(tokenUserId);
-                customerDetails.setCreatedByRole(roleId);
-                if(roleId==4 || roleId==3 || roleId==2 || roleId ==1)
-                    customerDetails.setPrimaryRef(tokenUserId);
-                entityManager.merge(customer);
-                }
-                else
-                {
+                    customerDetails.setRegisteredBySp(true);
+                    customerDetails.setCreatedById(tokenUserId);
+                    customerDetails.setCreatedByRole(roleId);
+                    if (roleId == 4 || roleId == 3 || roleId == 2 || roleId == 1)
+                        customerDetails.setPrimaryRef(tokenUserId);
+                    entityManager.merge(customer);
+                } else {
                     customerDetails.setCreatedByRole(5);
                     customerDetails.setCreatedById(customer.getId());
                     entityManager.merge(customerDetails);
                 }
-                return ResponseEntity.ok(Map.of(
-                        "otp", otp,
-                        "message", "Otp has been sent successfully on " + maskedNumber
-                ));
+                    return ResponseEntity.ok(Map.of(
+                            "otp", otp,
+                            "message", "Otp has been sent successfully on " + maskedNumber
+                    ));
+
             } else if (serviceProvider != null) {
-                if(serviceProvider.getIsArchived())
+                if (serviceProvider.getIsArchived())
                     return ResponseEntity.ok(Map.of(
 
-                        "message","Your account has been suspended ,please contact support.",
-                        "status", HttpStatus.UNAUTHORIZED,
-                        "status_code", HttpStatus.UNAUTHORIZED.value()
-                ));
+                            "message", "Your account has been suspended ,please contact support.",
+                            "status", HttpStatus.UNAUTHORIZED,
+                            "status_code", HttpStatus.UNAUTHORIZED.value()
+                    ));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "status", ApiConstants.STATUS_ERROR,
                         "status_code", HttpStatus.BAD_REQUEST,
                         "message", ApiConstants.NUMBER_ALREADY_REGISTERED_SERVICE_PROVIDER
                 ));
             } else {
-                if(existingCustomer.getArchived().equals(true)) {
+                if (existingCustomer.getArchived()) {
                     return ResponseEntity.ok(Map.of(
 
-                            "message","Your account has been suspended ,please contact support.",
+                            "message", "Your account has been suspended ,please contact support.",
                             "status", HttpStatus.UNAUTHORIZED,
                             "status_code", HttpStatus.UNAUTHORIZED.value()
                     ));
