@@ -31,10 +31,19 @@ BEGIN
     FOR i IN 1..array_length(reversed_service_provider_ids, 1) LOOP
         v_service_provider_id := reversed_service_provider_ids[i];
 
-        SELECT maximum_ticket_size, ticket_pending, ticket_assigned
-        INTO v_maximum_ticket_size, v_ticket_pending, v_ticket_assigned
-        FROM service_provider
-        WHERE service_provider_id = v_service_provider_id;
+--        SELECT maximum_ticket_size, ticket_pending, ticket_assigned
+--        INTO v_maximum_ticket_size, v_ticket_pending, v_ticket_assigned
+--        FROM service_provider
+--        WHERE service_provider_id = v_service_provider_id;
+
+        SELECT COALESCE(sp.maximum_ticket_size, spr.maximum_ticket_size),
+                       sp.ticket_assigned,
+                       sp.ticket_pending
+        INTO v_maximum_ticket_size, v_ticket_assigned, v_ticket_pending
+        FROM service_provider sp
+        LEFT JOIN service_provider_rank_mapping m ON sp.service_provider_id = v_service_provider_id
+        LEFT JOIN service_provider_rank spr ON m.rank_id = spr.rank_id
+        WHERE sp.service_provider_id = v_service_provider_id;
 
         IF v_maximum_ticket_size IS NOT NULL THEN
             v_bandwidth := (v_ticket_assigned + v_ticket_pending)::DOUBLE PRECISION / v_maximum_ticket_size * 100;

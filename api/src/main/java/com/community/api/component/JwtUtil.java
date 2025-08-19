@@ -2,17 +2,19 @@ package com.community.api.component;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.mchange.rmi.NotAuthorizedException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
-import org.springframework.social.NotAuthorizedException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,6 +26,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -35,7 +38,6 @@ public class JwtUtil {
     private EntityManager entityManager;
     private TokenBlacklist tokenBlacklist;
     private CustomerService customerService;
-
 
 
     @Autowired
@@ -78,6 +80,7 @@ public class JwtUtil {
         }
 
     }
+
     public String generateToken(Long id, Integer role, String ipAddress, String userAgent) {
         try {
             String uniqueTokenId = UUID.randomUUID().toString();
@@ -89,13 +92,13 @@ public class JwtUtil {
                     .setId(uniqueTokenId)
                     .claim("id", id)
                     .claim("role", role)
-                    .claim("userAgent",userAgent)
+                    .claim("userAgent", userAgent)
                     .claim("ipAddress", ipAddress)
                     .setIssuedAt(new Date())
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256);
 
             if (!isMobile) {
-                jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 * 60 * 10 ))); // 10 hours
+                jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 * 60 * 10))); // 10 hours
             }
 
             return jwtBuilder.compact();
@@ -105,6 +108,7 @@ public class JwtUtil {
             throw new RuntimeException("Error generating JWT token", e);
         }
     }
+
     public String generateShortLivedToken(Long id, Integer role, String ipAddress) {
         try {
             String uniqueTokenId = UUID.randomUUID().toString();
@@ -118,7 +122,7 @@ public class JwtUtil {
                     .setIssuedAt(new Date())
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256);
 
-                jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 *2 ))); // 2 mins
+            jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 * 2))); // 2 mins
 
 
             return jwtBuilder.compact();
@@ -163,7 +167,7 @@ public class JwtUtil {
             byte[] secretKeyBytes = DatatypeConverter.parseBase64Binary(secretKeyString);
             this.secretKey = Keys.hmacShaKeyFor(secretKeyBytes);
             return this.secretKey;
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new RuntimeException("Error generating JWT token", e);
         }
@@ -203,7 +207,7 @@ public class JwtUtil {
             String userAgent = extractUserAgent(token);
 
 
-            if (isTokenExpired(token,userAgent)) {
+            if (isTokenExpired(token, userAgent)) {
                 throw new ExpiredJwtException(null, null, "Token is expired");
 
             }
@@ -218,7 +222,7 @@ public class JwtUtil {
             throw e;
         } catch (Exception e) {
             System.out.println("p1");
-          /*  exceptionHandling.handleException(e);*/
+            /*  exceptionHandling.handleException(e);*/
             System.out.println("1111");
             throw new MalformedJwtException("Invalid JWT Token");
 
@@ -256,7 +260,7 @@ public class JwtUtil {
             if (token == null || token.isEmpty()) {
                 throw new IllegalArgumentException("Token is required");
             }
-            if (isTokenExpired(token,userAgent)) {
+            if (isTokenExpired(token, userAgent)) {
                 throw new IllegalArgumentException("Token is expired");
             }
 
@@ -270,26 +274,22 @@ public class JwtUtil {
             if (tokenBlacklist.isTokenBlacklisted(tokenId)) {
                 return false;
             }
-            int role=extractRoleId(token);
-            Customer existingCustomer=null;
-            ServiceProviderEntity existingServiceProvider=null;
-            ServiceProviderEntity existingAdmin=null;
-            if(roleService.findRoleName(role).equals(Constant.roleUser)){
+            int role = extractRoleId(token);
+            Customer existingCustomer = null;
+            ServiceProviderEntity existingServiceProvider = null;
+            ServiceProviderEntity existingAdmin = null;
+            if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                 existingCustomer = customerService.readCustomerById(id);
                 if (existingCustomer == null) {
                     return false;
                 }
-            }
-            else if(roleService.findRoleName(role).equals(Constant.roleServiceProvider)||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
+            } else if (roleService.findRoleName(role).equals(Constant.roleServiceProvider) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
                 existingServiceProvider = entityManager.find(ServiceProviderEntity.class, id);
-                if(existingServiceProvider==null)
+                if (existingServiceProvider == null)
                     return false;
-            }
-            else if(roleService.findRoleName(role).equals(Constant.ADMIN)  || roleService.findRoleName(role).equals(Constant.roleSuperAdmin))
-            {
-                existingAdmin= entityManager.find(ServiceProviderEntity.class, id);
-                if(existingAdmin==null)
-                {
+            } else if (roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.roleSuperAdmin)) {
+                existingAdmin = entityManager.find(ServiceProviderEntity.class, id);
+                if (existingAdmin == null) {
                     return false;
                 }
             }
@@ -304,7 +304,8 @@ public class JwtUtil {
          /*catch (MalformedJwtException | IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return false;
-        */} catch (Exception e) {
+        */
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return false;
         }
@@ -337,8 +338,6 @@ public class JwtUtil {
             throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "Token is expired and cannot be used.");
         } catch (MalformedJwtException | SignatureException e) {
             exceptionHandling.handleException(e);
-            System.out.println("3111");
-            System.out.println("p2");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid JWT token", e);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -361,10 +360,10 @@ public class JwtUtil {
                     .getBody();
 
             String uniqueTokenId = claims.getId();
-            tokenBlacklist.blacklistToken(token,claims.getExpiration().getTime());
+            tokenBlacklist.blacklistToken(token, claims.getExpiration().getTime());
             return true;
-        }catch (ExpiredJwtException e) {
-           // tokenBlacklist.blacklistToken(token,claims.getExpiration().getTime());
+        } catch (ExpiredJwtException e) {
+            // tokenBlacklist.blacklistToken(token,claims.getExpiration().getTime());
             return true;
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -390,6 +389,71 @@ public class JwtUtil {
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new RuntimeException("Error in JWT token", e);
+        }
+    }
+
+    @Transactional
+    public Boolean validateArchived(String token, String ipAddress, String userAgent) throws Exception {
+
+        try {
+
+            if (token == null || token.isEmpty()) {
+                throw new IllegalArgumentException("Token is required");
+            }
+            if (isTokenExpired(token, userAgent)) {
+                throw new IllegalArgumentException("Token is expired");
+            }
+
+            Long id = extractId(token);
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            String tokenId = claims.getId();
+            if (tokenBlacklist.isTokenBlacklistedFromDB(token)) {
+                throw new NotAuthorizedException("Suspended User");
+            }
+            int role = extractRoleId(token);
+            Customer existingCustomer = null;
+            ServiceProviderEntity existingServiceProvider = null;
+
+            if (roleService.findRoleName(role).equals(Constant.roleUser)) {
+                existingCustomer = customerService.readCustomerById(id);
+                if (existingCustomer == null) {
+                    return false;
+                }
+
+                CustomCustomer customer = entityManager.find(CustomCustomer.class, existingCustomer.getId());
+
+                if(customer.getArchived()) {
+                    throw new NotAuthorizedException("Suspended User");
+                }
+            } else if (roleService.findRoleName(role).equals(Constant.roleServiceProvider) || roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.roleSuperAdmin)) {
+                existingServiceProvider = entityManager.find(ServiceProviderEntity.class, id);
+                if (existingServiceProvider == null)
+                    return false;
+
+                if(existingServiceProvider.getIsArchived()) {
+                    throw new NotAuthorizedException("Suspended User");
+                }
+            } else {
+                throw new NotAuthorizedException("Invalid Role");
+            }
+
+            String storedIpAddress = claims.get("ipAddress", String.class);
+
+            return ipAddress.trim().equals(storedIpAddress != null ? storedIpAddress.trim() : "");
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandling.handleException(notAuthorizedException);
+            throw new NotAuthorizedException(notAuthorizedException.getMessage());
+        } catch (ExpiredJwtException expiredJwtException) {
+            exceptionHandling.handleException(expiredJwtException);
+            logoutUser(token);
+            return false;
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception(exception.getMessage());
         }
     }
 

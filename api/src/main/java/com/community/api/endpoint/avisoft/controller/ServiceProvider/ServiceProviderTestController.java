@@ -175,7 +175,7 @@ public class ServiceProviderTestController {
     public ResponseEntity<?> getAllTests(
             @PathVariable Long serviceProviderId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "1000") int limit) throws EntityNotFoundException, EntityDoesNotExistsException {
+            @RequestParam(defaultValue = "30") int limit) throws EntityNotFoundException, EntityDoesNotExistsException {
 
         try {
             List<ServiceProviderTest> serviceProviderTests = testService.getServiceProviderTestByServiceProviderId(serviceProviderId, page, limit);

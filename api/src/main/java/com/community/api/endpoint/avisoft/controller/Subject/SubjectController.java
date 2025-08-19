@@ -54,7 +54,7 @@ public class SubjectController {
     public ResponseEntity<?> addSubject(@Valid @RequestBody AddSubjectDto addSubjectDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!subjectService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SUBJECT", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SUBJECT", HttpStatus.FORBIDDEN);
             }
 
             subjectService.validateAddSubjectDto(addSubjectDto);

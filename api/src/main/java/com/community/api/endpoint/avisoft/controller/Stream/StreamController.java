@@ -54,7 +54,7 @@ public class StreamController {
     public ResponseEntity<?> addStream(@Valid @RequestBody AddStreamDto addStreamDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!streamService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A STREAM", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A STREAM", HttpStatus.FORBIDDEN);
             }
 
             streamService.validateAddStreamDto(addStreamDto);

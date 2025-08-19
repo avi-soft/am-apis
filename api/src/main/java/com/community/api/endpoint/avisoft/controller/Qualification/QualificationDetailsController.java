@@ -3,6 +3,9 @@ package com.community.api.endpoint.avisoft.controller.Qualification;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.UpdateQualificationDto;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.ExternalUseToken;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.services.QualificationDetailsService;
 import com.community.api.services.ResponseService;
@@ -54,9 +57,20 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
+            if((extUp!=null&&extUp)&&roleId==4)
             {
-                return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
+                if(id==null)
+                        return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
             }
             else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
             {
@@ -93,7 +107,7 @@ public class QualificationDetailsController
     }
 
     @GetMapping("/get-by-id/{id}")
-    public ResponseEntity<?> getQualificationDetailsById(@PathVariable Long id, @RequestHeader(value = "Authorization") String authHeader) throws CustomerDoesNotExistsException ,EntityDoesNotExistsException{
+    public ResponseEntity<?> getQualificationDetailsById(@PathVariable Long id, @RequestHeader(value = "Authorization") String authHeader ,@RequestParam(required = false,defaultValue = "false") Boolean ext) throws CustomerDoesNotExistsException ,EntityDoesNotExistsException{
         String role=null;
         try
         {
@@ -104,6 +118,22 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
+            if((ext)&&roleId==4)
+            {
+                if(id==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
+            }
+
 //            else
 //            {
 //                roleId=5;
@@ -136,7 +166,7 @@ public class QualificationDetailsController
     }
 
     @DeleteMapping("/delete/{id}/{qualificationDetailId}")
-    public ResponseEntity<?> deleteQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId,@RequestHeader(value = "Authorization") String authHeader) throws EntityDoesNotExistsException, CustomerDoesNotExistsException {
+    public ResponseEntity<?> deleteQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false) Boolean extUpdate) throws EntityDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
         try
         {
@@ -146,6 +176,21 @@ public class QualificationDetailsController
             if(roleId==5&&!userId.equals(id))
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }
+            if((extUpdate)&&roleId==4)
+            {
+                if(id==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
 //            else
 //            {
@@ -190,9 +235,20 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
+            if((extUp!=null&&extUp)&&roleId==4)
             {
-                return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
+                if(id==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,id);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
             }
             else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
             {
@@ -205,7 +261,7 @@ public class QualificationDetailsController
 //            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
-            if(!qualificationDetailsToUpdate.getSubject_ids().contains(54L))
+            if(qualificationDetailsToUpdate.getSubject_ids() != null && !qualificationDetailsToUpdate.getSubject_ids().contains(54L))
             {
                 qualificationDetailsToUpdate.setOtherSubjects(new ArrayList<String>());
             }

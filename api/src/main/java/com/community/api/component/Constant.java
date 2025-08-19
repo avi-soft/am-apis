@@ -4,6 +4,7 @@ import com.community.api.entity.CustomOrderState;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
 import javax.servlet.http.HttpServletRequest;
+import java.security.SecureRandom;
 
 public class Constant {
 
@@ -546,6 +547,9 @@ public class Constant {
 
 
     public   static String KEY="2025202220202512";
+
+    public static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    public static final SecureRandom random = new SecureRandom();
     //add constants above this query//*******************************************************************************
 
 }

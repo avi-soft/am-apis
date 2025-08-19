@@ -49,6 +49,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -309,6 +310,13 @@ public class ServiceProviderEntity {
 
     @Column(name = "date_joined")
     private LocalDate dateJoined;
+
+    @Column(name = "updated_date")
+    private Date updatedDate;
+
+    @Column(name = "policy_acknowledgement", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean policyAcknowledgement = false;
+
 
 }
 

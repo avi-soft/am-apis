@@ -57,5 +57,8 @@ public class CustomerBasicDetailsDto {
     Boolean profileComplete;
     @JsonProperty("suspended")
     Boolean suspended;
-
+    @JsonProperty("created_date")
+    Date createdDate;
+    @JsonProperty("updated_date")
+    Date updatedDate;
 }

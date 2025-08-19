@@ -54,6 +54,20 @@ BEGIN
         WHERE service_provider_id = p_assignee;
     END IF;
 
+    INSERT INTO public.email_queue (
+        archived,
+        created_date,
+        user_id,
+        role_id,
+        ticket_id
+    ) VALUES (
+        false,
+        NOW(),
+        p_assignee,
+        4,
+        v_ticket_id
+    );
+
     RAISE NOTICE 'Ticket Created with ID: %', v_ticket_id;
 
 END;

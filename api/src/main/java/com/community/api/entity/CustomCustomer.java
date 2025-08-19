@@ -400,4 +400,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isAcknowledged=false;
+
+    @Column(name = "policy_acknowledgement", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean policyAcknowledgement=false;
 }

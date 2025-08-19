@@ -49,7 +49,7 @@ public class PrivilegeService {
                 if (!spPrivileges.contains(privilege))
                     spPrivileges.add(privilege);
                 else
-                    return responseService.generateErrorResponse("Privilage already assigned", HttpStatus.UNAUTHORIZED);
+                    return responseService.generateErrorResponse("Privilege already assigned", HttpStatus.BAD_REQUEST);
                 serviceProvider.setPrivileges(spPrivileges);
                 entityManager.merge(serviceProvider);
                 return responseService.generateSuccessResponse("Privilege assigned successfully",serviceProvider, HttpStatus.OK);
@@ -82,7 +82,7 @@ public class PrivilegeService {
                 if (spPrivileges.contains(privilege))
                     spPrivileges.remove(privilege);
                 else
-                    return responseService.generateErrorResponse("Privilege not assigned", HttpStatus.UNAUTHORIZED);
+                    return responseService.generateErrorResponse("Privilege not assigned", HttpStatus.FORBIDDEN);
                 serviceProvider.setPrivileges(spPrivileges);
                 entityManager.merge(serviceProvider);
                 return responseService.generateSuccessResponse("Privilege removed successfully",serviceProvider, HttpStatus.OK);

@@ -6,6 +6,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.ProductDetailsDTO;
+import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -258,7 +259,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             Boolean externalUpdate = false;
             Boolean isValidDate = null;
@@ -269,14 +270,27 @@ public class CustomerEndpoint {
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Map<String, String> errorMessages = new LinkedHashMap<>();
-
+            CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if(roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            }
             details = sanitizerService.sanitizeInputMap(details);
 
-            String dobStr = (String)details.get("dob");
+            String dobStr = (String) details.get("dob");
 
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-            if(dobStr!=null) {
+
+            if (dobStr != null) {
                 try {
                     LocalDate dob = LocalDate.parse(dobStr, formatter);
                     LocalDate today = LocalDate.now();
@@ -306,18 +320,6 @@ public class CustomerEndpoint {
                 return ResponseService.generateSuccessResponse("Customer service is not initialized.", "customerService", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-
-            if ((roleId == 3 || roleId == 4) || (roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
-                if (authToken != null && !authToken.isEmpty()) {
-                    Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
-                    Long userId = jwtTokenUtil.extractId(authToken);
-                    if (roleUpdating != 5 || !userId.equals(customerId))
-                        return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                } else {
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                }
-            }
             if (customCustomer == null) {
                 return ResponseService.generateSuccessResponse("No data found for this customerId", "customerId", HttpStatus.NOT_FOUND);
             }
@@ -895,7 +897,7 @@ public class CustomerEndpoint {
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
                         if (result > 0) {
-                            errorMessages.put("adharNumber", "Aadhar number already in use.");
+                            errorMessages.put("adharNumber", "Aadhaar number already in use.");
                             details.remove("adharNumber");
                         }
                     }
@@ -905,7 +907,7 @@ public class CustomerEndpoint {
                     Integer result = ((Number) query.getSingleResult()).intValue();
                     System.out.println("result" + result);
                     if (result > 0) {
-                        errorMessages.put("adharNumber", "Aadhar number already in use!!");
+                        errorMessages.put("adharNumber", "Aadhaar number already in use!!");
                         details.remove("adharNumber");
                     }
                 }
@@ -1626,6 +1628,7 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
+            customCustomer.getAuditable().setDateUpdated(new Date());
             if (details.containsKey("isAcknowledged")) {
                 Boolean value = (Boolean) details.get("isAcknowledged");
                 customCustomer.setIsAcknowledged(value);
@@ -1647,6 +1650,8 @@ public class CustomerEndpoint {
             } else {
                 em.merge(customCustomer);
             }
+            customCustomer.setModifiedByRole(roleId);
+            customCustomer.setModifiedById(tokenUserId);
             entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
@@ -1759,7 +1764,7 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "exUpdate", defaultValue = "false", required = false) Boolean extUpdate,
+            @RequestParam(value = "extUpdate", defaultValue = "false", required = false) Boolean extUpdate,
             @RequestHeader(value = "extAuth", required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
@@ -1776,18 +1781,27 @@ public class CustomerEndpoint {
             }
 
             String jwtToken = authHeader.substring(7);
-            Integer roleId;
-            Long tokenUserId;
-
-            if (extAuth == null || extAuth.isEmpty()) {
-                roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            } else {
-                roleId = jwtTokenUtil.extractRoleId(extAuth);
-                tokenUserId = jwtTokenUtil.extractId(extAuth);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId=jwtTokenUtil.extractId(jwtToken);
+            if(roleId==5&&!userId.equals(customerId))
+            {
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            if (extUpdate && (roleId != 1 && roleId != 2 && roleId != 5) && (extAuth == null || extAuth.isEmpty())) {
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+
+            if((extUpdate!=null&&extUpdate)&&roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+                if(customCustomer==null)
+                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
+                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    roleId=5;
+                else
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
 
             String role = null;
@@ -1816,8 +1830,8 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(tokenUserId) && (roleId != 1 && roleId != 2)) {
-                return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
+            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
+                return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.FORBIDDEN);
             }
 
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
@@ -1891,9 +1905,21 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Username cannot be changed once created", HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
+            Query query = entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM blc_customer WHERE LOWER(user_name) = :username"
+            );
+            query.setParameter("username", username.toLowerCase());
+
+            Number count = (Number) query.getSingleResult();
+            if (count.intValue() > 0) {
+                return ResponseService.generateErrorResponse(
+                        "Username already exists",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
 
-            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)) {
+            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equals(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
 
             } else {
@@ -2231,7 +2257,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2267,7 +2293,7 @@ public class CustomerEndpoint {
                 listOfSavedProducts.add(customProduct);
             }
 
-           return getSavedFormsWrapper(customer_id,listOfSavedProducts,offset,limit);
+            return getSavedFormsWrapper(customer_id, listOfSavedProducts, offset, limit);
 
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -2379,7 +2405,7 @@ public class CustomerEndpoint {
                 CustomProduct product = entityManager.find(CustomProduct.class, productId);
                 if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(order.getId(),product, request, reserveCategoryService,
+                    wrapper.wrapDetails(order.getId(), product, request, reserveCategoryService,
                             reserveCategoryAgeService, genderService,
                             customer, sharedUtilityService);
                     appliedForms.add(wrapper);
@@ -2424,7 +2450,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "30") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2443,8 +2469,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if(customer.getCategory()==null||customer.getCategory().isEmpty()||customer.getGender()==null||customer.getGender().isEmpty())
-                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations",HttpStatus.OK);
+            if (customer.getCategory() == null || customer.getCategory().isEmpty() || customer.getGender() == null || customer.getGender().isEmpty())
+                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations", HttpStatus.OK);
             if (customer == null) {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
@@ -2460,7 +2486,8 @@ public class CustomerEndpoint {
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
+@Autowired
+    AcknowledgementWebhook webhook;
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
@@ -2469,9 +2496,18 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(roleId==4)
+            {
+                if(customerId==null)
+                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
+                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+            }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 throw new IllegalArgumentException("Customer with id " + customerId + " not found");
@@ -2497,6 +2533,15 @@ public class CustomerEndpoint {
                 customCustomer.setProfileComplete(false);
             }
             customCustomer.setProfileComplete(true);
+            /*if(!webhook.checkRef(customerId,5))
+            {
+              return ResponseService.generateErrorResponse("User has not acknowledged the policy",HttpStatus.BAD_REQUEST);
+            }
+            UserAcknowledgement userAcknowledgement=new UserAcknowledgement();
+            userAcknowledgement.setAcknowledgedAt(new Date());
+            userAcknowledgement.setUserId(customerId);
+            userAcknowledgement.setAcknowledgementVersion("v.1");
+            entityManager.persist(userAcknowledgement);*/
             return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
         } catch (NumberFormatException e) {
             exceptionHandling.handleException(e);
@@ -2514,7 +2559,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             if (offset < 0) {
@@ -2591,8 +2636,13 @@ public class CustomerEndpoint {
             Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            if(role.getRole_name().equals(roleServiceProvider)) {
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                }
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
@@ -2613,12 +2663,12 @@ public class CustomerEndpoint {
                 if (customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id) && !primaryReferee) {
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
                 }
-                if(service_provider_id.equals(customerReferrer.getServiceProvider().getService_provider_id())) {
+                if (service_provider_id.equals(customerReferrer.getServiceProvider().getService_provider_id())) {
                     existingRef = customerReferrer;
                 }
             }
             if (customCustomer.getPrimaryRef() == 0 || (customCustomer.getRegisteredBySp() && customCustomer.getCreatedByRole() != 4) || (customCustomer.getCreatedByRole()) == 5) {
-                if(primaryRef != null && primaryRef.getServiceProvider().getService_provider_id().equals(service_provider_id)) {
+                if (primaryRef != null && primaryRef.getServiceProvider().getService_provider_id().equals(service_provider_id)) {
                     throw new IllegalArgumentException("Selected Service Provider already set as Primary Referrer");
                 }
                 customCustomer.setPrimaryRef(service_provider_id);
@@ -2627,7 +2677,7 @@ public class CustomerEndpoint {
                 primaryRef.setPrimaryRef(false);
                 entityManager.merge(primaryRef);
             }
-            if(existingRef != null && primaryReferee) {
+            if (existingRef != null && primaryReferee) {
                 existingRef.setPrimaryRef(true);
                 entityManager.merge(existingRef);
             } else {
@@ -2737,10 +2787,10 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false, defaultValue = "DESC") String sortOrder) throws Exception {
         /* try {*/
-        if (!sort.equals("DESC") && !sort.equals("ASC"))
-            return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
+        if (!sortOrder.equals("DESC") && !sortOrder.equals("ASC"))
+            return ResponseService.generateErrorResponse("Invalid sortOrder filter", HttpStatus.BAD_REQUEST);
         List<Long> refereeId = null;
         if (ref != null)
             refereeId = ref;
@@ -2804,7 +2854,6 @@ public class CustomerEndpoint {
 
         }
 
-
         List<Long> refids = new ArrayList<>();
         if (refereeId != null && !refereeId.isEmpty()) {
             // Convert the list of Long to a list of String using Java Streams
@@ -2815,11 +2864,11 @@ public class CustomerEndpoint {
         if (refids.isEmpty())
             refids = null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
-        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
+        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sortOrder);
         Set<BigInteger> uniqueResults = new HashSet<>();
 
-// Add all elements from both result sets
+        // Add all elements from both result sets
         uniqueResults.addAll(resultSet1);
         uniqueResults.addAll(resultSet2);
         List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
@@ -2879,7 +2928,7 @@ public class CustomerEndpoint {
             }
         }
 
-// Convert the Set back to a List
+        // Convert the Set back to a List
         List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
         Map<Integer, Integer> Qualificationorder = new HashMap<>();
         Qualificationorder.put(1, 1);
@@ -2891,12 +2940,11 @@ public class CustomerEndpoint {
         Qualificationorder.put(5, 7);
         Qualificationorder.put(8, 8);
         for (BigInteger id : uniqueResultList) {
-            System.out.println("fetchedId: by the querry " + id);
             Customer customer = null;
             try {
                 customer = customerService.readCustomerById(id.longValue());
-            } catch (Exception e) {
-                System.out.println("ID skipped" + id + "due to" + e);
+            } catch (Exception exception) {
+                log.error("Customer ID skipped: {} due to- {}", id, exception.getMessage());
                 continue;
             }
             if (customer != null) {
@@ -2961,6 +3009,10 @@ public class CustomerEndpoint {
                         }
                         customerBasicDetailsDto.setState(state);
                     }
+
+                    log.info("created Date: {}", customer.getAuditable().getDateCreated());
+                    log.info("updated Date: {}", customer.getAuditable().getDateUpdated());
+
                     customerBasicDetailsDto.setCustomerId(id.longValue());
                     customerBasicDetailsDto.setEmail(customer.getEmailAddress());
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
@@ -3045,12 +3097,10 @@ public class CustomerEndpoint {
                         }
                     }
 
-
                     Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                     if (age != -1)
                         customerBasicDetailsDto.setAge(age);
                     List<QualificationDetails> qualifications = customCustomer.getQualificationDetailsList();
-
 
 //                    CODE TO IMPLEMENT THE HIGHEST QUALIFICATION FILTER
 //                    int max = 0;
@@ -3081,7 +3131,6 @@ public class CustomerEndpoint {
 //                            }
 //                        }
 //                    }
-
 
                     if (qualificationType != null) {
                         for (QualificationDetails qualificationDetails : qualifications) {
@@ -3122,20 +3171,31 @@ public class CustomerEndpoint {
                     customerList.add(customerBasicDetailsDto);
 
                     customerBasicDetailsDto.setSecondaryMobileNumber(customCustomer.getSecondaryMobileNumber());
+                    customerBasicDetailsDto.setCreatedDate(customCustomer.getAuditable().getDateCreated());
+                    customerBasicDetailsDto.setUpdatedDate(customCustomer.getAuditable().getDateUpdated());
                 }
             }
         }
-        if (sort.equals("ASC"))
-            customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
-        else
-            customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
+        if ("ASC".equalsIgnoreCase(sortOrder)) {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsFirst(Comparator.naturalOrder())
+                    )
+            );
+        } else {
+            customerList.sort(
+                    Comparator.comparing(
+                            CustomerBasicDetailsDto::getUpdatedDate,
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    )
+            );
+        }
+
         int totalItems = customerList.size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
 
         List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
-
-        System.out.println("dkfjalksdjflkasdjflkajds" + offset);
-        System.out.println(offset);
 
         Map<String, Object> response = new HashMap<>();
         response.put("customers", paginatedList);       // Your paginated data
@@ -3255,7 +3315,7 @@ public class CustomerEndpoint {
         Double fee = null;
         String ageLimit = null;
 
-        System.out.println("Limit is "+limit+"offset is"+offset);
+        System.out.println("Limit is " + limit + "offset is" + offset);
         List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
                 .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
@@ -3263,13 +3323,12 @@ public class CustomerEndpoint {
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
                 .setParameter("limit", limit)
-                .setParameter("offset", limit*offset)
+                .setParameter("offset", limit * offset)
                 .getResultList();
 
         System.out.println(res.size());
         System.out.println("Products");
-        for (BigInteger resl:res)
-        {
+        for (BigInteger resl : res) {
             System.out.println(resl.intValue());
         }
 
@@ -3510,9 +3569,8 @@ public class CustomerEndpoint {
     }
 
 
-    public ResponseEntity<?> getSavedFormsWrapper(Long customerId,List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
-        try
-        {
+    public ResponseEntity<?> getSavedFormsWrapper(Long customerId, List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
+        try {
             Customer customer = customerService.readCustomerById(customerId);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -3536,19 +3594,15 @@ public class CustomerEndpoint {
 
                 if (customCustomer != null) {
                     try {
-                        if(customCustomer.getCategory()!=null)
-                        {
+                        if (customCustomer.getCategory() != null) {
                             categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                        } else {
+                            categoryId = RESERVED_CATEGORY_ALL;
                         }
-                        else {
-                            categoryId=RESERVED_CATEGORY_ALL;
-                        }
-                        if(customCustomer.getGender()!=null)
-                        {
+                        if (customCustomer.getGender() != null) {
                             genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-                        }
-                        else {
-                            genderId=GENDER_ALL;
+                        } else {
+                            genderId = GENDER_ALL;
                         }
 
                         // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
@@ -3655,14 +3709,10 @@ public class CustomerEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset + 1);
             return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
-        }
-        catch (IllegalArgumentException illegalArgumentException)
-        {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new Exception(e);
         }

@@ -92,6 +92,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -268,7 +269,6 @@ public class ProductController extends CatalogEndpoint {
             if(categoryId!=null)
                 category = productService.validateCategory(categoryId);
 
-
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
             } else {
@@ -400,7 +400,7 @@ public class ProductController extends CatalogEndpoint {
                 postList = postService.savePosts(addProductDto.getPosts(), product);
             }
             if(addProductDto.getActiveStartDate()!=null)
-                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
             else
             {
                 productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
@@ -483,7 +483,7 @@ public class ProductController extends CatalogEndpoint {
 
             if (addProductDto.getProductState()!=null&&(addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4)) {
                 if (roleId == 4) {
-                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.FORBIDDEN);
                 }
                 long existingState = customProduct.getProductState().getProductStateId();
                 System.out.println(existingState+"existing state");
@@ -1072,7 +1072,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (offset < 0) {
@@ -1163,15 +1163,15 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(!customProduct.getUserId().equals(tokenUserId))
                     {
-                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Not authorized to delete the product",HttpStatus.FORBIDDEN);
                     }
                     if(customProduct.getProductState().getProductStateId()==6||customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live or Expired Products",HttpStatus.FORBIDDEN);
                 }
                 else
                 {
                     if(customProduct.getProductState().getProductStateId()==5)
-                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateErrorResponse("Cannot Delete Live Products",HttpStatus.FORBIDDEN);
 
                 }
             }
@@ -1215,7 +1215,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (catalogService == null) {
@@ -1282,7 +1282,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
+            @RequestParam(value = "limit", defaultValue = "30") int limit) {
 
         try {
             if (catalogService == null) {
@@ -1363,7 +1363,9 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "1000") int limit,
-            @RequestBody(required = false) FilterProductTitleDto titleDto) {
+            @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(required = false,defaultValue = "false")Boolean preview,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder) {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -1372,10 +1374,8 @@ public class ProductController extends CatalogEndpoint {
             Role roleEntity = roleService.getRoleByRoleId(roleId);
             Long createdById = null;
 
-            if (roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) {
-                myProducts = true;
-            }
-            if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && !myProducts) {
+
+            if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) && !myProducts) {
                 createdById = null;
             } else if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && myProducts) {
                 createdById = tokenUserId;
@@ -1427,6 +1427,22 @@ public class ProductController extends CatalogEndpoint {
             products = (List<CustomProduct>) opresponse.get("products");
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
+            }
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                products.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                products.sort(
+                        Comparator.comparing(
+                                CustomProduct::getModifiedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
             }
 
             // Filtering out archived products
@@ -1525,7 +1541,7 @@ public class ProductController extends CatalogEndpoint {
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "30") int limit,
             @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts,
             @RequestParam(value = "state", required = false) List<Long> state,
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
@@ -1537,6 +1553,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
             @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             @RequestParam(value = "isArchived", required = false) Boolean isArchived) {
 
         try {
@@ -1565,7 +1582,7 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
             return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, titleDto != null ? titleDto.getTitle() : null,
-                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds, isArchived);
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds, isArchived, sortOrder);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

@@ -39,7 +39,7 @@ public class ProductEligibilityController {
     @Autowired
     ExceptionHandlingImplement exceptionHandlingImplement;
 
- /*   @GetMapping("/check/{customerId}/{productId}")
+  @GetMapping("/check/{customerId}/{productId}")
     public ResponseEntity<?> checkEligibility(
             @PathVariable Long customerId,
             @PathVariable Long productId,
@@ -107,5 +107,5 @@ public class ProductEligibilityController {
             exceptionHandlingImplement.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }*/
+    }
 }

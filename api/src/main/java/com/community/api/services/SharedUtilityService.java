@@ -252,6 +252,7 @@ public class SharedUtilityService {
         if (deviceDetectorService.isRequestFromMobileApp(request)) {
             Map<String, Object> customerDetailsForMobile = new HashMap<>();
             customerDetailsForMobile.put("id", customer.getId());
+
             customerDetailsForMobile.put("dateCreated", customer.getAuditable().getDateCreated());
             customerDetailsForMobile.put("createdBy", customer.getAuditable().getCreatedBy());
             customerDetailsForMobile.put("dateUpdated", customer.getAuditable().getDateUpdated());
@@ -294,6 +295,7 @@ public class SharedUtilityService {
                 customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
             }
             customerDetailsForMobile.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
+            customerDetailsForMobile.put("policy_ackowledgement",customCustomer.getPolicyAcknowledgement());
             customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForMobile.put("whatsappNumber", customCustomer.getWhatsappNumber());
             customerDetailsForMobile.put("countryCode", customCustomer.getCountryCode());
@@ -622,6 +624,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
+            customerDetailsForDesktop.put("policy_ackowledgement",customCustomer.getPolicyAcknowledgement());
             customerDetailsForDesktop.put("otherCategory", customCustomer.getOtherCategory());
             customerDetailsForDesktop.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForDesktop.put("familyIncome",customCustomer.getFamilyIncome());
@@ -916,6 +919,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("suspended",serviceProvider.getIsArchived());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
+        serviceProviderDetails.put("policy_acknowledgement",serviceProvider.getPolicyAcknowledgement());
         serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
         serviceProviderDetails.put("business_unit_infra_score", serviceProvider.getBusinessUnitInfraScore());
         serviceProviderDetails.put("qualification_score", serviceProvider.getQualificationScore());
