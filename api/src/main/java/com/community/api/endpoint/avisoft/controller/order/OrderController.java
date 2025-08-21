@@ -809,6 +809,7 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
         groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5, 9)));
         groupedStates.add(new OrderStateGroupDto("Refund", Arrays.asList(10, 11)));
+        groupedStates.add(new OrderStateGroupDto("Cancellation Requested", Arrays.asList(12)));
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
