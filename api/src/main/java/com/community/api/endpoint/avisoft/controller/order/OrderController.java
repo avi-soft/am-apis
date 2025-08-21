@@ -474,7 +474,7 @@ public class OrderController {
 
                 CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
-                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO,orderState.getCancellationReason());
                 if (dto != null) {
                     orderDetails.add(dto);
                 }
@@ -817,13 +817,16 @@ public class OrderController {
     public ResponseEntity<?> manageRefunds() {
 
     }*/
-
+    @Transactional
     @Authorize(value = {Constant.roleUser})
-    @PostMapping("/request-refund/{orderIdString}")
+    @PostMapping("/request-refund/{orderId}")
     public ResponseEntity<?>requestRefund(@PathVariable Long orderId,
-                                          @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
+                                          @RequestBody Map<String,Object>body,
                                           @RequestHeader(value = "Authorization") String authHeader)
     {
+        String reason= (String) body.get("reason");
+        if(reason==null)
+            return ResponseService.generateErrorResponse("Need to provide reason",HttpStatus.BAD_REQUEST);
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -844,16 +847,20 @@ public class OrderController {
         if(orderState.getOrderStateId()>1)
             return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
         orderState.setOrderStateId(12);
+        orderState.setCancellationReason(reason);
         entityManager.merge(orderState);
         return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
     }
-
+    @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
-                                         @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
+                                         @RequestBody Map<String,Object>body,
                                          @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Double refundAmount= (Double) body.get("refund_amount");
+            if(refundAmount==null)
+                return ResponseService.generateErrorResponse("Need to provide refund amount",HttpStatus.BAD_REQUEST);
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
