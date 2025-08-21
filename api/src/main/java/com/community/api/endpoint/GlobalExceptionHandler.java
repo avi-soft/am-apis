@@ -1,12 +1,12 @@
 package com.community.api.endpoint;
 
-import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.http.ContentTooLongException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentTypeMismatchException;
 import org.springframework.social.NotAuthorizedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
@@ -25,7 +26,6 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.validation.ConstraintViolationException;
@@ -33,13 +33,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
@@ -67,7 +67,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFoundRequests(Exception ex, WebRequest request) {
         return generateErrorResponse("Invalid request method", HttpStatus.BAD_REQUEST, ex.getMessage());
     }
-
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {
@@ -142,6 +141,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {RuntimeException.class})
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
         exceptionHandlingService.handleException(ex);
+        log.error("Caught exception: {}", ex.getClass().getName());
+        if (ex instanceof MethodArgumentTypeMismatchException) {
+            log.info("Matched MethodArgumentTypeMismatchException block");
+            return generateErrorResponse("1234 : ", HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
         return generateErrorResponse("Runtime exception : ", HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
