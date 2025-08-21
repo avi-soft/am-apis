@@ -187,46 +187,46 @@ public class TicketController {
 
             // PRIMARY TICKET
             ticketTypes.add(1L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto primaryTicketStats = new TicketStatisticsDto();
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
             primaryTicketStats.setTicketType(ticketType);
             primaryTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             primaryTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
             response.add(primaryTicketStats);
             // REVIEW TICKET
             ticketTypes.set(0, 2L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto reviewTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L);
             reviewTicketStats.setTicketType(ticketType);
             reviewTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             reviewTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             reviewTicketStats.setDueInThreeDays(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
             ticketTypes.set(0, 3L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
             miscellaneousTicketStats.setTicketType(ticketType);
             miscellaneousTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             miscellaneousTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
             response.add(miscellaneousTicketStats);
 
@@ -340,6 +340,7 @@ public class TicketController {
             @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(value = "personal", required = false) Boolean personal,
             @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays,
+            @RequestParam(value = "overdue", required = false) Boolean overdue,
             @RequestParam(value = "archived", defaultValue = "false") Boolean archived,
             @RequestParam(value = "sort_order", required = false, defaultValue = "DESC") String sortOrder) {
         try {
@@ -369,6 +370,10 @@ public class TicketController {
                 throw new IllegalArgumentException("createdDateFrom must be before createdDateTo");
             }
 
+            if(dueInThreeDays!= null && overdue != null) {
+                throw new IllegalArgumentException("Due in three days and overdue filter cannot be passed at once");
+            }
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
@@ -379,6 +384,9 @@ public class TicketController {
                 if (archived) {
                     throw new IllegalArgumentException("Forbidden Access");
                 }
+                if(dueInThreeDays != null || overdue != null) {
+                    throw new IllegalArgumentException("Forbidden Access");
+                }
             } else {
                 // by default showing list of all the tickets.
                 if (personal != null && personal) {
@@ -387,7 +395,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays, archived);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays, archived, overdue);
 
             if ("ASC".equalsIgnoreCase(sortOrder)) {
                 tickets.sort(
