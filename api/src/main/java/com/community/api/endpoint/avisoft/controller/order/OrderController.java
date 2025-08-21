@@ -21,6 +21,8 @@ import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.OrderStateRef;
+import com.community.api.entity.RazorpayDetails;
+import com.community.api.entity.Refunds;
 import com.community.api.entity.Role;
 import com.community.api.services.CustomOrderService;
 import com.community.api.services.CustomerAddressFetcher;
@@ -900,6 +902,21 @@ public class OrderController {
                 serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
+            Refunds refunds=new Refunds();
+            refunds.setOrderId(orderId);
+            refunds.setRefundAmount(refundAmount);
+            refunds.setGeneratedAt(new Date());
+            refunds.setModifiedAt(new Date());
+            try
+            {
+                RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderId);
+                refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
+            }
+            catch (Exception e)
+            {
+                return ResponseService.generateErrorResponse("Error processing refund",HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            entityManager.persist(refunds);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
