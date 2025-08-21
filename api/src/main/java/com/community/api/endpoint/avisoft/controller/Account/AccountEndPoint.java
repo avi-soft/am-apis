@@ -672,6 +672,10 @@ public class AccountEndPoint {
 
             if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                 CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode);
+
+                if(existingCustomer == null) {
+                    return responseService.generateErrorResponse("No User Found.", HttpStatus.BAD_REQUEST);
+                }
                 System.out.println("archived:" + existingCustomer.getArchived());
                 if (existingCustomer.getArchived())
                     return ResponseService.generateErrorResponse("Your account is suspended please contact support", HttpStatus.UNAUTHORIZED);

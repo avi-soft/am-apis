@@ -1714,7 +1714,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseEntity.ok(responseBody);
             }
         } else {
-            return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse("Invalid Password.", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -1881,11 +1881,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
-                if (!existingServiceProvider.getIsAcknowledged() && (ackId == null || ackId.isEmpty()))
+                if (!existingServiceProvider.getPolicyAcknowledgement() && (ackId == null || ackId.isEmpty()))
                     return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
-                else if (existingServiceProvider.getIsAcknowledged() && ackId != null) {
+                else if (existingServiceProvider.getPolicyAcknowledgement() && ackId != null) {
                     return ResponseService.generateErrorResponse("User already acknowledged", HttpStatus.BAD_REQUEST);
-                } else if (!existingServiceProvider.getIsAcknowledged() && (ackId != null || !ackId.isEmpty())) {
+                } else if (!existingServiceProvider.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
                     try {
                         SPAcknowledgement userAcknowledgement= entityManager.find(SPAcknowledgement.class,ackId);
                         if(userAcknowledgement!=null)
@@ -1896,6 +1896,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         userAcknowledgement.setAcknowledgementId(ackId);
                         userAcknowledgement.setAcknowledgedAt(new Date());
                         entityManager.merge(userAcknowledgement);
+                        existingServiceProvider.setPolicyAcknowledgement(true);
                     } catch (Exception exception) {
                         exception.printStackTrace();
                         return ResponseService.generateErrorResponse("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);

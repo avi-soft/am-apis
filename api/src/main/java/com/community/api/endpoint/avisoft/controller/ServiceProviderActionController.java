@@ -139,7 +139,7 @@ public class ServiceProviderActionController {
                 if (serviceProvider.getMyReferrals() == null) {
                     throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
                 } else if (serviceProvider.getMyReferrals().isEmpty()) {
-                    throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
+                    throw new IllegalArgumentException("Service Provider does not have referred customers");
                 }
             }
             if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {

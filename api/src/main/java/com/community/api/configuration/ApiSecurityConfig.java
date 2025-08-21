@@ -84,7 +84,7 @@ public class ApiSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .authorizeRequests()
                 .antMatchers("/swagger-ui.html/**","/v2/api-docs",  "/webjars/**","/images/**","/swagger-resources/**","/avisoftdocument/**","/files/**","/api/avisoftdocument/**").permitAll()
-                .antMatchers("/otp/**","/swagger-resources/**", "/account/**", "/test/**","/category-custom/get-products-by-category-id/**","/category-custom/get-all-categories","/product-custom/get-product-by-id/**","/category-custom/get-sub-categories/**","/advertisement/get-all-advertisement-by-categoryId/**","/advertisement/get-advertisement-by-id/**","/category-custom/get-all-categories-info","/get-all-reserve-category","/cart/order-events","/get-products-by-sectors","/get-products-by-sector-id","/document-type/policy").permitAll()
+                .antMatchers("/otp/**","/swagger-resources/**", "/account/**", "/test/**","/category-custom/get-products-by-category-id/**","/category-custom/get-all-categories","/product-custom/get-product-by-id/**","/category-custom/get-sub-categories/**","/advertisement/get-all-advertisement-by-categoryId/**","/advertisement/get-advertisement-by-id/**","/category-custom/get-all-categories-info","/get-all-reserve-category","/cart/order-events","/get-products-by-sectors","/get-products-by-sector-id","/document-type/policy","/cart/policy").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

@@ -166,7 +166,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Pattern.compile("^/api/v1/cart/order-events$"),
                 Pattern.compile("^/api/v1/get-products-by-sector-id$"),
                 Pattern.compile("^/api/v1/get-products-by-sectors$"),
-                Pattern.compile("^/api/v1/document-type/policy$")
+                Pattern.compile("^/api/v1/document-type/policy$"),
+                Pattern.compile("^/api/v1/cart/policy$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -202,6 +203,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/cart/order-events")
                 || requestURI.startsWith("/api/v1/get-products-by-sector-id")
                 || requestURI.startsWith("/api/v1/document-type/policy")
+                || requestURI.startsWith("/api/v1/cart/policy")
                 || requestURI.startsWith("/api/v1/get-products-by-sectors");
     }
 
