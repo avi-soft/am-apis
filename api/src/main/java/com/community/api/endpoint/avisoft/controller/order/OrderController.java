@@ -49,6 +49,7 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
+import org.broadleafcommerce.core.web.order.OrderState;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -813,6 +815,36 @@ public class OrderController {
     public ResponseEntity<?> manageRefunds() {
 
     }*/
+
+    @Authorize(value = {Constant.roleUser})
+    @PostMapping("/request-refund/{orderIdString}")
+    public ResponseEntity<?>requestRefund(@PathVariable Long orderId,
+                                          @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
+                                          @RequestHeader(value = "Authorization") String authHeader)
+    {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        Role role = roleService.getRoleByRoleId(roleId);
+        if(orderId==null)
+            return ResponseService.generateErrorResponse("Order id not provided",HttpStatus.BAD_REQUEST);
+        Order order=orderService.findOrderById(orderId);
+        if(!order.getCustomer().getId().equals(tokenUserId))
+        {
+            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        }
+        OrderStateRef orderStateRef=entityManager.find(OrderStateRef.class,12);
+        CustomOrderState orderState=entityManager.find(CustomOrderState.class,orderId);
+        if(orderState.getOrderStateId()==12)
+            return ResponseService.generateErrorResponse("Order already requested for cancellation",HttpStatus.BAD_REQUEST);
+        else if(orderState.getOrderStateId()==9)
+            return ResponseService.generateErrorResponse("Order already cancelled",HttpStatus.BAD_REQUEST);
+        if(orderState.getOrderStateId()>1)
+            return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
+        orderState.setOrderStateId(12);
+        entityManager.merge(orderState);
+        return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
+    }
 
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
