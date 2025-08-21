@@ -628,10 +628,14 @@ public class CartEndPoint extends BaseEndpoint {
     JwtUtil jwtUtil;
     @Autowired
     DocumentStorageService documentStorageService;
+
     @Transactional
     @GetMapping("/policy")
-    public ResponseEntity<?>getOrderPolicy(HttpServletRequest request) throws Exception {
+    public ResponseEntity<?>getOrderPolicy(HttpServletRequest request,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
         System.out.println(fileServerUrl+"/"+policyPath);
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long userId=jwtTokenUtil.extractId(jwtToken);
         TypedQuery<ShortAccessToken> query = entityManager.createQuery(
                 "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
                 ShortAccessToken.class
