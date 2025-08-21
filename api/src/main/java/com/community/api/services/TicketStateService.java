@@ -711,7 +711,8 @@ public class TicketStateService {
             if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
                 serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
             }
-//            log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
+
+            // log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
             if(createTicketDTO.getTicketState() != null && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
                 serviceProviderActionController.sendTicketRejectionMail(existingServiceProvider, tokenServiceProvider ,ticket);
             }
