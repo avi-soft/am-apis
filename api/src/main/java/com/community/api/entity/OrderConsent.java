@@ -7,6 +7,8 @@ import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Date;
@@ -19,6 +21,9 @@ import java.util.Date;
 @NoArgsConstructor
 public class OrderConsent {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "uid")
+    Long uid;
     @Column(name = "consent_id")
     String ackId;
     @Column(name = "order_id")

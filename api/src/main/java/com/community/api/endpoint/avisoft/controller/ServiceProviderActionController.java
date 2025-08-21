@@ -139,7 +139,7 @@ public class ServiceProviderActionController {
                 if (serviceProvider.getMyReferrals() == null) {
                     throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
                 } else if (serviceProvider.getMyReferrals().isEmpty()) {
-                    throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
+                    throw new IllegalArgumentException("Service Provider does not have referred customers");
                 }
             }
             if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
@@ -1528,6 +1528,73 @@ public class ServiceProviderActionController {
                     imageUrl,
                     ticket.getTicketId(),
                     ticket.getTicketAssignDate(),
+                    LocalDate.now()
+            );
+
+            // Prepare and send email
+            sendEmail(htmlContent, subject, serviceProvider);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
+    // TODO- Mail for ticket assignment.
+    public void sendTicketRejectionMail(ServiceProviderEntity serviceProvider, ServiceProviderEntity tokenServiceProvider,CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            if(serviceProvider == null) {
+                log.info("Service provider does not exists.");
+                return;
+            }
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+
+            String subject = "Ticket Rejection Notification";
+            String imageUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828843.png"; // rejection icon
+
+            String adminName;
+
+            if (tokenServiceProvider.getFirst_name() != null && !tokenServiceProvider.getFirst_name().trim().isEmpty() && !tokenServiceProvider.getService_provider_id().equals(serviceProvider.getService_provider_id())) {
+                if (tokenServiceProvider.getLast_name() != null && !tokenServiceProvider.getLast_name().trim().isEmpty()) {
+                    adminName = tokenServiceProvider.getFirst_name().trim() + " " + tokenServiceProvider.getLast_name().trim();
+                } else {
+                    adminName = tokenServiceProvider.getFirst_name().trim();
+                }
+            } else {
+                adminName = "-";
+            }
+
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src="%s" alt="Assignment Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #34495e; margin: 10px 0; font-size: 24px;">Ticket Rejected</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">Your ticket has been rejected, Confirmation Mail</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #27ae60; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Ticket ID: <strong>%d</strong></p>
+                                    <p style="margin: 0; font-weight: 500;">Rejected By: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Confirmation Mail for ticket Rejection.</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    ticket.getTicketId(),
+                    adminName,
                     LocalDate.now()
             );
 
