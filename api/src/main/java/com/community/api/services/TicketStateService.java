@@ -712,7 +712,7 @@ public class TicketStateService {
                 serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
             }
             log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
-            if(createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
+            if(createTicketDTO.getTicketState() != null && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
                 serviceProviderActionController.sendTicketRejectionMail(existingServiceProvider, tokenServiceProvider ,ticket);
             }
 
