@@ -1347,6 +1347,14 @@ public class ServiceProviderTicketService {
                 } else {
                     jpql.append(" AND c.targetCompletionDate >= :now ");
                 }
+                if (states == null) {
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_CLOSE);
+                    if (ticketState == null) {
+                        throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + Constant.TICKET_STATE_CLOSE);
+                    }
+                    customTicketStates.add(ticketState);
+                    jpql.append("AND c.ticketState NOT IN :states ");
+                }
             }
 
             if (archived != null) {
