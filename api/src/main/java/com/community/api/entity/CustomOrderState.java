@@ -44,6 +44,9 @@ public class CustomOrderState {
     @Column(name = "refund_amount")
     private Double refundAmount;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
     public CustomOrderState(Integer orderStateId) {
         this.orderStateId=orderStateId;
     }
