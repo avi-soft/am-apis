@@ -199,6 +199,9 @@ public class TicketController {
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            primaryTicketStats.setOverdue(tickets.size());
+
             response.add(primaryTicketStats);
             // REVIEW TICKET
             ticketTypes.set(0, 2L);
@@ -213,6 +216,8 @@ public class TicketController {
             reviewTicketStats.setRejected(tickets.size());
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             reviewTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            reviewTicketStats.setOverdue(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
@@ -228,7 +233,11 @@ public class TicketController {
             miscellaneousTicketStats.setRejected(tickets.size());
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            miscellaneousTicketStats.setOverdue(tickets.size());
             response.add(miscellaneousTicketStats);
+
+            // Overdue tickets
 
             return ResponseService.generateSuccessResponse("Tickets Found", response, HttpStatus.OK);
 
