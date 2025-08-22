@@ -228,7 +228,7 @@ public class OrderDTOService {
             }
         }
 
-        // Set the state group name (New, In Progress, Completed, Canceled)
+        // Set the state group name (New, In Progress, Completed, Cancelled)
         String orderStateName = mapOrderStateIdToGroup(orderState.getOrderStateId());
 
         orderDTO = new OrderDTO(
@@ -280,7 +280,7 @@ public class OrderDTOService {
         if (Arrays.asList(1, 0, 3).contains(orderStateId)) return "New";
         if (Arrays.asList(2, 4, 6, 8).contains(orderStateId)) return "In Progress";
         if (orderStateId.equals(7)) return "Fulfilled";
-        if (Arrays.asList(999, 5, 9).contains(orderStateId)) return "Canceled";
+        if (Arrays.asList(999, 5, 9).contains(orderStateId)) return "Cancelled";
         if (Arrays.asList(10, 11).contains(orderStateId)) return "Refund";
         if (Arrays.asList(12).contains(orderStateId)) return "Cancellation Requested";
 
