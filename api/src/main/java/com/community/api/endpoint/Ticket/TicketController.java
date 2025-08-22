@@ -64,6 +64,7 @@ import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.nio.file.AccessDeniedException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -579,7 +580,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/add")
-    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
 
         try {
 
@@ -822,9 +823,12 @@ public class TicketController {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new RuntimeException(parseException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new RuntimeException(exception.getMessage());
         }
 
     }

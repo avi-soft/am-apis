@@ -479,7 +479,7 @@ public class DocumentStorageService {
         entityManager.persist(typingText);
     }
 
-
+    @Transactional
     public void uploadFileOnFileServer(MultipartFile file, String documentType, String customerId, String role) throws IOException {
         try {
             String url = fileServerUrl + "/files/upload";

@@ -805,7 +805,7 @@ public class TicketStateService {
         } catch (Exception exception) {
             log.info("Inside exception");
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Error updating ticket :" + exception.getMessage());
+            throw new Exception("Issue in document.");
         }
     }
 
