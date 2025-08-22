@@ -789,6 +789,7 @@ public class OrderController {
             }
             return ResponseService.generateSuccessResponse("Order States :", orderStates, HttpStatus.OK);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("An error occurred while fetching order states.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -922,6 +923,7 @@ public class OrderController {
             {
                 RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderId);
                 refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
+                refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
             }
             catch (Exception e)
             {

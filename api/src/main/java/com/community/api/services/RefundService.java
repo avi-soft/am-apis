@@ -52,7 +52,8 @@ public class RefundService {
         try {
             JSONObject refundRequest = new JSONObject();
             refundRequest.put("amount", amount);
-            refundRequest.put("speed", "normal");
+//            refundRequest.put("speed", "normal");
+            refundRequest.put("speed","optimum");
 
             Refund refund = razorpayClient.payments.refund(paymentId, refundRequest);
             Refunds refunds = entityManager.find(Refunds.class, orderId);

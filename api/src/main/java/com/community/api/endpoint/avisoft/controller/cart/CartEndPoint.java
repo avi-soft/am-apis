@@ -555,6 +555,7 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         } catch (NumberFormatException e) {
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
@@ -1295,18 +1296,25 @@ public class CartEndPoint extends BaseEndpoint {
             }
 
             JSONObject webhookData = new JSONObject(payload);
+            JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                    .getJSONObject("payment")
+                    .getJSONObject("entity");
+
+            String razorpayOrderId = paymentEntity.getString("order_id");
             String event = webhookData.getString("event");
             System.out.println("Event received: " + event);
-
+            Query query=entityManager.createQuery("SELECT orderId from Refunds where rzpId =: rzpId AND refundSuccess IS NULL");
+            query.setParameter("rzpId",razorpayOrderId);
+            List<Long>orderIdRefund=query.getResultList();
             switch (event) {
                 case "payment.captured":
-                    JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                 /*   JSONObject paymentEntity = webhookData.getJSONObject("payload")
                             .getJSONObject("payment")
                             .getJSONObject("entity");
 
-                    String razorpayOrderId = paymentEntity.getString("order_id");
+                    String razorpayOrderId = paymentEntity.getString("order_id");*/
 
-                    Query query = entityManager.createNativeQuery(
+                    query = entityManager.createNativeQuery(
                             "SELECT order_id FROM blc_order WHERE order_number = :rzpId");
                     query.setParameter("rzpId", razorpayOrderId);
                     List<BigInteger> orderIds = query.getResultList();
@@ -1333,7 +1341,6 @@ public class CartEndPoint extends BaseEndpoint {
                     break;
 
                 case "refund.processed":
-                case "refund.failed":
                     JSONObject refundEntity = webhookData.getJSONObject("payload")
                             .getJSONObject("refund")
                             .getJSONObject("entity");
@@ -1344,20 +1351,52 @@ public class CartEndPoint extends BaseEndpoint {
                     int refundAmount = refundEntity.getInt("amount");
 
                     System.out.println("Refund ID: " + refundId + " Payment ID: " + paymentId);
+                    System.out.println(orderIdRefund.size());
+                    System.out.println(orderIdRefund.toArray());
+                    for(Long id:orderIdRefund) {
+                        Refunds refund = entityManager.find(Refunds.class, id);
+                        if (refund != null) {
+                            refund.setModifiedAt(new Date());
+                            refund.setRefundState(refundStatus);
+                            System.out.println("before true");
+                            refund.setRefundSuccess(true);
+                            System.out.println(refund.getRefundSuccess());
+                            entityManager.merge(refund);
+                        }
 
-                    // ✅ Find your Refunds entity by refundId (or by paymentId + orderId)
-                    Refunds refund = entityManager.find(Refunds.class, refundId);
-                    if (refund != null) {
-                        refund.setModifiedAt(new Date());
-                        refund.setRefundState(refundStatus.equals("processed") ? "DONE" : "FAILED");
-                        entityManager.merge(refund);
+
+                        RazorpayDetails paymentDetails = entityManager.find(RazorpayDetails.class, id);
+                        if (paymentDetails != null) {
+                            paymentDetails.setStatus(refundStatus);
+                            entityManager.merge(paymentDetails);
+                        }
                     }
+                    break;
+                case "refund.failed":
+                    refundEntity = webhookData.getJSONObject("payload")
+                            .getJSONObject("refund")
+                            .getJSONObject("entity");
 
-                    // ✅ Optionally update Payment table too
-                    RazorpayDetails paymentDetails = entityManager.find(RazorpayDetails.class, paymentId);
-                    if (paymentDetails != null) {
-                        paymentDetails.setStatus(refundStatus);
-                        entityManager.merge(paymentDetails);
+                    paymentId = refundEntity.getString("payment_id");
+                    refundId = refundEntity.getString("id");
+                    refundStatus = refundEntity.getString("status");
+                    refundAmount = refundEntity.getInt("amount");
+
+                    System.out.println("Refund ID: " + refundId + " Payment ID: " + paymentId);
+                    for(Long id:orderIdRefund) {
+                        Refunds refund = entityManager.find(Refunds.class, id);
+                        if (refund != null) {
+                            refund.setModifiedAt(new Date());
+                            refund.setRefundSuccess(false);
+                            refund.setRefundState(refundStatus);
+                            entityManager.merge(refund);
+                        }
+
+                        RazorpayDetails paymentDetails = entityManager.find(RazorpayDetails.class, id);
+                        if (paymentDetails != null) {
+                            paymentDetails.setStatus(refundStatus);
+                            entityManager.merge(paymentDetails);
+                        }
                     }
                     break;
 
