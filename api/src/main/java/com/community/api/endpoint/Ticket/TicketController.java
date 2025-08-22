@@ -783,10 +783,6 @@ public class TicketController {
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
 
-            if(assignee != null) {
-                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
-            }
-
             if (files != null) {
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
@@ -818,6 +814,9 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
             wrapper.customWrapDetails(customServiceProviderTicket, null, entityManager);
+            if(assignee != null) {
+                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
+            }
             return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {

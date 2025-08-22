@@ -708,15 +708,6 @@ public class TicketStateService {
                 ticket.setComment(createTicketDTO.getComment().trim());
             }
 
-            if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
-                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
-            }
-
-            // log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
-            if(createTicketDTO.getTicketState() != null && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
-                serviceProviderActionController.sendTicketRejectionMail(existingServiceProvider, tokenServiceProvider ,ticket);
-            }
-
             // If there exists some files then upload them as well.
             if (files != null) {
 
@@ -750,6 +741,15 @@ public class TicketStateService {
                 ticket = entityManager.merge(ticket);
             }
 
+            if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
+                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
+            }
+
+            // log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
+            if(createTicketDTO.getTicketState() != null && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
+                serviceProviderActionController.sendTicketRejectionMail(existingServiceProvider, tokenServiceProvider ,ticket);
+            }
+
             return ticket;
 
         } catch (PersistenceException persistenceException) {
@@ -763,7 +763,7 @@ public class TicketStateService {
             throw new NotFoundException(notFoundException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Error updating ticket :" + exception.getMessage());
+            throw new RuntimeException("Error updating ticket :" + exception.getMessage());
         }
     }
 
