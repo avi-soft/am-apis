@@ -33,4 +33,6 @@ public class Refunds {
     Date generatedAt;
     @Column(name = "modified_at")
     Date modifiedAt;
+    @Column(name = "refund_state")
+    String refundState;
 }

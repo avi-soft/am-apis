@@ -31,6 +31,7 @@ import com.community.api.services.OrderStateRefService;
 import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.ProductService;
+import com.community.api.services.RefundService;
 import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -852,6 +853,8 @@ public class OrderController {
         entityManager.merge(orderState);
         return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
     }
+    @Autowired
+    RefundService refundService;
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
@@ -925,6 +928,7 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Error processing refund",HttpStatus.INTERNAL_SERVER_ERROR);
             }
             entityManager.persist(refunds);
+            refundService.refundPayment(orderId,refunds.getPaymentId(),refundAmount);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
