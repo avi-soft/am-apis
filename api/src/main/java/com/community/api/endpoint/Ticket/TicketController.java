@@ -64,6 +64,7 @@ import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.nio.file.AccessDeniedException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -199,6 +200,9 @@ public class TicketController {
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            primaryTicketStats.setOverdue(tickets.size());
+
             response.add(primaryTicketStats);
             // REVIEW TICKET
             ticketTypes.set(0, 2L);
@@ -213,6 +217,8 @@ public class TicketController {
             reviewTicketStats.setRejected(tickets.size());
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             reviewTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            reviewTicketStats.setOverdue(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
@@ -228,7 +234,11 @@ public class TicketController {
             miscellaneousTicketStats.setRejected(tickets.size());
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            miscellaneousTicketStats.setOverdue(tickets.size());
             response.add(miscellaneousTicketStats);
+
+            // Overdue tickets
 
             return ResponseService.generateSuccessResponse("Tickets Found", response, HttpStatus.OK);
 
@@ -570,7 +580,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/add")
-    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
 
         try {
 
@@ -773,10 +783,6 @@ public class TicketController {
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
 
-            if(assignee != null) {
-                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
-            }
-
             if (files != null) {
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
@@ -808,14 +814,20 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
             wrapper.customWrapDetails(customServiceProviderTicket, null, entityManager);
+            if(assignee != null) {
+                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
+            }
             return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new RuntimeException(parseException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new RuntimeException(exception.getMessage());
         }
 
     }

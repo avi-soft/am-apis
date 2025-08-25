@@ -25,7 +25,7 @@ public class Refunds {
     String paymentId;
     @Column(name = "refund_amount")
     Double refundAmount;
-    @Column(name = "success",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(name = "success")
     Boolean refundSuccess;
     @Column(name = "refund_id")
     String refundId;
@@ -35,4 +35,6 @@ public class Refunds {
     Date modifiedAt;
     @Column(name = "refund_state")
     String refundState;
+    @Column(name = "razorpay_order_id")
+    String rzpId;
 }

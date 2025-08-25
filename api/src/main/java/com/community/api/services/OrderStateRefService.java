@@ -25,6 +25,7 @@ public class OrderStateRefService {
             List<OrderStateRef> orderStateList = entityManager.createQuery(Constant.GET_ALL_ORDER_STATE, OrderStateRef.class).getResultList();
             return orderStateList;
         } catch (Exception exception) {
+            exception.printStackTrace();
             exceptionHandlingService.handleException(exception);
             return null;
         }

@@ -400,8 +400,15 @@ public class OrderController {
             @SuppressWarnings("unchecked") List<BigInteger> orderIds = query.getResultList();
 
             // Generate DTO and build response
-            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
-
+            List<CombinedOrderDTO> orderDetails = null;
+            if(orderStateIds!=null&&orderStateIds.contains(12))
+            {
+                orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder,true);
+            }
+            else
+            {
+                orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
+            }
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
             response.put("totalItems", totalItems);
@@ -448,6 +455,47 @@ public class OrderController {
 
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort) {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Role role = roleService.getRoleByRoleId(roleId);
+
+        List<CombinedOrderDTO> orderDetails = new ArrayList<>();
+
+        for (BigInteger orderId : orders) {
+            try {
+
+                Order order = orderService.findOrderById(orderId.longValue());
+                if (order == null) {
+                    continue;
+                }
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+
+                if (customer == null) {
+                    continue;
+                }
+
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer != null ? customCustomer.getMobileNumber() : null, addressFetcher.fetch(customer), customer.getUsername());
+
+                CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
+
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO,orderState.getCancellationReason());
+                if (dto != null) {
+                    orderDetails.add(dto);
+                }
+
+            } catch (Exception exception) {
+                exceptionHandling.handleException(exception);
+            }
+        }
+
+        return orderDetails;
+    }
+    @Transactional
+    public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort,Boolean refund) {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
@@ -789,6 +837,7 @@ public class OrderController {
             }
             return ResponseService.generateSuccessResponse("Order States :", orderStates, HttpStatus.OK);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("An error occurred while fetching order states.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -808,7 +857,7 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1, 0, 3)));
         groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
-        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5, 9)));
+        groupedStates.add(new OrderStateGroupDto("Cancelled", Arrays.asList(999, 5, 9)));
         groupedStates.add(new OrderStateGroupDto("Refund", Arrays.asList(10, 11)));
         groupedStates.add(new OrderStateGroupDto("Cancellation Requested", Arrays.asList(12)));
 
@@ -889,7 +938,10 @@ public class OrderController {
                 throw new IllegalArgumentException("Multiple order state found with this order.");
             }
 
+
             CustomOrderState customOrderState = orderStateList.get(0);
+            if(customOrderState.getOrderStateId()!=12)
+                return ResponseService.generateErrorResponse("Cannot cancel an order which has not been requested to cancel",HttpStatus.BAD_REQUEST);
             if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_CANCELLED.getOrderStateId())) {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
@@ -917,11 +969,13 @@ public class OrderController {
             refunds.setOrderId(orderId);
             refunds.setRefundAmount(refundAmount);
             refunds.setGeneratedAt(new Date());
+            refunds.setRefundState("initiated");
             refunds.setModifiedAt(new Date());
             try
             {
                 RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderId);
                 refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
+                refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
             }
             catch (Exception e)
             {
