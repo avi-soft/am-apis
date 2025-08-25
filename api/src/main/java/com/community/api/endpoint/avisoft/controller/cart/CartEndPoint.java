@@ -539,6 +539,12 @@ public class CartEndPoint extends BaseEndpoint {
                 }
                 subTotal = totalPlatformFee + productFee;
                 response.put("cart_id", cart.getId());
+                products.sort((p1, p2) -> {
+                    Long id1 = ((Number) p1.get("order_item_id")).longValue();
+                    Long id2 = ((Number) p2.get("order_item_id")).longValue();
+                    return id2.compareTo(id1); // descending order
+                });
+
                 response.put("products", products.toArray());
                 response.put("sub_total", subTotal);
                 response.put("price", productFee);
@@ -555,6 +561,7 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         } catch (NumberFormatException e) {
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
