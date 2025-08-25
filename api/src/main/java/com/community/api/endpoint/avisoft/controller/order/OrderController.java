@@ -909,11 +909,16 @@ public class OrderController {
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
                                          @RequestBody Map<String,Object>body,
-                                         @RequestHeader(value = "Authorization") String authHeader) {
+                                         @RequestHeader(value = "Authorization") String authHeader,
+                                         @RequestParam(value = "refund",defaultValue = "false")Boolean refund) {
         try {
-            Double refundAmount= (Double) body.get("refund_amount");
-            if(refundAmount==null)
-                return ResponseService.generateErrorResponse("Need to provide refund amount",HttpStatus.BAD_REQUEST);
+            String  refundAmt= (String) body.get("refund_amount");
+            if(refund&&refundAmt==null)
+                return ResponseService.generateErrorResponse("Need to provide refund if approving",HttpStatus.BAD_REQUEST);
+            Double refundAmount=Double.parseDouble(refundAmt);
+            if(refundAmount<0)
+                return ResponseService.generateErrorResponse("Refund cannot be negative",HttpStatus.BAD_REQUEST);
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -955,7 +960,7 @@ public class OrderController {
             OrderItem orderItem = order.getOrderItems().get(0);
 
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
+            if(refund&&(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue())) {
                 throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
 
@@ -965,24 +970,30 @@ public class OrderController {
                 serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
-            Refunds refunds=new Refunds();
-            refunds.setOrderId(orderId);
-            refunds.setRefundAmount(refundAmount);
-            refunds.setGeneratedAt(new Date());
-            refunds.setRefundState("initiated");
-            refunds.setModifiedAt(new Date());
-            try
-            {
-                RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderId);
-                refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
-                refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
+
+                Refunds refunds = new Refunds();
+                refunds.setOrderId(orderId);
+            if(refund) {
+                refunds.setRefundAmount(refundAmount);
+                refunds.setRefundState("initiated");
             }
-            catch (Exception e)
-            {
-                return ResponseService.generateErrorResponse("Error processing refund",HttpStatus.INTERNAL_SERVER_ERROR);
+            else {
+                refunds.setRefundAmount(null);
+                refunds.setRefundState("rejected");
             }
-            entityManager.persist(refunds);
-            refundService.refundPayment(orderId,refunds.getPaymentId(),refundAmount);
+                refunds.setGeneratedAt(new Date());
+                refunds.setModifiedAt(new Date());
+
+                try {
+                    RazorpayDetails razorpayDetails = entityManager.find(RazorpayDetails.class, orderId);
+                    refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
+                    refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
+                } catch (Exception e) {
+                    return ResponseService.generateErrorResponse("Error processing refund", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+                entityManager.persist(refunds);
+                if(refund)
+                    refundService.refundPayment(orderId, refunds.getPaymentId(), refundAmount);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -992,6 +1003,7 @@ public class OrderController {
             exceptionHandling.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
+            exception.printStackTrace();
             exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Something Went Wrong: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
