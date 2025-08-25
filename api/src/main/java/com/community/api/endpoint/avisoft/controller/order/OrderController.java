@@ -400,8 +400,15 @@ public class OrderController {
             @SuppressWarnings("unchecked") List<BigInteger> orderIds = query.getResultList();
 
             // Generate DTO and build response
-            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
-
+            List<CombinedOrderDTO> orderDetails = null;
+            if(orderStateIds!=null&&orderStateIds.contains(12))
+            {
+                orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder,true);
+            }
+            else
+            {
+                orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
+            }
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
             response.put("totalItems", totalItems);
@@ -448,6 +455,47 @@ public class OrderController {
 
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort) {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Role role = roleService.getRoleByRoleId(roleId);
+
+        List<CombinedOrderDTO> orderDetails = new ArrayList<>();
+
+        for (BigInteger orderId : orders) {
+            try {
+
+                Order order = orderService.findOrderById(orderId.longValue());
+                if (order == null) {
+                    continue;
+                }
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+
+                if (customer == null) {
+                    continue;
+                }
+
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer != null ? customCustomer.getMobileNumber() : null, addressFetcher.fetch(customer), customer.getUsername());
+
+                CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
+
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO,orderState.getCancellationReason());
+                if (dto != null) {
+                    orderDetails.add(dto);
+                }
+
+            } catch (Exception exception) {
+                exceptionHandling.handleException(exception);
+            }
+        }
+
+        return orderDetails;
+    }
+    @Transactional
+    public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort,Boolean refund) {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
@@ -890,7 +938,10 @@ public class OrderController {
                 throw new IllegalArgumentException("Multiple order state found with this order.");
             }
 
+
             CustomOrderState customOrderState = orderStateList.get(0);
+            if(customOrderState.getOrderStateId()!=12)
+                return ResponseService.generateErrorResponse("Cannot cancel an order which has not been requested to cancel",HttpStatus.BAD_REQUEST);
             if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_CANCELLED.getOrderStateId())) {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
@@ -918,6 +969,7 @@ public class OrderController {
             refunds.setOrderId(orderId);
             refunds.setRefundAmount(refundAmount);
             refunds.setGeneratedAt(new Date());
+            refunds.setRefundState("initiated");
             refunds.setModifiedAt(new Date());
             try
             {
