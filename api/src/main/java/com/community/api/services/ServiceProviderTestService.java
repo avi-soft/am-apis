@@ -92,9 +92,9 @@ public class ServiceProviderTestService {
                 if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getServiceProviderStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
                 {
                     ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
-                    String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-                    String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
-                    String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
+                    String imageUrl = fileService.getEncodedFileUrl(test.getDownloaded_image().getFile_path(),request);
+                    String randomPdfUrl = fileService.getEncodedFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
+                    String randomSignUrl = fileService.getEncodedFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
                     Map<String, Object> response = new HashMap<>();
                     response.put("test", test);
                     response.put("downloadImageUrl", imageUrl);
