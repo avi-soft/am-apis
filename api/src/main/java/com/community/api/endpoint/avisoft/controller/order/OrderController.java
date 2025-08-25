@@ -897,8 +897,10 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Order already cancelled",HttpStatus.BAD_REQUEST);
         if(orderState.getOrderStateId()>1)
             return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
+        orderState.setLastState(orderStateRef.getOrderStateName());
         orderState.setOrderStateId(12);
         orderState.setCancellationReason(reason);
+
         entityManager.merge(orderState);
         return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
     }
@@ -961,7 +963,7 @@ public class OrderController {
 
             // Here we need to add a max amount as well depending on what customer paid.
             if(refund&&(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue())) {
-                throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
+                throw new IllegalArgumentException("Refund Amount cannot be less than 0 or greater than actual amount of the product.");
             }
 
             // Updating archived ticket logic.

@@ -102,7 +102,7 @@ public class OrderDTOService {
                 orderStateName,
                 assigneeId,
                 order.getAuditable().getDateCreated(),
-                order.getAuditable().getDateUpdated()
+                order.getAuditable().getDateUpdated(),null,null,null,null
         );
         OrderItem orderItem = order.getOrderItems().get(0);
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
@@ -157,6 +157,17 @@ public class OrderDTOService {
         if (stateRef != null) {
             orderStateName = stateRef.getOrderStateName();
         }
+        String refundStatus=null;
+        Double refundAmt=0.0;
+        try {
+            Refunds refunds = entityManager.find(Refunds.class, order.getId());
+            refundStatus=refunds.getRefundState();
+            refundAmt=refunds.getRefundAmount();
+        } catch (Exception e)
+        {
+            refundStatus="N/A";
+            refundAmt=null;
+        }
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
                 order.getId(),
@@ -172,7 +183,9 @@ public class OrderDTOService {
                 orderStateName,
                 assigneeId,
                 order.getAuditable().getDateCreated(),
-                order.getAuditable().getDateUpdated()
+                order.getAuditable().getDateUpdated(),
+                reason,
+                refundStatus,refundAmt,orderState.getLastState()
         );
         OrderItem orderItem = order.getOrderItems().get(0);
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
@@ -191,16 +204,7 @@ public class OrderDTOService {
         combinedOrderDTO.setProductDetails(customProductWrapper);
         combinedOrderDTO.setTicket(ticket);
         combinedOrderDTO.setCustomerDetails(customerDetails);
-        combinedOrderDTO.setReasonForCancellation(reason);
-        try {
-            Refunds refunds = entityManager.find(Refunds.class, order.getId());
-            combinedOrderDTO.setRefundStatus(refunds.getRefundState());
-            combinedOrderDTO.setRefundAmount(refunds.getRefundAmount());
-        } catch (Exception e)
-        {
-            combinedOrderDTO.setRefundStatus("N/A");
-            combinedOrderDTO.setRefundAmount(null);
-        }
+
         return combinedOrderDTO;
     }
 
@@ -252,7 +256,7 @@ public class OrderDTOService {
                 orderStateName,
                 assigneeId,
                 order.getAuditable().getDateCreated(),
-                order.getAuditable().getDateUpdated()
+                order.getAuditable().getDateUpdated(),null,null,null,orderState.getLastState()
         );
 
         OrderItem orderItem = order.getOrderItems().get(0);

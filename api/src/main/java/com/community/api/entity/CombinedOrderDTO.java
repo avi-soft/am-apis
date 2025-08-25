@@ -18,11 +18,6 @@ public class CombinedOrderDTO {
    private CustomProductWrapper productDetails;
    private CustomServiceProviderTicket ticket;
    private OrderCustomerDetailsDTO customerDetails;
-   @JsonProperty(value = "reason_for_cancellation")
-   private String reasonForCancellation;
-   @JsonProperty(value = "refund_status")
-   private String refundStatus;
-   @JsonProperty(value = "refund_amount")
-   private Double refundAmount;
+
 
 }
