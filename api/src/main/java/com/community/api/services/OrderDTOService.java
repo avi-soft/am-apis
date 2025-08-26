@@ -165,7 +165,7 @@ public class OrderDTOService {
             refundAmt=refunds.getRefundAmount();
         } catch (Exception e)
         {
-            refundStatus="N/A";
+            refundStatus=null;
             refundAmt=null;
         }
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
@@ -238,9 +238,25 @@ public class OrderDTOService {
                 }
             }
         }
+        String orderStateName = null;
+        OrderStateRef stateRef = orderStateRefService.getOrderStateByOrderStateId(orderState.getOrderStateId());
+        if (stateRef != null) {
+            orderStateName = stateRef.getOrderStateName();
+        }
+        String refundStatus=null;
+        Double refundAmt=0.0;
+        try {
+            Refunds refunds = entityManager.find(Refunds.class, order.getId());
+            refundStatus=refunds.getRefundState();
+            refundAmt=refunds.getRefundAmount();
+        } catch (Exception e)
+        {
+            refundStatus=null;
+            refundAmt=null;
+        }
 
         // Set the state group name (New, In Progress, Completed, Cancelled)
-        String orderStateName = mapOrderStateIdToGroup(orderState.getOrderStateId());
+        orderStateName = mapOrderStateIdToGroup(orderState.getOrderStateId());
 
         orderDTO = new OrderDTO(
                 order.getId(),
@@ -256,7 +272,8 @@ public class OrderDTOService {
                 orderStateName,
                 assigneeId,
                 order.getAuditable().getDateCreated(),
-                order.getAuditable().getDateUpdated(),null,null,null,orderState.getLastState()
+                order.getAuditable().getDateUpdated(),orderState.getCancellationReason(),
+                refundStatus,refundAmt,orderState.getLastState()
         );
 
         OrderItem orderItem = order.getOrderItems().get(0);

@@ -401,14 +401,14 @@ public class OrderController {
 
             // Generate DTO and build response
             List<CombinedOrderDTO> orderDetails = null;
-            if(orderStateIds!=null&&orderStateIds.contains(12))
-            {
+         /*   if(orderStateIds!=null&&orderStateIds.contains(12))
+            {*/
                 orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder,true);
-            }
-            else
+         /*   }*/
+          /*  else
             {
                 orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
-            }
+            }*/
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
             response.put("totalItems", totalItems);
@@ -496,6 +496,7 @@ public class OrderController {
     }
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort,Boolean refund) {
+        System.out.println("Wrapper called");
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
@@ -511,6 +512,7 @@ public class OrderController {
                 }
 
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                System.out.println("cancellation rzn is"+orderState.getCancellationReason());
                 Customer customer = customerService.readCustomerById(order.getCustomer().getId());
 
                 if (customer == null) {
@@ -890,17 +892,19 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
         }
         OrderStateRef orderStateRef=entityManager.find(OrderStateRef.class,12);
+
         CustomOrderState orderState=entityManager.find(CustomOrderState.class,orderId);
+        OrderStateRef orderStateRefPrev=entityManager.find(OrderStateRef.class,orderState.getOrderStateId());
         if(orderState.getOrderStateId()==12)
             return ResponseService.generateErrorResponse("Order already requested for cancellation",HttpStatus.BAD_REQUEST);
         else if(orderState.getOrderStateId()==9)
             return ResponseService.generateErrorResponse("Order already cancelled",HttpStatus.BAD_REQUEST);
-        if(orderState.getOrderStateId()>1)
+        if(orderState.getOrderStateId()>3)
             return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
-        orderState.setLastState(orderStateRef.getOrderStateName());
+        orderState.setLastState(orderStateRefPrev.getOrderStateName());
         orderState.setOrderStateId(12);
         orderState.setCancellationReason(reason);
-
+        orderState.setModifiedDate(new Date());
         entityManager.merge(orderState);
         return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
     }
