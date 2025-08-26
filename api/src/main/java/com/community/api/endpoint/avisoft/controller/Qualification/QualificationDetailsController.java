@@ -177,7 +177,7 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            if((extUpdate)&&roleId==4)
+            if(extUpdate != null && extUpdate && roleId==4)
             {
                 if(id==null)
                     return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
@@ -208,6 +208,7 @@ public class QualificationDetailsController
             }
             return ResponseService.generateErrorResponse("Customer does not exist",HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         catch (EntityDoesNotExistsException e)

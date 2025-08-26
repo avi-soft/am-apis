@@ -7,6 +7,7 @@ import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.dto.SPDto;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
+import com.community.api.endpoint.avisoft.controller.cart.CartEndPoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.dto.OrderStateGroupDto;
@@ -14,6 +15,7 @@ import com.community.api.dto.OrderStateGroupDto;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -97,6 +99,8 @@ public class OrderController {
     @Autowired
     protected CatalogService catalogService;
     @Autowired
+    RefundService refundService;
+    @Autowired
     private EntityManager entityManager;
     @Autowired
     private OrderService orderService;
@@ -138,11 +142,6 @@ public class OrderController {
     private ProductService productService;
     @Autowired
     private ServiceProviderActionController serviceProviderActionController;
-
-    @Autowired
-    public void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
 
 /*    @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
@@ -192,6 +191,11 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Error fetching order list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }*/
+
+    @Autowired
+    public void setEntityManager(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
@@ -400,8 +404,15 @@ public class OrderController {
             @SuppressWarnings("unchecked") List<BigInteger> orderIds = query.getResultList();
 
             // Generate DTO and build response
-            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
-
+            List<CombinedOrderDTO> orderDetails = null;
+         /*   if(orderStateIds!=null&&orderStateIds.contains(12))
+            {*/
+            orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sortOrder, true);
+            /*   }*/
+          /*  else
+            {
+                orderDetails=generateCombinedDTOForOrders(authHeader, orderIds, sortOrder);
+            }*/
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
             response.put("totalItems", totalItems);
@@ -436,7 +447,7 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
-            CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
+            CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO, orderState.getCancellationReason());
             if (dto != null) {
                 return ResponseService.generateSuccessResponse("Order details", dto, HttpStatus.OK);
             }
@@ -475,7 +486,51 @@ public class OrderController {
 
                 CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
-                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO,orderState.getCancellationReason());
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO, orderState.getCancellationReason());
+                if (dto != null) {
+                    orderDetails.add(dto);
+                }
+
+            } catch (Exception exception) {
+                exceptionHandling.handleException(exception);
+            }
+        }
+
+        return orderDetails;
+    }
+
+    @Transactional
+    public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort, Boolean refund) {
+        System.out.println("Wrapper called");
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Role role = roleService.getRoleByRoleId(roleId);
+
+        List<CombinedOrderDTO> orderDetails = new ArrayList<>();
+
+        for (BigInteger orderId : orders) {
+            try {
+
+                Order order = orderService.findOrderById(orderId.longValue());
+                if (order == null) {
+                    continue;
+                }
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                System.out.println("cancellation rzn is" + orderState.getCancellationReason());
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+
+                if (customer == null) {
+                    continue;
+                }
+
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer != null ? customCustomer.getMobileNumber() : null, addressFetcher.fetch(customer), customer.getUsername());
+
+                CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
+
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO, orderState.getCancellationReason());
                 if (dto != null) {
                     orderDetails.add(dto);
                 }
@@ -709,7 +764,7 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, assignedUserId, assignedRoleId, roleId, tokenUserId);
 
-            if(createTicketDto.getAssigneeRole() != null && createTicketDto.getAssigneeRole() != null) {
+            if (createTicketDto.getAssigneeRole() != null && createTicketDto.getAssigneeRole() != null) {
                 serviceProviderActionController.sendTicketAllocationMail(serviceProvider, customServiceProviderTicket);
             }
             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
@@ -815,6 +870,7 @@ public class OrderController {
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
+
     /*@Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("manage-refund")
     public ResponseEntity<?> manageRefunds() {
@@ -823,56 +879,67 @@ public class OrderController {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @PostMapping("/request-refund/{orderId}")
-    public ResponseEntity<?>requestRefund(@PathVariable Long orderId,
-                                          @RequestBody Map<String,Object>body,
-                                          @RequestHeader(value = "Authorization") String authHeader)
-    {
-        String reason= (String) body.get("reason");
-        if(reason==null)
-            return ResponseService.generateErrorResponse("Need to provide reason",HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> requestRefund(@PathVariable Long orderId,
+                                           @RequestBody Map<String, Object> body,
+                                           @RequestHeader(value = "Authorization") String authHeader) {
+        String reason = (String) body.get("reason");
+        if (reason == null)
+            return ResponseService.generateErrorResponse("Need to provide reason", HttpStatus.BAD_REQUEST);
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
-        if(orderId==null)
-            return ResponseService.generateErrorResponse("Order id not provided",HttpStatus.BAD_REQUEST);
-        Order order=orderService.findOrderById(orderId);
-        if(!order.getCustomer().getId().equals(tokenUserId))
-        {
-            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        if (orderId == null)
+            return ResponseService.generateErrorResponse("Order id not provided", HttpStatus.BAD_REQUEST);
+        Order order = orderService.findOrderById(orderId);
+        if (!order.getCustomer().getId().equals(tokenUserId)) {
+            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
         }
-        OrderStateRef orderStateRef=entityManager.find(OrderStateRef.class,12);
-        CustomOrderState orderState=entityManager.find(CustomOrderState.class,orderId);
-        if(orderState.getOrderStateId()==12)
-            return ResponseService.generateErrorResponse("Order already requested for cancellation",HttpStatus.BAD_REQUEST);
-        else if(orderState.getOrderStateId()==9)
-            return ResponseService.generateErrorResponse("Order already cancelled",HttpStatus.BAD_REQUEST);
-        if(orderState.getOrderStateId()>1)
-            return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
+        OrderStateRef orderStateRef = entityManager.find(OrderStateRef.class, 12);
+
+        CustomOrderState orderState = entityManager.find(CustomOrderState.class, orderId);
+        OrderStateRef orderStateRefPrev = entityManager.find(OrderStateRef.class, orderState.getOrderStateId());
+        if (orderState.getOrderStateId() == 12)
+            return ResponseService.generateErrorResponse("Order already requested for cancellation", HttpStatus.BAD_REQUEST);
+        else if (orderState.getOrderStateId() == 9)
+            return ResponseService.generateErrorResponse("Order already cancelled", HttpStatus.BAD_REQUEST);
+        List<Integer> allowedStates = new ArrayList<>(Arrays.asList(2, 4, 6, 8, 1, 0, 3));
+        if (!allowedStates.contains(orderState.getOrderStateId()))
+            return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed", HttpStatus.BAD_REQUEST);
+        orderState.setLastState(orderStateRefPrev.getOrderStateName());
         orderState.setOrderStateId(12);
         orderState.setCancellationReason(reason);
+        orderState.setModifiedDate(new Date());
+
+        order.getAuditable().setDateUpdated(new Date());
+        entityManager.merge(order);
         entityManager.merge(orderState);
-        return ResponseService.generateErrorResponse("Order processed for cancellation",HttpStatus.OK);
+        return ResponseService.generateErrorResponse("Order processed for cancellation", HttpStatus.OK);
     }
     @Autowired
-    RefundService refundService;
+    CartEndPoint cartEndPoint;
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
-                                         @RequestBody Map<String,Object>body,
-                                         @RequestHeader(value = "Authorization") String authHeader) {
+                                         @RequestBody Map<String, Object> body,
+                                         @RequestHeader(value = "Authorization") String authHeader,
+                                         @RequestParam(value = "refund", defaultValue = "false") Boolean refund) {
         try {
-            Double refundAmount= (Double) body.get("refund_amount");
-            if(refundAmount==null)
-                return ResponseService.generateErrorResponse("Need to provide refund amount",HttpStatus.BAD_REQUEST);
+            String refundAmt = (String) body.get("refund_amount");
+            if (Boolean.TRUE.equals(refund) && refundAmt == null)
+                return ResponseService.generateErrorResponse("Need to provide refund if approving", HttpStatus.BAD_REQUEST);
+            double refundAmount = Double.parseDouble(refundAmt);
+            if (refundAmount < 0)
+                return ResponseService.generateErrorResponse("Refund cannot be negative", HttpStatus.BAD_REQUEST);
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
             ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(tokenUserId);
-            if(serviceProvider == null) {
+            if (serviceProvider == null) {
                 throw new IllegalArgumentException("Token user id is not found.");
             }
 
@@ -890,56 +957,76 @@ public class OrderController {
                 throw new IllegalArgumentException("Multiple order state found with this order.");
             }
 
+
             CustomOrderState customOrderState = orderStateList.get(0);
-            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_CANCELLED.getOrderStateId())) {
+            if (customOrderState.getOrderStateId() != 12)
+                return ResponseService.generateErrorResponse("Cannot cancel an order which has not been requested to cancel", HttpStatus.BAD_REQUEST);
+            if (customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_CANCELLED.getOrderStateId())) {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
-            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
+            if (customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
                 throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
-            } else if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_COMPLETED.getOrderStateId()) ) {
+            } else if (customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_COMPLETED.getOrderStateId())) {
                 throw new IllegalArgumentException("Order cannot be cancelled when order is completed.");
             }
 
             OrderItem orderItem = order.getOrderItems().get(0);
 
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
-                throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
+            if (refund && (refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue())) {
+                throw new IllegalArgumentException("Refund Amount cannot be less than 0 or greater than actual amount of the product.");
             }
 
             // Updating archived ticket logic.
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
-            if(ticket != null) {
+            if (ticket != null) {
                 serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
-            Refunds refunds=new Refunds();
+            Product product=cartEndPoint.findProductFromItemAttribute(orderItem);
+            CustomProduct customProduct=entityManager.find(CustomProduct.class,product.getId());
+            Refunds refunds = new Refunds();
             refunds.setOrderId(orderId);
-            refunds.setRefundAmount(refundAmount);
+            if (Boolean.TRUE.equals(refund)) {
+                refunds.setRefundAmount(refundAmount);
+                refunds.setRefundState("initiated");
+            } else if(order.getTotal().getAmount().intValue()+customProduct.getPlatformFee().intValue()==0) {
+                refunds.setRefundAmount(null);
+                refunds.setRefundState("n/a");
+            }
+            else
+            {
+                refunds.setRefundAmount(null);
+                refunds.setRefundState("rejected");
+            }
             refunds.setGeneratedAt(new Date());
             refunds.setModifiedAt(new Date());
-            try
-            {
-                RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderId);
+
+            try {
+                RazorpayDetails razorpayDetails = entityManager.find(RazorpayDetails.class, orderId);
                 refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
                 refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseService.generateErrorResponse("Error processing refund", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            catch (Exception e)
-            {
-                return ResponseService.generateErrorResponse("Error processing refund",HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+
+            order.getAuditable().setDateUpdated(new Date());
+            entityManager.merge(order);
             entityManager.persist(refunds);
-            refundService.refundPayment(orderId,refunds.getPaymentId(),refundAmount);
-            return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
+            if (Boolean.TRUE.equals(refund))
+                refundService.refundPayment(orderId, refunds.getPaymentId(), refundAmount);
+            return ResponseService.generateSuccessResponse("Order cancelled", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandling.handleException(numberFormatException);
             return ResponseService.generateErrorResponse("Number format exception: " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse("Illegal Argument Exception: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
+            exception.printStackTrace();
             exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Something Went Wrong: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

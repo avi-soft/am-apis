@@ -47,6 +47,9 @@ public class CustomOrderState {
     @Column(name = "cancellation_reason")
     private String cancellationReason;
 
+    @Column(name = "last_transition_state")
+    private String lastState;
+
     public CustomOrderState(Integer orderStateId) {
         this.orderStateId=orderStateId;
     }

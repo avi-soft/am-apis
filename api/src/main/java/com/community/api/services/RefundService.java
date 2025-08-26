@@ -53,7 +53,7 @@ public class RefundService {
             JSONObject refundRequest = new JSONObject();
             refundRequest.put("amount", amount);
 //            refundRequest.put("speed", "normal");
-            refundRequest.put("speed","optimum");
+            refundRequest.put("speed","normal");
 
             Refund refund = razorpayClient.payments.refund(paymentId, refundRequest);
             Refunds refunds = entityManager.find(Refunds.class, orderId);
@@ -61,7 +61,7 @@ public class RefundService {
                 return ResponseService.generateErrorResponse("Cannot process refund", HttpStatus.BAD_REQUEST);
             refunds.setModifiedAt(new Date());
             String status = refund.get("status"); // "processed" / "pending" / "failed"
-            refunds.setRefundState(status);
+            refunds.setRefundState("initiated");
             if (status.equalsIgnoreCase("SUCCESS"))
                 refunds.setRefundSuccess(true);
             refunds.setRefundId(refund.get("id"));
@@ -73,4 +73,5 @@ public class RefundService {
             return ResponseService.generateErrorResponse("Error processing refund",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }

@@ -18,6 +18,6 @@ public class CombinedOrderDTO {
    private CustomProductWrapper productDetails;
    private CustomServiceProviderTicket ticket;
    private OrderCustomerDetailsDTO customerDetails;
-   @JsonProperty(value = "reason_for_cancellation")
-   private String reasonForCancellation;
+
+
 }
