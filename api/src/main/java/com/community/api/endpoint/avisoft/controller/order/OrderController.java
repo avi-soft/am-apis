@@ -447,7 +447,7 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
-            CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
+            CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO, orderState.getCancellationReason());
             if (dto != null) {
                 return ResponseService.generateSuccessResponse("Order details", dto, HttpStatus.OK);
             }
@@ -903,7 +903,8 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Order already requested for cancellation", HttpStatus.BAD_REQUEST);
         else if (orderState.getOrderStateId() == 9)
             return ResponseService.generateErrorResponse("Order already cancelled", HttpStatus.BAD_REQUEST);
-        if (orderState.getOrderStateId() > 3)
+        List<Integer> allowedStates = new ArrayList<>(Arrays.asList(2, 4, 6, 8, 1, 0, 3));
+        if (!allowedStates.contains(orderState.getOrderStateId()))
             return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed", HttpStatus.BAD_REQUEST);
         orderState.setLastState(orderStateRefPrev.getOrderStateName());
         orderState.setOrderStateId(12);
@@ -990,7 +991,7 @@ public class OrderController {
             if (Boolean.TRUE.equals(refund)) {
                 refunds.setRefundAmount(refundAmount);
                 refunds.setRefundState("initiated");
-            } else if(order.getOrderItems().get(0).getTotalPrice().getAmount().intValue()+customProduct.getPlatformFee().intValue()>0) {
+            } else if(order.getTotal().getAmount().intValue()+customProduct.getPlatformFee().intValue()==0) {
                 refunds.setRefundAmount(null);
                 refunds.setRefundState("n/a");
             }
@@ -1007,6 +1008,7 @@ public class OrderController {
                 refunds.setPaymentId(razorpayDetails.getRazorpayPaymentId());
                 refunds.setRzpId(razorpayDetails.getRazorpayOrderId());
             } catch (Exception e) {
+                e.printStackTrace();
                 return ResponseService.generateErrorResponse("Error processing refund", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
@@ -1015,7 +1017,7 @@ public class OrderController {
             entityManager.persist(refunds);
             if (Boolean.TRUE.equals(refund))
                 refundService.refundPayment(orderId, refunds.getPaymentId(), refundAmount);
-            return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Order cancelled", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandling.handleException(numberFormatException);
