@@ -242,6 +242,8 @@ public class TicketStateService {
             Role tokenRole = roleService.getRoleByRoleId(roleId);
             String roleNameToken = tokenRole.getRole_name();
 
+            ServiceProviderEntity tokenServiceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
+
             if (ticketId == null)
                 throw new IllegalArgumentException("Ticket Id not provided");
 
@@ -277,7 +279,7 @@ public class TicketStateService {
                     throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
                 if (createTicketDTO.getAssignee() != null) {
                     serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
-                    if (serviceProvider == null) {
+                    if (serviceProvider == null || serviceProvider.getRole() != role.getRole_id()) {
                         throw new NotFoundException("Assignee not found");
                     }
 
@@ -322,20 +324,6 @@ public class TicketStateService {
                         entityManager.merge(serviceProvider);
                     }
 
-                    /*if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
-                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
-                        } else {
-                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
-                            ticket.setTicketState(ticketState);
-                        }
-                    }*/
-
-                    // Allowing super admin or super admin to change the assignee of the ticket at any point of time.
-                    /*if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
-                        throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
-                    }*/
-
                     if (tokenRole.getRole_name().equals(Constant.roleAdmin) && !role.getRole_name().equals(Constant.roleServiceProvider) && !Objects.equals(tokenUserId, createTicketDTO.getAssignee())) {
                         throw new IllegalArgumentException("Admin can only assign ticket to service provider");
                     }
@@ -378,10 +366,14 @@ public class TicketStateService {
             CustomTicketState ticketState = null;
             CustomTicketStatus ticketStatus = null;
 
+            ServiceProviderEntity existingServiceProvider = null;
             if (createTicketDTO.getTicketState() != null && createTicketDTO.getTicketStatus() != null) {
                 ticketState = getTicketStateByTicketStateId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
+                if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+                    existingServiceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+                }
                 if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
                         throw new IllegalArgumentException("Comment is required");
@@ -715,10 +707,6 @@ public class TicketStateService {
                 ticket.setComment(createTicketDTO.getComment().trim());
             }
 
-            if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
-                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
-            }
-
             // If there exists some files then upload them as well.
             if (files != null) {
 
@@ -752,6 +740,15 @@ public class TicketStateService {
                 ticket = entityManager.merge(ticket);
             }
 
+            if(createTicketDTO.getAssigneeRole() != null && createTicketDTO.getAssigneeRole() != null) {
+                serviceProviderActionController.sendTicketAllocationMail(serviceProvider, ticket);
+            }
+
+            // log.info("existing sp id: {}", existingServiceProvider.getService_provider_id());
+            if(createTicketDTO.getTicketState() != null && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_RETURNED)) {
+                serviceProviderActionController.sendTicketRejectionMail(existingServiceProvider, tokenServiceProvider ,ticket);
+            }
+
             return ticket;
 
         } catch (PersistenceException persistenceException) {
@@ -765,7 +762,7 @@ public class TicketStateService {
             throw new NotFoundException(notFoundException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Error updating ticket :" + exception.getMessage());
+            throw new RuntimeException("Error updating ticket :" + exception.getMessage());
         }
     }
 
@@ -807,7 +804,7 @@ public class TicketStateService {
         } catch (Exception exception) {
             log.info("Inside exception");
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Error updating ticket :" + exception.getMessage());
+            throw new Exception("Issue in File Server.");
         }
     }
 

@@ -1716,7 +1716,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseEntity.ok(responseBody);
             }
         } else {
-            return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse("Invalid Password.", HttpStatus.BAD_REQUEST);
         }
     }
 

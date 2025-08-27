@@ -1269,7 +1269,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays, Boolean archived) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays, Boolean archived, Boolean overdue) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -1342,6 +1342,22 @@ public class ServiceProviderTicketService {
                 }
             }
 
+            if(overdue != null) {
+                if(overdue) {
+                    jpql.append(" AND c.targetCompletionDate < :now ");
+                } else {
+                    jpql.append(" AND c.targetCompletionDate >= :now ");
+                }
+                if (states == null) {
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(Constant.TICKET_STATE_CLOSE);
+                    if (ticketState == null) {
+                        throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + Constant.TICKET_STATE_CLOSE);
+                    }
+                    customTicketStates.add(ticketState);
+                    jpql.append("AND c.ticketState NOT IN :states ");
+                }
+            }
+
             if (archived != null) {
                 jpql.append("AND c.archived = :archived ");
             }
@@ -1390,6 +1406,12 @@ public class ServiceProviderTicketService {
 
                 query.setParameter("now", now);
                 query.setParameter("threeDaysLater", threeDaysLater);
+            }
+
+            if(overdue != null) {
+                Date now = new Date(); // current time
+                log.info("current date is: {}", now);
+                query.setParameter("now", now);
             }
 
             if (archived != null) {

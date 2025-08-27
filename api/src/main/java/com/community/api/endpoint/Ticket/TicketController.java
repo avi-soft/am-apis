@@ -64,6 +64,7 @@ import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.nio.file.AccessDeniedException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -187,48 +188,57 @@ public class TicketController {
 
             // PRIMARY TICKET
             ticketTypes.add(1L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto primaryTicketStats = new TicketStatisticsDto();
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
             primaryTicketStats.setTicketType(ticketType);
             primaryTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             primaryTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             primaryTicketStats.setDueInThreeDays(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            primaryTicketStats.setOverdue(tickets.size());
 
             response.add(primaryTicketStats);
             // REVIEW TICKET
             ticketTypes.set(0, 2L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto reviewTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L);
             reviewTicketStats.setTicketType(ticketType);
             reviewTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             reviewTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             reviewTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            reviewTicketStats.setOverdue(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
             ticketTypes.set(0, 3L);
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
             ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
             miscellaneousTicketStats.setTicketType(ticketType);
             miscellaneousTicketStats.setTotal(tickets.size());
 
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null);
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null, null, null, null, null, null, null);
             miscellaneousTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, true, null, null);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null, null, null, null, null, null, true);
+            miscellaneousTicketStats.setOverdue(tickets.size());
             response.add(miscellaneousTicketStats);
+
+            // Overdue tickets
 
             return ResponseService.generateSuccessResponse("Tickets Found", response, HttpStatus.OK);
 
@@ -340,6 +350,7 @@ public class TicketController {
             @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(value = "personal", required = false) Boolean personal,
             @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays,
+            @RequestParam(value = "overdue", required = false) Boolean overdue,
             @RequestParam(value = "archived", defaultValue = "false") Boolean archived,
             @RequestParam(value = "sort_order", required = false, defaultValue = "DESC") String sortOrder) {
         try {
@@ -369,6 +380,10 @@ public class TicketController {
                 throw new IllegalArgumentException("createdDateFrom must be before createdDateTo");
             }
 
+            if(dueInThreeDays!= null && overdue != null) {
+                throw new IllegalArgumentException("Due in three days and overdue filter cannot be passed at once");
+            }
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
@@ -379,6 +394,9 @@ public class TicketController {
                 if (archived) {
                     throw new IllegalArgumentException("Forbidden Access");
                 }
+                if(dueInThreeDays != null || overdue != null) {
+                    throw new IllegalArgumentException("Forbidden Access");
+                }
             } else {
                 // by default showing list of all the tickets.
                 if (personal != null && personal) {
@@ -387,7 +405,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays, archived);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays, archived, overdue);
 
             if ("ASC".equalsIgnoreCase(sortOrder)) {
                 tickets.sort(
@@ -562,7 +580,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/add")
-    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
 
         try {
 
@@ -765,10 +783,6 @@ public class TicketController {
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
 
-            if(assignee != null) {
-                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
-            }
-
             if (files != null) {
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
@@ -800,14 +814,20 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
             wrapper.customWrapDetails(customServiceProviderTicket, null, entityManager);
+            if(assignee != null) {
+                serviceProviderActionController.sendTicketAllocationMail(assignee, customServiceProviderTicket);
+            }
             return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new RuntimeException(parseException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new RuntimeException(exception.getMessage());
         }
 
     }

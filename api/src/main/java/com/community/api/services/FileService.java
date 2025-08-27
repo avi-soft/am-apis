@@ -51,6 +51,19 @@ public class FileService {
             return "Error fetching urls:  " + e.getMessage();
         }
     }
+    @Autowired
+    DocumentStorageService documentStorageService;
+    public String getEncodedFileUrl(String filePath, HttpServletRequest request) {
+        try{
+            String normalizedFilePath = filePath.replace("\\", "/");
+
+//            return   this.getFileUrl(normalizedFilePath);
+            return fileServerUrl + "/"  + documentStorageService.encrypt(normalizedFilePath);
+        }catch (Exception e){
+            exceptionHandling.handleException(e);
+            return "Error fetching urls:  " + e.getMessage();
+        }
+    }
 
     public String getDownloadFileUrl(String filePath, HttpServletRequest request) {
         String normalizedFilePath = filePath.replace("\\", "/");

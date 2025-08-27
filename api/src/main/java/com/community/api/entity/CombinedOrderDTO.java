@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.community.api.dto.CustomProductWrapper;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,4 +18,6 @@ public class CombinedOrderDTO {
    private CustomProductWrapper productDetails;
    private CustomServiceProviderTicket ticket;
    private OrderCustomerDetailsDTO customerDetails;
+
+
 }

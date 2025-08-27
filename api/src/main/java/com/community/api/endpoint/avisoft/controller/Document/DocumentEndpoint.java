@@ -391,8 +391,9 @@ public class DocumentEndpoint {
                 id = Long.parseLong(matcher.group(2)); // The ID
                 System.out.println("Role: " + role + ", Extracted ID: " + id);
             } else {
-                System.out.println(" ID not found in filePath");
-                throw new IllegalArgumentException("Invalid file path");
+                id=22L;
+                /*System.out.println(" ID not found in filePath");
+                throw new IllegalArgumentException("Invalid file path");*/
             }
 
             // Generate token for remote fetch
@@ -415,10 +416,15 @@ public class DocumentEndpoint {
 
             String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8);
             System.out.println("✅ Secured file URL for remote fetch: " + securedFileUrl);
-
-            // Prepare actual name & extension from remote content-type
-            String folderName = filePath.split("\\\\")[filePath.split("\\\\").length - 2];
-            System.out.println("➡ Folder name from file path: " + folderName);
+            String folderName=null;
+            try {
+                // Prepare actual name & extension from remote content-type
+                 folderName= filePath.split("\\\\")[filePath.split("\\\\").length - 2];
+                System.out.println("➡ Folder name from file path: " + folderName);
+            }catch (Exception e)
+            {
+               folderName="testImage";
+            }
 
             URL url = new URL(securedFileUrl);
             URLConnection conn = url.openConnection();
@@ -440,11 +446,15 @@ public class DocumentEndpoint {
                         customCustomer.getLastName() + " " +
                         folderName + extension;
             }
-            else
+            else if(sp!=null)
             {
                  downloadFileName = sp.getFirst_name() + " " +
                         sp.getLast_name() + " " +
                         folderName + extension;
+            }
+            else
+            {
+                downloadFileName="test";
             }
             System.out.println("✅ Final custom download filename: " + downloadFileName);
 

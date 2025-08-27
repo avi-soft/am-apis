@@ -5,21 +5,27 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.EligibilityResult;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
+import com.community.api.endpoint.avisoft.controller.Document.DocumentEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderConsent;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Post;
 import com.community.api.entity.RazorpayDetails;
+import com.community.api.entity.Refunds;
 import com.community.api.entity.Role;
+import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.CartService;
 import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.DocumentStorageService;
 import com.community.api.services.GenderService;
 import com.community.api.services.OrderDTOService;
 import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PdfEditService;
 import com.community.api.services.ProductReserveCategoryFeePostRefService;
 import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ResponseService;
@@ -56,6 +62,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -72,6 +79,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
@@ -529,6 +538,12 @@ public class CartEndPoint extends BaseEndpoint {
                 }
                 subTotal = totalPlatformFee + productFee;
                 response.put("cart_id", cart.getId());
+                products.sort((p1, p2) -> {
+                    Long id1 = ((Number) p1.get("order_item_id")).longValue();
+                    Long id2 = ((Number) p2.get("order_item_id")).longValue();
+                    return id2.compareTo(id1); // descending order
+                });
+
                 response.put("products", products.toArray());
                 response.put("sub_total", subTotal);
                 response.put("price", productFee);
@@ -545,6 +560,7 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         } catch (NumberFormatException e) {
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
@@ -609,11 +625,61 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Autowired
+    DocumentEndpoint documentEndpoint;
+    @Value("${order.policy.path}")
+    private String policyPath;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+    @Autowired
+    JwtUtil jwtUtil;
+    @Autowired
+    DocumentStorageService documentStorageService;
 
+    @Transactional
+    @GetMapping("/policy")
+    public ResponseEntity<?>getOrderPolicy(HttpServletRequest request,@RequestHeader(value = "Authorization", required = false)String authHeader) throws Exception {
+        System.out.println(fileServerUrl+"/"+policyPath);
+      /*  String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long userId=jwtTokenUtil.extractId(jwtToken);*/
+        TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                ShortAccessToken.class
+        );
+        query.setParameter("uid", 22L);
+        query.setParameter("role", 1);
+        String ip = request.getRemoteAddr();
+        String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
+        List<ShortAccessToken> resultList = query.getResultList();
+
+        if (resultList.isEmpty()) {
+            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                    .userId(22L)
+                    .token(token)
+                    .role(1)
+                    .expired(false)
+                    .build();
+            entityManager.persist(shortAccessToken);
+        } else {
+            ShortAccessToken shortAccessToken = resultList.get(0);
+            shortAccessToken.setToken(token);
+            shortAccessToken.setExpired(false);
+            entityManager.merge(shortAccessToken);
+        }
+        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+        Map<String,String>respone=new HashMap<>();
+        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
+        respone.put("seed", documentEndpoint.generateUniqueId());
+        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+    }
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String orderAcknowledgementId= (String) map.get("ack");
+            if(orderAcknowledgementId==null)
+                return ResponseService.generateErrorResponse("Need to provide user consent",HttpStatus.BAD_REQUEST);
             Boolean bypass=false;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -877,10 +943,17 @@ public class CartEndPoint extends BaseEndpoint {
                     //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
                     customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), false, authHeader);
+                    OrderConsent orderConsent=new OrderConsent();
+                    orderConsent.setOrderId(individualOrder.getId());
+                    orderConsent.setUserId(individualOrder.getCustomer().getId());
+                    orderConsent.setAckId(orderAcknowledgementId);
+                    orderConsent.setTimeStamp(new Date());
+                    entityManager.persist(orderConsent);
                     individualOrders.add(individualOrder);
+
                 }
             }
-            responseMap.put("Orders", individualOrders);
+//            responseMap.put("Orders",  );
             customCustomer.setNumberOfOrders(batchNumber);
 
             entityManager.merge(cart);
@@ -1165,7 +1238,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     //constanlty updates order's status
 
-    @Transactional
+   /* @Transactional
     @PostMapping("/order-events")
     public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
                                 @RequestBody String payload) {
@@ -1212,7 +1285,135 @@ public class CartEndPoint extends BaseEndpoint {
         } catch (Exception e) {
             System.out.println("Exception : "+e.getMessage());
         }
+    }*/
+
+    @Transactional
+    @PostMapping("/order-events")
+    public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
+                              @RequestBody String payload) {
+
+        System.out.println("SERVER HAS CALLED THE WEBHOOK");
+        try {
+            // Verify signature
+            boolean isValid = Utils.verifyWebhookSignature(payload, razorpaySignature, razorpayWebhookSecret);
+            if (!isValid) {
+                throw new Exception("SIGNATURE VERIFICATION FAILED");
+            }
+
+            JSONObject webhookData = new JSONObject(payload);
+            JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                    .getJSONObject("payment")
+                    .getJSONObject("entity");
+
+            String razorpayOrderId = paymentEntity.getString("order_id");
+            String event = webhookData.getString("event");
+            System.out.println("Event received: " + event);
+            Query query=entityManager.createQuery("SELECT orderId from Refunds where rzpId =: rzpId AND refundSuccess IS NULL");
+            query.setParameter("rzpId",razorpayOrderId);
+            List<Long>orderIdRefund=query.getResultList();
+            switch (event) {
+                case "payment.captured":
+                 /*   JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                            .getJSONObject("payment")
+                            .getJSONObject("entity");
+
+                    String razorpayOrderId = paymentEntity.getString("order_id");*/
+
+                    query = entityManager.createNativeQuery(
+                            "SELECT order_id FROM blc_order WHERE order_number = :rzpId");
+                    query.setParameter("rzpId", razorpayOrderId);
+                    List<BigInteger> orderIds = query.getResultList();
+
+                    for (BigInteger id : orderIds) {
+                        Order order = orderService.findOrderById(id.longValue());
+
+                        // Ensure currency
+                        if (broadleafCurrencyService.findDefaultBroadleafCurrency() == null) {
+                            BroadleafCurrency broadleafCurrency = broadleafCurrencyService.create();
+                            broadleafCurrency.setFriendlyName("INDIAN RUPEE");
+                            broadleafCurrency.setCurrencyCode("INR");
+                            broadleafCurrency.setDefaultFlag(true);
+                        } else {
+                            order.setCurrency(broadleafCurrencyService.findDefaultBroadleafCurrency());
+                        }
+
+                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id.longValue());
+                        details.setStatus(paymentEntity.getString("status")); // e.g. "captured"
+                        details.setRazorpayPaymentId(paymentEntity.getString("id"));
+                        entityManager.merge(details);
+                        entityManager.merge(order);
+                    }
+                    break;
+
+                case "refund.processed":
+                    JSONObject refundEntity = webhookData.getJSONObject("payload")
+                            .getJSONObject("refund")
+                            .getJSONObject("entity");
+
+                    String paymentId = refundEntity.getString("payment_id");
+                    String refundId = refundEntity.getString("id");
+                    String refundStatus = refundEntity.getString("status");
+                    int refundAmount = refundEntity.getInt("amount");
+
+                    System.out.println("Refund ID: " + refundId + " Payment ID: " + paymentId);
+                    System.out.println(orderIdRefund.size());
+                    System.out.println(orderIdRefund.toArray());
+                    for(Long id:orderIdRefund) {
+                        Refunds refund = entityManager.find(Refunds.class, id);
+                        if (refund != null) {
+                            refund.setModifiedAt(new Date());
+                            refund.setRefundState(refundStatus);
+                            System.out.println("before true");
+                            refund.setRefundSuccess(true);
+                            System.out.println(refund.getRefundSuccess());
+                            entityManager.merge(refund);
+                        }
+
+
+                        RazorpayDetails paymentDetails = entityManager.find(RazorpayDetails.class, id);
+                        if (paymentDetails != null) {
+                            paymentDetails.setStatus(refundStatus);
+                            entityManager.merge(paymentDetails);
+                        }
+                    }
+                    break;
+                case "refund.failed":
+                    refundEntity = webhookData.getJSONObject("payload")
+                            .getJSONObject("refund")
+                            .getJSONObject("entity");
+
+                    paymentId = refundEntity.getString("payment_id");
+                    refundId = refundEntity.getString("id");
+                    refundStatus = refundEntity.getString("status");
+                    refundAmount = refundEntity.getInt("amount");
+
+                    System.out.println("Refund ID: " + refundId + " Payment ID: " + paymentId);
+                    for(Long id:orderIdRefund) {
+                        Refunds refund = entityManager.find(Refunds.class, id);
+                        if (refund != null) {
+                            refund.setModifiedAt(new Date());
+                            refund.setRefundSuccess(false);
+                            refund.setRefundState(refundStatus);
+                            entityManager.merge(refund);
+                        }
+
+                        RazorpayDetails paymentDetails = entityManager.find(RazorpayDetails.class, id);
+                        if (paymentDetails != null) {
+                            paymentDetails.setStatus(refundStatus);
+                            entityManager.merge(paymentDetails);
+                        }
+                    }
+                    break;
+
+                default:
+                    System.out.println("Unhandled event: " + event);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
     }
+
     public String getPaymentStatus(String paymentId) {
         String uri = "https://api.razorpay.com/v1/payments/" + paymentId;
 

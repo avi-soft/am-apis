@@ -95,13 +95,16 @@ BEGIN
 	        WHERE ticket_id = p_ticket_id;
 
 	        -- Update order state
-	        UPDATE order_state
-            SET
-                order_state_id = 2,
-                modified_date = NOW()
-            WHERE
-                order_id = p_order_id;
-	
+
+	        IF p_is_primary_ticket THEN
+                UPDATE order_state
+                SET
+                    order_state_id = 2,
+                    modified_date = NOW()
+                WHERE
+                    order_id = p_order_id;
+            END IF;
+
 	        -- Increment SP ticket count
 	        UPDATE service_provider
 	        SET ticket_assigned = ticket_assigned + 1

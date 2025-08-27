@@ -1,6 +1,7 @@
 package com.community.api.entity;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PostDetailsDTO;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,5 +35,13 @@ public class OrderDTO
     private Long spAssigneeId;
     private Date createdDate;
     private Date updatedDate;
+    @JsonProperty(value = "reason_for_cancellation")
+    private String reasonForCancellation;
+    @JsonProperty(value = "refund_status")
+    private String refundStatus;
+    @JsonProperty(value = "refund_amount")
+    private Double refundAmount;
+    @JsonProperty(value = "last_state")
+    private String lastState;
 }
 

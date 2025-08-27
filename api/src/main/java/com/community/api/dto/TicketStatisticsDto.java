@@ -24,4 +24,7 @@ public class TicketStatisticsDto {
     @JsonProperty("total")
     Integer total;
 
+    @JsonProperty("overdue")
+    Integer overdue;
+
 }
