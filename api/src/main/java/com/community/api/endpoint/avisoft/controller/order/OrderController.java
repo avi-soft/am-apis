@@ -990,15 +990,15 @@ public class OrderController {
             refunds.setOrderId(orderId);
             if (Boolean.TRUE.equals(refund)) {
                 refunds.setRefundAmount(refundAmount);
-                refunds.setRefundState("initiated");
+                refunds.setRefundState("Initiated");
             } else if(order.getTotal().getAmount().intValue()+customProduct.getPlatformFee().intValue()==0) {
                 refunds.setRefundAmount(null);
-                refunds.setRefundState("n/a");
+                refunds.setRefundState("N/A");
             }
             else
             {
                 refunds.setRefundAmount(null);
-                refunds.setRefundState("rejected");
+                refunds.setRefundState("Rejected");
             }
             refunds.setGeneratedAt(new Date());
             refunds.setModifiedAt(new Date());
