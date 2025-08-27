@@ -205,6 +205,7 @@ public class ServiceProviderEntity {
     @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
     @JoinColumn(name = "service_provider_status_id", referencedColumnName = "test_status_id")
     private ServiceProviderTestStatus serviceProviderStatus;
+
     private Long lastStatusId;
 
     @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
