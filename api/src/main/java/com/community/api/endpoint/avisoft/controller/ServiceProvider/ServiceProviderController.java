@@ -3,16 +3,40 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
-import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
-import com.community.api.services.*;
+import com.community.api.entity.CustomOrderState;
+import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketState;
+import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
+import com.community.api.entity.Privileges;
+import com.community.api.entity.Role;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderAddressRef;
+import com.community.api.entity.ServiceProviderTestStatus;
+import com.community.api.entity.Skill;
+import com.community.api.entity.SuccessResponse;
+import com.community.api.services.BankAccountService;
+import com.community.api.services.DistrictService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.PrivilegeService;
+import com.community.api.services.QualificationService;
+import com.community.api.services.ReserveCategoryDtoService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
+import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderRankService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.StatusChangeEmailService;
+import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.ServiceProviderDocument;
@@ -26,9 +50,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -43,9 +76,9 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +98,8 @@ public class ServiceProviderController {
     ExceptionHandlingService exceptionHandlingService;
     @Autowired
     QualificationService qualificationService;
+    @Autowired
+    AcknowledgementWebhook webhook;
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
@@ -115,8 +150,6 @@ public class ServiceProviderController {
     public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
         this.statusChangeEmailService = statusChangeEmailService;
     }
-    /*@Autowired
-    private DummyAssignerService dummyAssignerService;*/
 
     @Transactional
     @PostMapping("/assign-skill")
@@ -164,8 +197,7 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Autowired
-    AcknowledgementWebhook webhook;
+
     @Authorize(value = {Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
@@ -211,24 +243,21 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
         boolean hasCurrent = false;
         boolean hasPermanent = false;
-        boolean hasBusinessAddress= false;
+        boolean hasBusinessAddress = false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
             if (addr.getAddress_type_id() == Constant.CURRENT_ADDRESS_ID) {
                 hasCurrent = true;
             } else if (addr.getAddress_type_id() == Constant.PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
-            }
-            else if(addr.getAddress_type_id()== Constant.OFFICE_ADDRESS_ID)
-            {
-                hasBusinessAddress=true;
+            } else if (addr.getAddress_type_id() == Constant.OFFICE_ADDRESS_ID) {
+                hasBusinessAddress = true;
             }
         }
 
-        if(!hasBusinessAddress)
-            if(serviceProvider.getIs_running_business_unit().equals(true))
-            {
-                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+        if (!hasBusinessAddress)
+            if (serviceProvider.getIs_running_business_unit().equals(true)) {
+                return ResponseService.generateErrorResponse("Business address is not filled", HttpStatus.BAD_REQUEST);
             }
         if (!hasCurrent && !hasPermanent)
             return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
@@ -297,7 +326,7 @@ public class ServiceProviderController {
         userAcknowledgement.setAcknowledgementVersion("v.1");
         entityManager.persist(userAcknowledgement);*/
         entityManager.merge(serviceProvider);
-        return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
+        return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false), HttpStatus.OK);
     }
 
     @Transactional
@@ -514,7 +543,7 @@ public class ServiceProviderController {
             List<ServiceProviderEntity> results = dataQuery.getResultList();
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
+                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false));
             }
 
             // Create success message
@@ -560,7 +589,7 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Service provider does not found", HttpStatus.NOT_FOUND);
             }
 
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false);
             return ResponseService.generateSuccessResponse("Service Provider details retrieved successfully", serviceProviderMap, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -574,19 +603,38 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int limit) {
+            @RequestParam(defaultValue = "30") int limit,
+            @RequestParam(value = "sort_order", required = false, defaultValue = "DESC") String sortOrder) {
         try {
             int startPosition = page * limit;
 
             TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(
-                    "SELECT s FROM ServiceProviderEntity s WHERE s.testStatus.test_status_id = :testStatusId",
+                    "SELECT s FROM ServiceProviderEntity s WHERE s.serviceProviderStatus.test_status_id = :testStatusId",
                     ServiceProviderEntity.class);
 
             query.setParameter("testStatusId", Constant.TEST_COMPLETED_STATUS);
-            query.setFirstResult(startPosition);
-            query.setMaxResults(limit);
+//            query.setFirstResult(startPosition);
+//            query.setMaxResults(limit);
 
             List<ServiceProviderEntity> results = query.getResultList();
+
+            if ("ASC".equalsIgnoreCase(sortOrder)) {
+                results.sort(
+                        Comparator.comparing(
+                                ServiceProviderEntity::getUpdatedDate,
+                                Comparator.nullsFirst(Comparator.naturalOrder())
+                        )
+                );
+            } else {
+                results.sort(
+                        Comparator.comparing(
+                                ServiceProviderEntity::getUpdatedDate,
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                );
+            }
+
+            results = results.subList(startPosition, limit);
             if (results.isEmpty()) {
                 return ResponseService.generateSuccessResponse("There is no any service Provider who has completed the test", results, HttpStatus.OK);
             }
@@ -621,7 +669,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
-            @RequestParam(value = "a4dh",defaultValue = "false")Boolean ext,
+            @RequestParam(value = "a4dh", defaultValue = "false") Boolean ext,
             @RequestParam(required = false) Long ticketId,
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder,
             HttpServletRequest request) {
@@ -633,7 +681,7 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId && roleId != 5)&&Boolean.TRUE.equals(!ext))
+            if (role != null && (role <= roleId && roleId != 5) && Boolean.TRUE.equals(!ext))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             // Validate input
@@ -644,7 +692,7 @@ public class ServiceProviderController {
                     (uri.containsKey("userName") && user_name == null) ||
                     (uri.containsKey("qualificationType") && qualificationType == null) ||
                     (uri.containsKey("mobileNumber") && mobileNumber == null) ||
-                    (uri.containsKey("type") && type == null) ) {
+                    (uri.containsKey("type") && type == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
             if (role != null && role == 2 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
@@ -1192,7 +1240,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Profile already completed", HttpStatus.BAD_REQUEST);
         serviceProvider.setCompleted(true);
         try {
-            return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false), HttpStatus.OK);
         } catch (Exception exception) {
             return ResponseService.generateErrorResponse("Could not complete profile due to an error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -1214,7 +1262,7 @@ public class ServiceProviderController {
         TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
         List<Map<String, Object>> res = new ArrayList<>();
         for (ServiceProviderEntity serviceProvider : query.getResultList()) {
-            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
+            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false));
         }
         int totalItems = query.getResultList().size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
