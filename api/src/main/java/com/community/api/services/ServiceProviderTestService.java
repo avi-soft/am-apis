@@ -3,12 +3,15 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.GiveUploadedImageScoreDTO;
-import com.community.api.endpoint.avisoft.controller.ServiceProvider.ServiceProviderController;
-import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
 import com.community.api.entity.Image;
-import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.entity.ResizedImage;
+import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.ServiceProviderTest;
+import com.community.api.entity.ServiceProviderTestStatus;
+import com.community.api.entity.SignatureImage;
+import com.community.api.entity.TypingText;
+import com.community.api.entity.UploadedPdf;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.DocumentType;
@@ -16,32 +19,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.social.ServiceProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.time.LocalDateTime;
-import java.util.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @Service
 public class ServiceProviderTestService {
 
+    private static final double SIMILARITY_THRESHOLD = 0.95; //can adjust this value
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -50,15 +52,9 @@ public class ServiceProviderTestService {
     private FileService fileService;
     @Autowired
     private DocumentStorageService fileUploadService;
-
     @Autowired
     private ExceptionHandlingImplement exceptionHandlingImplement;
     private StatusChangeEmailService statusChangeEmailService;
-    @Autowired
-    public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
-        this.statusChangeEmailService = statusChangeEmailService;
-    }
-
     @Value("${image.validation.tolerance}")
     private float tolerance;
 
@@ -66,788 +62,6 @@ public class ServiceProviderTestService {
         this.entityManager = entityManager;
         this.exceptionHandlingImplement = exceptionHandlingImplement;
     }
-
-    @Transactional
-    public Map<String, Object> startTest(Long serviceProviderId,HttpServletRequest request) throws Exception {
-        try
-        {
-            DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-            DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-            DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-            double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-            double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-            if(serviceProvider==null)
-            {
-                throw new EntityDoesNotExistsException("Service Provider not found");
-            }
-            if(serviceProvider.getServiceProviderStatus()!=null)
-            {
-                ServiceProviderTestStatus serviceProviderTestStatus= entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
-                if(serviceProviderTestStatus==null)
-                {
-                    throw new IllegalArgumentException("Test Status id "+ Constant.TEST_COMPLETED_STATUS+" Not found so cannot start test of ServiceProvider");
-                }
-                Long testStatus= serviceProviderTestStatus.getTest_status_id();
-                if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getServiceProviderStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
-                {
-                    ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
-                    System.out.println(test.getDownloaded_image().getFile_path());
-                    String imageUrl = fileService.getEncodedFileUrl(test.getDownloaded_image().getFile_path(),request);
-                    System.out.println(imageUrl);
-                    String randomPdfUrl = fileService.getEncodedFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
-                    String randomSignUrl = fileService.getEncodedFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("test", test);
-                    response.put("downloadImageUrl", imageUrl);
-                    response.put("downloadPdfImageUrl", randomPdfUrl);
-                    response.put("downloadSignImageUrl", randomSignUrl);
-                    response.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
-                    response.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
-                    response.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
-                    response.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
-                    response.put("minPdfSize",pdfDocumentType.getMin_document_size());
-                    response.put("maxPdfSize",pdfDocumentType.getMax_document_size());
-                    response.put("requiredSignatureImageWidth",targetWidth);
-                    response.put("requiredSignatureImageHeight",targetHeight);
-                    response.put("uploadedResizedImage",test.getResized_image());
-                    response.put("uploadedSignatureImage",test.getSignature_image());
-                    response.put("uploadedPdf",test.getUploadedPdf());
-                    response.put("dpi",signatureImageDocumentType.getDpi());
-                    return response;
-                }
-                if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(testStatus) )
-                {
-                    throw new IllegalArgumentException("Skill Test has already been submitted.You cannot start a new test.");
-                }
-
-                ServiceProviderTestStatus serviceProviderTestStatusForApproved= entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_SP);
-                if(serviceProviderTestStatus==null)
-                {
-                    throw new IllegalArgumentException("Test Status id "+ Constant.APPROVED_SP +" Not found so cannot start test of ServiceProvider");
-                }
-                if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id()))
-                {
-                    throw new IllegalArgumentException("Skill Test has already been approved. No need to start test again.");
-                }
-            }
-
-            Image randomImage = getRandomImageByTypeId(1);
-            if(randomImage==null )
-            {
-                throw new IllegalArgumentException("There is no any random image present. Add a image to be selected randomly.");
-            }
-            String randomText= getRandomTypingText();
-            if(randomText==null)
-            {
-                throw new IllegalArgumentException("There is no any random typing text present. Add a typing text to be selected randomly.");
-            }
-
-            Image randomPdfImage = getRandomImageByTypeId(2);
-            if(randomPdfImage==null )
-            {
-                throw new IllegalArgumentException("There is no any random pdf image present. Add a image for pdfs to be selected randomly.");
-            }
-
-            Image randomSignImage = getRandomImageByTypeId(3);
-            if(randomSignImage==null )
-            {
-                throw new IllegalArgumentException("There is no any random signature image present. Add a image for signatures to be selected randomly.");
-            }
-
-            ServiceProviderTest test = new ServiceProviderTest();
-            test.setService_provider(serviceProvider);
-            test.setDownloaded_image(randomImage);
-            test.setDownloaded_pdf_image(randomPdfImage);
-            test.setDownloaded_signature_image(randomSignImage);
-            test.setDownloaded_image(randomImage);
-            test.setTyping_test_text(randomText);
-            test.setIs_test_completed(false);
-            entityManager.persist(test);
-            serviceProvider.getServiceProviderTests().add(test);
-            entityManager.merge(serviceProvider);
-
-            String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-            String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
-            String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
-            Map<String, Object> response = new HashMap<>();
-            response.put("test", test);
-            response.put("downloadImageUrl", imageUrl);
-            response.put("downloadPdfImageUrl", randomPdfUrl);
-            response.put("downloadSignImageUrl", randomSignUrl);
-            response.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
-            response.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
-            response.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
-            response.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
-            response.put("minPdfSize",pdfDocumentType.getMin_document_size());
-            response.put("maxPdfSize",pdfDocumentType.getMax_document_size());
-            response.put("requiredSignatureImageWidth",targetWidth);
-            response.put("requiredSignatureImageHeight",targetHeight);
-            response.put("uploadedResizedImage",test.getResized_image());
-            response.put("uploadedSignatureImage",test.getSignature_image());
-            response.put("uploadedPdf",test.getUploadedPdf());
-            response.put("dpi",signatureImageDocumentType.getDpi());
-
-            return response;
-        }
-        catch (EntityDoesNotExistsException e)
-        {
-            exceptionHandlingImplement.handleException(e);
-            throw new EntityDoesNotExistsException(e.getMessage());
-        }
-        catch (IllegalArgumentException e)
-        {
-            exceptionHandlingImplement.handleException(e);
-            throw new IllegalArgumentException(e.getMessage());
-        }
-        catch (RuntimeException e)
-        {
-            exceptionHandlingImplement.handleException(e);
-            throw new RuntimeException(e.getMessage());
-        }
-        catch (Exception e)
-        {
-            exceptionHandlingImplement.handleException(e);
-            throw new Exception(e.getMessage());
-        }
-
-    }
-
-    @Transactional
-    public Map<String, Object> uploadResizedImages(Long serviceProviderId, Long testId, MultipartFile resizedFile, HttpServletRequest request) throws Exception {
-        DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-        DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-        // Retrieve the service provider entity
-        if(resizedFile==null || resizedFile.isEmpty())
-        {
-            throw new IllegalArgumentException("Resized image is not uploaded");
-        }
-
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        // Find the specific test for the service provider
-        ServiceProviderTest test = null;
-        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
-        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
-            if (testId.equals(serviceProviderTest.getTest_id())) {
-                test = serviceProviderTest;
-                break;
-            }
-        }
-        if (test == null) {
-            throw new EntityNotFoundException("Test not found with id: " + testId);
-        }
-
-        test.setIs_image_test_passed(false);
-        DocumentType documentType= entityManager.find(DocumentType.class,Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-        if(documentType==null)
-        {
-            throw new IllegalArgumentException("The requirements not found in DB for Resize image");
-        }
-        documentStorageService.validateDocument(resizedFile,documentType);
-
-        // Validate the image size using saveDocuments method logic
-        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(resizedFile, "Resized Images", serviceProviderId, "SERVICE_PROVIDER");
-        Map<String, Object> responseBody = savedResponse.getBody();
-
-        if (savedResponse.getStatusCode() != HttpStatus.OK) {
-            throw new Exception("Error uploading resized image: " + responseBody.get("message"));
-        }
-
-        // If successful, update the ServiceProviderTest with the image details
-        String fileName = resizedFile.getOriginalFilename();
-        ResizedImage resizedImage = test.getResized_image();
-        if (resizedImage == null) {
-            resizedImage = new ResizedImage();
-            resizedImage = entityManager.merge(resizedImage); // Persist the new Image entity
-            test.setResized_image(resizedImage);
-        }
-
-
-        String db_path ="avisoftdocument/SERVICE_PROVIDER/Resized/Resized_Images";
-        String dbPath=db_path+File.separator+ resizedFile.getOriginalFilename();
-
-        String fileUrl = fileService.getFileUrl(dbPath, request);
-
-        fileUploadService.uploadFileOnFileServer(resizedFile, "Resized_Images", "Resized", "SERVICE_PROVIDER");
-
-        // Set file metadata in the ResizedImage object
-        resizedImage.setFile_name(fileName);
-        resizedImage.setFile_type(resizedFile.getContentType());
-        resizedImage.setFile_path(dbPath);
-        resizedImage.setImage_data(resizedFile.getBytes());
-        resizedImage.setServiceProvider(serviceProvider);
-        Long resizedFileSize=(long) resizedFile.getSize();
-        resizedImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(resizedFileSize));
-
-
-        // Set the image data and validate the resized image
-        test.setResized_image_data(resizedFile.getBytes());
-        boolean isImageValid = validateResizedImage(test);
-        if (!isImageValid) {
-            throw new IllegalArgumentException("Uploaded image is different from expected image");
-        }
-
-        // If image validation passes, mark the test as passed
-        test.setIs_image_test_passed(true);
-        entityManager.merge(test);
-
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("test", test);
-        response.put("resizedImageUrl", fileUrl);
-
-        return response;
-    }
-
-    @Transactional
-    public Map<String,Object> uploadPdf(Long serviceProviderId,Long testId,MultipartFile pdfFile,HttpServletRequest request) throws Exception {
-        if(pdfFile==null|| pdfFile.isEmpty())
-        {
-            throw new IllegalArgumentException("No any pdf is uploaded");
-        }
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        // Find the specific test for the service provider
-        ServiceProviderTest test = null;
-        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
-        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
-            if (testId.equals(serviceProviderTest.getTest_id())) {
-                test = serviceProviderTest;
-                break;
-            }
-        }
-        if (test == null) {
-            throw new EntityNotFoundException("Test not found with id: " + testId);
-        }
-
-        DocumentType documentType= entityManager.find(DocumentType.class,Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-        if(documentType==null)
-        {
-            throw new IllegalArgumentException("The requirements not found in DB for pdf which would be uploaded by Service provider to give skill test");
-        }
-        documentStorageService.validateDocument(pdfFile,documentType);
-
-        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
-        Map<String, Object> responseBody = savedResponse.getBody();
-
-        /*if (savedResponse.getStatusCode() != HttpStatus.OK) {
-            throw new Exception("Error uploading pdf: " + responseBody.get("message"));
-        }*/
-        String fileName = pdfFile.getOriginalFilename();
-        UploadedPdf uploadedPdf = test.getUploadedPdf();
-        if (uploadedPdf == null) {
-            uploadedPdf = new UploadedPdf();
-            uploadedPdf = entityManager.merge(uploadedPdf); // Persist the new Pdf entity
-            test.setUploadedPdf(uploadedPdf);
-        }
-
-        String db_path ="avisoftdocument/SERVICE_PROVIDER/PDF/Uploaded_Pdfs";
-        String dbPath=db_path+File.separator+ pdfFile.getOriginalFilename();
-
-        String fileUrl = fileService.getFileUrl(dbPath, request);
-
-        fileUploadService.uploadFileOnFileServer(pdfFile, "Uploaded_Pdfs", "PDF", "SERVICE_PROVIDER");
-
-        // Set file metadata in the ResizedImage object
-        uploadedPdf.setFile_name(fileName);
-        uploadedPdf.setFile_type(pdfFile.getContentType());
-        uploadedPdf.setFile_path(dbPath);
-        uploadedPdf.setPdf_data(pdfFile.getBytes());
-        Long uploadedPdfSize=(long) pdfFile.getSize();
-        uploadedPdf.setPdf_size(ImageSizeConfig.convertBytesToReadableSize(uploadedPdfSize));
-        uploadedPdf.setServiceProvider(serviceProvider);
-
-        entityManager.merge(test);
-        Map<String, Object> response = new HashMap<>();
-        response.put("test", test);
-        response.put("pdfUrl", fileUrl);
-        return response;
-
-    }
-
-    @Transactional
-    public ServiceProviderTest submitTypedText(Long serviceProviderId,Long testId, String typedText) throws Exception {
-        if(typedText==null)
-        {
-            throw new IllegalArgumentException("Typing Text cannot be null");
-        }
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if(serviceProvider==null)
-        {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-        ServiceProviderTest test =null;
-        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
-
-        for(ServiceProviderTest serviceProviderTest: serviceProviderTestList)
-        {
-            if(testId.equals(serviceProviderTest.getTest_id()))
-            {
-                test=serviceProviderTest;
-                break;
-            }
-        }
-        if (test == null) {
-            throw new EntityNotFoundException();
-        }
-        test.setSubmitted_text(typedText);
-
-        // Calculate typing test score based on similarity between expected text and entered text
-        int typingTestScore = calculateTypingTestScore(test.getTyping_test_text(), typedText);
-        test.setTyping_test_scores(typingTestScore);
-        serviceProvider.setWrittenTestScore(typingTestScore);
-        entityManager.merge(test);
-        serviceProvider.setTotalScore(0);
-
-            if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
-            {
-                Integer totalScore=typingTestScore+ serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
-                if(serviceProvider.getImageUploadScore()!=null)
-                {
-                    totalScore= totalScore+serviceProvider.getImageUploadScore();
-                }
-                serviceProvider.setTotalScore(totalScore);
-                if(serviceProvider.getAutoScoring().equals(true)) {
-                    ServiceProviderRank serviceProviderRank = assignRankingForProfessional(serviceProvider.getTotalScore());
-                    if (serviceProviderRank == null) {
-                        throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
-                    }
-                    serviceProvider.setRanking(serviceProviderRank);
-                }
-            }
-            else {
-                Integer totalScore=typingTestScore+ serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
-                if(serviceProvider.getImageUploadScore()!=null)
-                {
-                    totalScore= totalScore+serviceProvider.getImageUploadScore();
-                }
-                serviceProvider.setTotalScore(totalScore);
-                if(serviceProvider.getAutoScoring().equals(true)) {
-
-                    ServiceProviderRank serviceProviderRank = assignRankingForIndividual(serviceProvider.getTotalScore());
-                    if (serviceProviderRank == null) {
-                        throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
-                    }
-                    serviceProvider.setRanking(serviceProviderRank);
-                }
-        }
-        entityManager.merge(serviceProvider);
-        return test;
-    }
-
-    @Transactional
-    public Map<String,Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile,HttpServletRequest request,String authHeader) throws Exception {
-        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-        if(signatureFile==null|| signatureFile.isEmpty())
-        {
-            throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
-        }
-        // Retrieve the service provider entity
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        // Find the specific test for the service provider
-        ServiceProviderTest test = null;
-        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
-        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
-            if (testId.equals(serviceProviderTest.getTest_id())) {
-                test = serviceProviderTest;
-                break;
-            }
-        }
-        if (test == null) {
-            throw new EntityNotFoundException("Service Provider Test not found");
-        }
-
-        if(test.getResized_image()==null || test.getSubmitted_text()==null || test.getUploadedPdf()==null)
-        {
-            throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
-        }
-
-        DocumentType documentType= entityManager.find(DocumentType.class,Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        if(documentType==null)
-        {
-            throw new IllegalArgumentException("The requirements not found in DB for Signature image which would be uploaded by Service provider to give skill test");
-        }
-        targetWidth= documentType.getMax_width_dimension_in_mm();
-        targetHeight=documentType.getMax_height_dimension_in_mm();
-        documentStorageService.validateDocument(signatureFile,documentType);
-        validateImageDimension(signatureFile.getBytes(), targetWidth, targetHeight, tolerance);
-
-        // Use the saveDocuments method to validate and store the signature image
-        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(signatureFile, "Signature Image", serviceProviderId, "SERVICE_PROVIDER");
-        Map<String, Object> responseBody = savedResponse.getBody();
-
-        if (savedResponse.getStatusCode() != HttpStatus.OK) {
-            throw new Exception("Error uploading signature image: " + responseBody.get("message"));
-        }
-
-        // If successful, update the ServiceProviderTest with the image details
-        String fileName = signatureFile.getOriginalFilename();
-        SignatureImage signatureImage = test.getSignature_image();
-        if (signatureImage == null) {
-            signatureImage = new SignatureImage();
-            signatureImage = entityManager.merge(signatureImage); // Persist the new Image entity
-            test.setSignature_image(signatureImage);
-        }
-
-        String db_path ="avisoftdocument/SERVICE_PROVIDER/Signature/Signature_Images";
-        String dbPath= db_path+File.separator+signatureFile.getOriginalFilename();
-
-        fileUploadService.uploadFileOnFileServer(signatureFile, "Signature_Images", "Signature", "SERVICE_PROVIDER");
-
-        String fileUrl = fileService.getFileUrl(dbPath, request);
-
-        // Set the file details in the signatureImage entity
-        signatureImage.setFile_name(fileName);
-        signatureImage.setFile_type(signatureFile.getContentType());
-        signatureImage.setFile_path(dbPath);
-        signatureImage.setImage_data(signatureFile.getBytes());
-        Long uploadedSignSize=(long) signatureFile.getSize();
-        signatureImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedSignSize));
-        signatureImage.setServiceProvider(serviceProvider);
-
-        test.setIs_test_completed(true);
-        test.setSubmitted_at(LocalDateTime.now());
-        entityManager.merge(test);
-        ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
-        if(serviceProviderTestStatus==null)
-        {
-            throw new IllegalArgumentException("Test status with id status 'completed test' does not exists");
-        }
-        List<ServiceProviderEntity> serviceProviders= Arrays.asList(serviceProvider);
-        if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(1L) ||serviceProvider.getServiceProviderStatus().getTest_status_id().equals(2L))
-        {
-            serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
-            statusChangeEmailService.sendStatusChangeEmails(serviceProviders, "testcomplete", authHeader);
-        }
-        entityManager.merge(serviceProvider);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("test", test);
-        response.put("signatureImageUrl", fileUrl);
-
-        return response;
-    }
-
-    public void validateImageDimension(byte[] signatureImageData, double targetWidth, double targetHeight, float tolerance) {
-        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
-            if (image == null) {
-                throw new IllegalArgumentException("Unable to read the image file.");
-            }
-
-            double dpiX = signatureImageDocumentType.getDpi();
-            double dpiY = signatureImageDocumentType.getDpi();
-
-            // Calculate dimensions in mm
-            double widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
-            double heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
-
-            // Check if width and height are within the acceptable range (target ± tolerance)
-            boolean isWidthValid =
-                    (widthInMM >= (targetWidth - tolerance) && widthInMM <= (targetWidth + tolerance));
-            boolean isHeightValid =
-                    (heightInMM >= (targetHeight - tolerance) && heightInMM <= (targetHeight + tolerance));
-
-            if (!isWidthValid || !isHeightValid) {
-                throw new IllegalArgumentException(
-                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm. Keep DPI = "+signatureImageDocumentType.getDpi(),
-                                targetWidth, targetHeight, tolerance)
-                );
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Error reading the signature image: " + e.getMessage(), e);
-        }
-    }
-
-    @Transactional
-    public List<ServiceProviderTest> getServiceProviderTestByServiceProviderId(Long serviceProviderId, int page, int limit) throws EntityDoesNotExistsException {
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        // Calculate the start position for pagination
-        int startPosition = page * limit;
-
-        // Create the query
-        TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
-                "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
-                ServiceProviderTest.class
-        );
-        query.setParameter("serviceProviderId", serviceProviderId);
-
-
-        // Apply pagination
-        query.setFirstResult(startPosition);
-        query.setMaxResults(limit);
-
-        return query.getResultList();
-    }
-
-    @Transactional
-    public ResponseEntity<?> getCompletedServiceProviderTest(Long serviceProviderId,HttpServletRequest request) throws EntityDoesNotExistsException {
-        DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-        DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        // query to get all tests of the service provider
-        TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
-                "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
-                ServiceProviderTest.class
-        );
-
-        // Binding the parameter to the query
-        query.setParameter("serviceProviderId", serviceProviderId);
-
-        List<ServiceProviderTest> serviceProviderTests = query.getResultList();
-        if (serviceProviderTests.isEmpty()) {
-            return ResponseService.generateSuccessResponse("Service Provider has not given any test yet",null,HttpStatus.OK);
-        }
-
-        ServiceProviderTest serviceProviderTestToReturn = null;
-        for (ServiceProviderTest serviceProviderTest : serviceProviderTests) {
-            if((serviceProviderTest.getIs_test_completed()!=null))
-            {
-                if (Boolean.TRUE.equals(serviceProviderTest.getIs_test_completed())) {
-                    if (serviceProviderTestToReturn == null || serviceProviderTest.getSubmitted_at().isAfter(serviceProviderTestToReturn.getSubmitted_at())) {
-                        serviceProviderTestToReturn = serviceProviderTest;
-                    }
-                }
-            }
-        }
-        if(serviceProviderTestToReturn==null)
-        {
-            return ResponseService.generateSuccessResponse("Service Provider has not completed any test yet",null,HttpStatus.OK);
-        }
-        String downloadedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_image().getFile_path(),request);
-        String downloadedPdfUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_pdf_image().getFile_path(),request);
-        String downloadedSignatureUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_signature_image().getFile_path(),request);
-        String resizedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getResized_image().getFile_path(),request);
-        String signatureImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getSignature_image().getFile_path(),request);
-        String pdfUrl=fileService.getFileUrl(serviceProviderTestToReturn.getUploadedPdf().getFile_path(),request);
-        Map<String,Object> completedTestMap= new HashMap<>();
-        completedTestMap.put("completedTest",serviceProviderTestToReturn);
-        completedTestMap.put("downloadedImageUrl",downloadedImageUrl);
-        completedTestMap.put("downloadedSignatureImageUrl",downloadedSignatureUrl);
-        completedTestMap.put("downloadedPdfImageUrl",downloadedPdfUrl);
-        completedTestMap.put("resizedImageUrl",resizedImageUrl);
-        completedTestMap.put("signatureImageUrl",signatureImageUrl);
-        completedTestMap.put("uploadedPdfUrl",pdfUrl);
-        completedTestMap.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
-        completedTestMap.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
-        completedTestMap.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
-        completedTestMap.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
-        completedTestMap.put("minPdfSize",pdfDocumentType.getMin_document_size());
-        completedTestMap.put("maxPdfSize",pdfDocumentType.getMax_document_size());
-        completedTestMap.put("requiredSignatureImageWidth",targetWidth);
-        completedTestMap.put("requiredSignatureImageHeight",targetHeight);
-        completedTestMap.put("uploadedResizedImage",serviceProviderTestToReturn.getResized_image());
-        completedTestMap.put("uploadedSignatureImage",serviceProviderTestToReturn.getSignature_image());
-        completedTestMap.put("dpi",signatureImageDocumentType.getDpi());
-        completedTestMap.put("uploadedPdf",serviceProviderTestToReturn.getUploadedPdf());
-
-        return ResponseService.generateSuccessResponse("Completed test is found",completedTestMap,HttpStatus.OK);
-    }
-
-    @Transactional
-    public ResponseEntity<?> givePointsForImageUpload(Long serviceProviderId, GiveUploadedImageScoreDTO giveUploadedImageScoreDTO) throws EntityDoesNotExistsException {
-        if(giveUploadedImageScoreDTO.getImage_test_scores()==null)
-        {
-            return ResponseService.generateErrorResponse("Image Test Score cannot be null",HttpStatus.BAD_REQUEST);
-        }
-        if(giveUploadedImageScoreDTO.getImage_test_scores()<0)
-        {
-            return ResponseService.generateErrorResponse("Image Upload Score cannot be a negative number",HttpStatus.BAD_REQUEST);
-        }
-        if(giveUploadedImageScoreDTO.getImage_test_scores()>15)
-        {
-            return ResponseService.generateErrorResponse("Image Upload Score cannot be greater than 15",HttpStatus.BAD_REQUEST);
-        }
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if (serviceProvider == null) {
-            throw new EntityDoesNotExistsException("Service Provider not found");
-        }
-
-        TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
-                "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
-                ServiceProviderTest.class
-        );
-
-        query.setParameter("serviceProviderId", serviceProviderId);
-
-        List<ServiceProviderTest> serviceProviderTests = query.getResultList();
-        if (serviceProviderTests.isEmpty()) {
-            return ResponseService.generateSuccessResponse("Service Provider has not given any test yet",null,HttpStatus.OK);
-        }
-
-        ServiceProviderTest serviceProviderTest = null;
-        for (ServiceProviderTest serviceProviderTest1 : serviceProviderTests) {
-            if((serviceProviderTest1.getIs_test_completed()!=null))
-            {
-                if (Boolean.TRUE.equals(serviceProviderTest1.getIs_test_completed())) {
-                    if (serviceProviderTest == null || serviceProviderTest1.getSubmitted_at().isAfter(serviceProviderTest.getSubmitted_at())) {
-                        serviceProviderTest = serviceProviderTest1;
-                    }
-                }
-            }
-        }
-        if(serviceProviderTest==null)
-        {
-            return ResponseService.generateSuccessResponse("Service Provider has not completed any test yet",null,HttpStatus.OK);
-        }
-
-        serviceProviderTest.setImage_test_scores(giveUploadedImageScoreDTO.getImage_test_scores());
-        entityManager.merge(serviceProviderTest);
-        serviceProvider.setImageUploadScore(giveUploadedImageScoreDTO.getImage_test_scores());
-        serviceProvider.setTotalSkillTestPoints(serviceProviderTest.getImage_test_scores() + serviceProviderTest.getTyping_test_scores());
-
-        serviceProvider.setTotalScore(0);
-        Integer totalScore=0;
-
-            if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
-            {
-                totalScore+=giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
-                if(serviceProvider.getWrittenTestScore()!=null)
-                {
-                    totalScore+=serviceProvider.getWrittenTestScore();
-                }
-                serviceProvider.setTotalScore(totalScore);
-                if(serviceProvider.getAutoScoring().equals(true)) {
-                    ServiceProviderRank serviceProviderRank = assignRankingForProfessional(totalScore);
-                    if (serviceProviderRank == null) {
-                        throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
-                    }
-                    serviceProvider.setRanking(serviceProviderRank);
-                }
-            }
-            else {
-                totalScore+= giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
-                if(serviceProvider.getWrittenTestScore()!=null)
-                {
-                    totalScore+=serviceProvider.getWrittenTestScore();
-                }
-                serviceProvider.setTotalScore(totalScore);
-                if(serviceProvider.getAutoScoring().equals(true)) {
-                ServiceProviderRank serviceProviderRank= assignRankingForIndividual(totalScore);
-                if(serviceProviderRank==null)
-                {
-                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
-                }
-                serviceProvider.setRanking(serviceProviderRank);
-                }
-            }
-
-        entityManager.merge(serviceProvider);
-                return ResponseService.generateSuccessResponse("Image test scores updated successfully",serviceProviderTest,HttpStatus.OK);
-    }
-
-
-    private boolean validateResizedImage(ServiceProviderTest test) throws IOException {
-        Image downloadedImage = test.getDownloaded_image();
-        if (downloadedImage == null || downloadedImage.getImage_data() == null) {
-            throw new IllegalStateException("Downloaded image or its data is missing");
-        }
-
-        byte[] downloadedImageData = downloadedImage.getImage_data();
-        byte[] resizedImageData = test.getResized_image_data();
-
-        try {
-            return areImagesVisuallyIdentical(downloadedImageData, resizedImageData);
-        } catch (IOException e) {
-            throw new IllegalStateException("Error comparing images", e);
-        }
-    }
-
-    private Image getRandomImageByTypeId(int typeId) {
-        // Count images with the given type ID
-        Long count = (Long) entityManager.createQuery(
-                        "SELECT COUNT(i) FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
-                .setParameter("typeId", typeId)
-                .getSingleResult();
-
-        if (count == 0) {
-            throw new EntityNotFoundException("No images available for type ID: " + typeId);
-        }
-
-        int randomIndex = new Random().nextInt(count.intValue());
-
-        return (Image) entityManager.createQuery(
-                        "SELECT i FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
-                .setParameter("typeId", typeId)
-                .setFirstResult(randomIndex)
-                .setMaxResults(1)
-                .getSingleResult();
-    }
-
-    private String getRandomTypingText() {
-        // Fetch a random TypingText entity from the database
-        long count = (long) entityManager.createQuery( "SELECT COUNT(t) FROM TypingText t WHERE t.archived = false").getSingleResult();
-        if (count == 0) {
-            throw new EntityNotFoundException("No typing texts available");
-        }
-        int randomIndex = new Random().nextInt((int) count);
-        TypingText typingText = (TypingText) entityManager.createQuery("SELECT t FROM TypingText t WHERE t.archived = false")
-                .setFirstResult(randomIndex)
-                .setMaxResults(1)
-                .getSingleResult();
-        return typingText.getText();
-    }
-
-    private int calculateTypingTestScore(String expectedText, String typedText) {
-        // Handle null or empty cases
-        if (expectedText == null || typedText == null || expectedText.isEmpty()) {
-            return 0; // If expectedText is null or empty, no score can be given
-        }
-
-        // Split the texts into words for comparison (can be adjusted for character-level comparison if needed)
-        String[] expectedWords = expectedText.split("\\s+");
-        String[] typedWords = typedText.split("\\s+");
-
-        int totalWords = expectedWords.length;
-        int matchingWords = 0;
-
-        // Compare word by word up to the length of the shortest text
-        for (int i = 0; i < Math.min(expectedWords.length, typedWords.length); i++) {
-            if (expectedWords[i].equalsIgnoreCase(typedWords[i])) {
-                matchingWords++;
-            }
-        }
-
-        // Calculate the accuracy as a percentage of matching words
-        double accuracy = (double) matchingWords / totalWords;
-
-        // Map accuracy to score between 0 and 15
-        int score = (int) Math.round(accuracy * 15);
-
-        // Return the score, ensuring it's between 0 and 15
-        return Math.max(0, Math.min(15, score));
-    }
-
-
-    private static final double SIMILARITY_THRESHOLD = 0.95; //can adjust this value
 
     public static boolean areImagesVisuallyIdentical(byte[] originalImageData, byte[] resizedImageData) throws IOException {
         BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(originalImageData));
@@ -893,61 +107,796 @@ public class ServiceProviderTestService {
         return Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
     }
 
+    @Autowired
+    public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
+        this.statusChangeEmailService = statusChangeEmailService;
+    }
+
+    @Transactional
+    public Map<String, Object> startTest(Long serviceProviderId, HttpServletRequest request) throws Exception {
+        try {
+            DocumentType resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+            DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+            DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+            double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+            double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if (serviceProvider == null) {
+                throw new EntityDoesNotExistsException("Service Provider not found");
+            }
+            if (serviceProvider.getServiceProviderStatus() != null) {
+                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
+                if (serviceProviderTestStatus == null) {
+                    throw new IllegalArgumentException("Test Status id " + Constant.TEST_COMPLETED_STATUS + " Not found so cannot start test of ServiceProvider");
+                }
+                Long testStatus = serviceProviderTestStatus.getTest_status_id();
+                if (!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getServiceProviderStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS)) {
+                    ServiceProviderTest test = serviceProvider.getServiceProviderTests().get(0);
+                    System.out.println(test.getDownloaded_image().getFile_path());
+                    String imageUrl = fileService.getEncodedFileUrl(test.getDownloaded_image().getFile_path(), request);
+                    System.out.println(imageUrl);
+                    String randomPdfUrl = fileService.getEncodedFileUrl(test.getDownloaded_pdf_image().getFile_path(), request);
+                    String randomSignUrl = fileService.getEncodedFileUrl(test.getDownloaded_signature_image().getFile_path(), request);
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("test", test);
+                    response.put("downloadImageUrl", imageUrl);
+                    response.put("downloadPdfImageUrl", randomPdfUrl);
+                    response.put("downloadSignImageUrl", randomSignUrl);
+                    response.put("minResizedImageSize", resizedImageDocumentType.getMin_document_size());
+                    response.put("maxResizedImageSize", resizedImageDocumentType.getMax_document_size());
+                    response.put("minSignatureImageSize", signatureImageDocumentType.getMin_document_size());
+                    response.put("maxSignatureImageSize", signatureImageDocumentType.getMax_document_size());
+                    response.put("minPdfSize", pdfDocumentType.getMin_document_size());
+                    response.put("maxPdfSize", pdfDocumentType.getMax_document_size());
+                    response.put("requiredSignatureImageWidth", targetWidth);
+                    response.put("requiredSignatureImageHeight", targetHeight);
+                    response.put("uploadedResizedImage", test.getResized_image());
+                    response.put("uploadedSignatureImage", test.getSignature_image());
+                    response.put("uploadedPdf", test.getUploadedPdf());
+                    response.put("dpi", signatureImageDocumentType.getDpi());
+                    return response;
+                }
+                if (serviceProvider.getServiceProviderStatus().getTest_status_id().equals(testStatus)) {
+                    throw new IllegalArgumentException("Skill Test has already been submitted.You cannot start a new test.");
+                }
+
+                ServiceProviderTestStatus serviceProviderTestStatusForApproved = entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_SP);
+                if (serviceProviderTestStatus == null) {
+                    throw new IllegalArgumentException("Test Status id " + Constant.APPROVED_SP + " Not found so cannot start test of ServiceProvider");
+                }
+                if (serviceProvider.getServiceProviderStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id())) {
+                    throw new IllegalArgumentException("Skill Test has already been approved. No need to start test again.");
+                }
+            }
+
+            Image randomImage = getRandomImageByTypeId(1);
+            if (randomImage == null) {
+                throw new IllegalArgumentException("There is no any random image present. Add a image to be selected randomly.");
+            }
+            String randomText = getRandomTypingText();
+            if (randomText == null) {
+                throw new IllegalArgumentException("There is no any random typing text present. Add a typing text to be selected randomly.");
+            }
+
+            Image randomPdfImage = getRandomImageByTypeId(2);
+            if (randomPdfImage == null) {
+                throw new IllegalArgumentException("There is no any random pdf image present. Add a image for pdfs to be selected randomly.");
+            }
+
+            Image randomSignImage = getRandomImageByTypeId(3);
+            if (randomSignImage == null) {
+                throw new IllegalArgumentException("There is no any random signature image present. Add a image for signatures to be selected randomly.");
+            }
+
+            ServiceProviderTest test = new ServiceProviderTest();
+            test.setService_provider(serviceProvider);
+            test.setDownloaded_image(randomImage);
+            test.setDownloaded_pdf_image(randomPdfImage);
+            test.setDownloaded_signature_image(randomSignImage);
+            test.setDownloaded_image(randomImage);
+            test.setTyping_test_text(randomText);
+            test.setIs_test_completed(false);
+            entityManager.persist(test);
+            serviceProvider.getServiceProviderTests().add(test);
+            entityManager.merge(serviceProvider);
+
+            String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(), request);
+            String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(), request);
+            String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(), request);
+            Map<String, Object> response = new HashMap<>();
+            response.put("test", test);
+            response.put("downloadImageUrl", imageUrl);
+            response.put("downloadPdfImageUrl", randomPdfUrl);
+            response.put("downloadSignImageUrl", randomSignUrl);
+            response.put("minResizedImageSize", resizedImageDocumentType.getMin_document_size());
+            response.put("maxResizedImageSize", resizedImageDocumentType.getMax_document_size());
+            response.put("minSignatureImageSize", signatureImageDocumentType.getMin_document_size());
+            response.put("maxSignatureImageSize", signatureImageDocumentType.getMax_document_size());
+            response.put("minPdfSize", pdfDocumentType.getMin_document_size());
+            response.put("maxPdfSize", pdfDocumentType.getMax_document_size());
+            response.put("requiredSignatureImageWidth", targetWidth);
+            response.put("requiredSignatureImageHeight", targetHeight);
+            response.put("uploadedResizedImage", test.getResized_image());
+            response.put("uploadedSignatureImage", test.getSignature_image());
+            response.put("uploadedPdf", test.getUploadedPdf());
+            response.put("dpi", signatureImageDocumentType.getDpi());
+
+            return response;
+        } catch (EntityDoesNotExistsException e) {
+            exceptionHandlingImplement.handleException(e);
+            throw new EntityDoesNotExistsException(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            exceptionHandlingImplement.handleException(e);
+            throw new IllegalArgumentException(e.getMessage());
+        } catch (RuntimeException e) {
+            exceptionHandlingImplement.handleException(e);
+            throw new RuntimeException(e.getMessage());
+        } catch (Exception e) {
+            exceptionHandlingImplement.handleException(e);
+            throw new Exception(e.getMessage());
+        }
+
+    }
+
+    @Transactional
+    public Map<String, Object> uploadResizedImages(Long serviceProviderId, Long testId, MultipartFile resizedFile, HttpServletRequest request) throws Exception {
+        DocumentType resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
+        // Retrieve the service provider entity
+        if (resizedFile == null || resizedFile.isEmpty()) {
+            throw new IllegalArgumentException("Resized image is not uploaded");
+        }
+
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        // Find the specific test for the service provider
+        ServiceProviderTest test = null;
+        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
+        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
+            if (testId.equals(serviceProviderTest.getTest_id())) {
+                test = serviceProviderTest;
+                break;
+            }
+        }
+        if (test == null) {
+            throw new EntityNotFoundException("Test not found with id: " + testId);
+        }
+
+        test.setIs_image_test_passed(false);
+        DocumentType documentType = entityManager.find(DocumentType.class, Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        if (documentType == null) {
+            throw new IllegalArgumentException("The requirements not found in DB for Resize image");
+        }
+        documentStorageService.validateDocument(resizedFile, documentType);
+
+        // Validate the image size using saveDocuments method logic
+        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(resizedFile, "Resized Images", serviceProviderId, "SERVICE_PROVIDER");
+        Map<String, Object> responseBody = savedResponse.getBody();
+
+        if (savedResponse.getStatusCode() != HttpStatus.OK) {
+            throw new Exception("Error uploading resized image: " + responseBody.get("message"));
+        }
+
+        // If successful, update the ServiceProviderTest with the image details
+        String fileName = resizedFile.getOriginalFilename();
+        ResizedImage resizedImage = test.getResized_image();
+        if (resizedImage == null) {
+            resizedImage = new ResizedImage();
+            resizedImage = entityManager.merge(resizedImage); // Persist the new Image entity
+            test.setResized_image(resizedImage);
+        }
+
+        String db_path = "avisoftdocument/SERVICE_PROVIDER/Resized/Resized_Images";
+        String dbPath = db_path + File.separator + resizedFile.getOriginalFilename();
+
+        String fileUrl = fileService.getFileUrl(dbPath, request);
+
+        fileUploadService.uploadFileOnFileServer(resizedFile, "Resized_Images", "Resized", "SERVICE_PROVIDER");
+
+        // Set file metadata in the ResizedImage object
+        resizedImage.setFile_name(fileName);
+        resizedImage.setFile_type(resizedFile.getContentType());
+        resizedImage.setFile_path(dbPath);
+        resizedImage.setImage_data(resizedFile.getBytes());
+        resizedImage.setServiceProvider(serviceProvider);
+        Long resizedFileSize = (long) resizedFile.getSize();
+        resizedImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(resizedFileSize));
+
+
+        // Set the image data and validate the resized image
+        test.setResized_image_data(resizedFile.getBytes());
+        boolean isImageValid = validateResizedImage(test);
+        if (!isImageValid) {
+            throw new IllegalArgumentException("Uploaded image is different from expected image");
+        }
+
+        // If image validation passes, mark the test as passed
+        test.setIs_image_test_passed(true);
+        entityManager.merge(test);
+
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("test", test);
+        response.put("resizedImageUrl", fileUrl);
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> uploadPdf(Long serviceProviderId, Long testId, MultipartFile pdfFile, HttpServletRequest request) throws Exception {
+        if (pdfFile == null || pdfFile.isEmpty()) {
+            throw new IllegalArgumentException("No any pdf is uploaded");
+        }
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        // Find the specific test for the service provider
+        ServiceProviderTest test = null;
+        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
+        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
+            if (testId.equals(serviceProviderTest.getTest_id())) {
+                test = serviceProviderTest;
+                break;
+            }
+        }
+        if (test == null) {
+            throw new EntityNotFoundException("Test not found with id: " + testId);
+        }
+
+        DocumentType documentType = entityManager.find(DocumentType.class, Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        if (documentType == null) {
+            throw new IllegalArgumentException("The requirements not found in DB for pdf which would be uploaded by Service provider to give skill test");
+        }
+        documentStorageService.validateDocument(pdfFile, documentType);
+
+        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
+        Map<String, Object> responseBody = savedResponse.getBody();
+
+        /*if (savedResponse.getStatusCode() != HttpStatus.OK) {
+            throw new Exception("Error uploading pdf: " + responseBody.get("message"));
+        }*/
+        String fileName = pdfFile.getOriginalFilename();
+        UploadedPdf uploadedPdf = test.getUploadedPdf();
+        if (uploadedPdf == null) {
+            uploadedPdf = new UploadedPdf();
+            uploadedPdf = entityManager.merge(uploadedPdf); // Persist the new Pdf entity
+            test.setUploadedPdf(uploadedPdf);
+        }
+
+        String db_path = "avisoftdocument/SERVICE_PROVIDER/PDF/Uploaded_Pdfs";
+        String dbPath = db_path + File.separator + pdfFile.getOriginalFilename();
+
+        String fileUrl = fileService.getFileUrl(dbPath, request);
+
+        fileUploadService.uploadFileOnFileServer(pdfFile, "Uploaded_Pdfs", "PDF", "SERVICE_PROVIDER");
+
+        // Set file metadata in the ResizedImage object
+        uploadedPdf.setFile_name(fileName);
+        uploadedPdf.setFile_type(pdfFile.getContentType());
+        uploadedPdf.setFile_path(dbPath);
+        uploadedPdf.setPdf_data(pdfFile.getBytes());
+        Long uploadedPdfSize = (long) pdfFile.getSize();
+        uploadedPdf.setPdf_size(ImageSizeConfig.convertBytesToReadableSize(uploadedPdfSize));
+        uploadedPdf.setServiceProvider(serviceProvider);
+
+        entityManager.merge(test);
+        Map<String, Object> response = new HashMap<>();
+        response.put("test", test);
+        response.put("pdfUrl", fileUrl);
+        return response;
+
+    }
+
+    @Transactional
+    public ServiceProviderTest submitTypedText(Long serviceProviderId, Long testId, String typedText) throws Exception {
+        if (typedText == null) {
+            throw new IllegalArgumentException("Typing Text cannot be null");
+        }
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+        ServiceProviderTest test = null;
+        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
+
+        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
+            if (testId.equals(serviceProviderTest.getTest_id())) {
+                test = serviceProviderTest;
+                break;
+            }
+        }
+        if (test == null) {
+            throw new EntityNotFoundException();
+        }
+        test.setSubmitted_text(typedText);
+
+        // Calculate typing test score based on similarity between expected text and entered text
+        int typingTestScore = calculateTypingTestScore(test.getTyping_test_text(), typedText);
+        test.setTyping_test_scores(typingTestScore);
+        serviceProvider.setWrittenTestScore(typingTestScore);
+        entityManager.merge(test);
+        serviceProvider.setTotalScore(0);
+
+        if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
+            Integer totalScore = typingTestScore + serviceProvider.getBusinessUnitInfraScore() + serviceProvider.getWorkExperienceScore() + serviceProvider.getTechnicalExpertiseScore() + serviceProvider.getQualificationScore() + serviceProvider.getStaffScore();
+            if (serviceProvider.getImageUploadScore() != null) {
+                totalScore = totalScore + serviceProvider.getImageUploadScore();
+            }
+            serviceProvider.setTotalScore(totalScore);
+            if (serviceProvider.getAutoScoring().equals(true)) {
+                ServiceProviderRank serviceProviderRank = assignRankingForProfessional(serviceProvider.getTotalScore());
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
+            }
+        } else {
+            Integer totalScore = typingTestScore + serviceProvider.getInfraScore() + serviceProvider.getWorkExperienceScore() + serviceProvider.getTechnicalExpertiseScore() + serviceProvider.getQualificationScore() + serviceProvider.getPartTimeOrFullTimeScore();
+            if (serviceProvider.getImageUploadScore() != null) {
+                totalScore = totalScore + serviceProvider.getImageUploadScore();
+            }
+            serviceProvider.setTotalScore(totalScore);
+            if (serviceProvider.getAutoScoring().equals(true)) {
+
+                ServiceProviderRank serviceProviderRank = assignRankingForIndividual(serviceProvider.getTotalScore());
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
+            }
+        }
+        entityManager.merge(serviceProvider);
+        return test;
+    }
+
+    @Transactional
+    public Map<String, Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile, HttpServletRequest request, String authHeader) throws Exception {
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
+        if (signatureFile == null || signatureFile.isEmpty()) {
+            throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
+        }
+        // Retrieve the service provider entity
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        // Find the specific test for the service provider
+        ServiceProviderTest test = null;
+        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
+        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
+            if (testId.equals(serviceProviderTest.getTest_id())) {
+                test = serviceProviderTest;
+                break;
+            }
+        }
+        if (test == null) {
+            throw new EntityNotFoundException("Service Provider Test not found");
+        }
+
+        if (test.getResized_image() == null || test.getSubmitted_text() == null || test.getUploadedPdf() == null) {
+            throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
+        }
+
+        DocumentType documentType = entityManager.find(DocumentType.class, Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        if (documentType == null) {
+            throw new IllegalArgumentException("The requirements not found in DB for Signature image which would be uploaded by Service provider to give skill test");
+        }
+        targetWidth = documentType.getMax_width_dimension_in_mm();
+        targetHeight = documentType.getMax_height_dimension_in_mm();
+        documentStorageService.validateDocument(signatureFile, documentType);
+        validateImageDimension(signatureFile.getBytes(), targetWidth, targetHeight, tolerance);
+
+        // Use the saveDocuments method to validate and store the signature image
+        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(signatureFile, "Signature Image", serviceProviderId, "SERVICE_PROVIDER");
+        Map<String, Object> responseBody = savedResponse.getBody();
+
+        if (savedResponse.getStatusCode() != HttpStatus.OK) {
+            throw new Exception("Error uploading signature image: " + responseBody.get("message"));
+        }
+
+        // If successful, update the ServiceProviderTest with the image details
+        String fileName = signatureFile.getOriginalFilename();
+        SignatureImage signatureImage = test.getSignature_image();
+        if (signatureImage == null) {
+            signatureImage = new SignatureImage();
+            signatureImage = entityManager.merge(signatureImage); // Persist the new Image entity
+            test.setSignature_image(signatureImage);
+        }
+
+        String db_path = "avisoftdocument/SERVICE_PROVIDER/Signature/Signature_Images";
+        String dbPath = db_path + File.separator + signatureFile.getOriginalFilename();
+
+        fileUploadService.uploadFileOnFileServer(signatureFile, "Signature_Images", "Signature", "SERVICE_PROVIDER");
+
+        String fileUrl = fileService.getFileUrl(dbPath, request);
+
+        // Set the file details in the signatureImage entity
+        signatureImage.setFile_name(fileName);
+        signatureImage.setFile_type(signatureFile.getContentType());
+        signatureImage.setFile_path(dbPath);
+        signatureImage.setImage_data(signatureFile.getBytes());
+        Long uploadedSignSize = (long) signatureFile.getSize();
+        signatureImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedSignSize));
+        signatureImage.setServiceProvider(serviceProvider);
+
+        test.setIs_test_completed(true);
+        test.setSubmitted_at(LocalDateTime.now());
+        entityManager.merge(test);
+        ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
+        if (serviceProviderTestStatus == null) {
+            throw new IllegalArgumentException("Test status with id status 'completed test' does not exists");
+        }
+        List<ServiceProviderEntity> serviceProviders = Arrays.asList(serviceProvider);
+        if (serviceProvider.getServiceProviderStatus().getTest_status_id().equals(1L) || serviceProvider.getServiceProviderStatus().getTest_status_id().equals(2L)) {
+            serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
+            statusChangeEmailService.sendStatusChangeEmails(serviceProviders, "testcomplete", authHeader);
+        }
+        entityManager.merge(serviceProvider);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("test", test);
+        response.put("signatureImageUrl", fileUrl);
+
+        return response;
+    }
+
+    public void validateImageDimension(byte[] signatureImageData, double targetWidth, double targetHeight, float tolerance) {
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
+            if (image == null) {
+                throw new IllegalArgumentException("Unable to read the image file.");
+            }
+
+            double dpiX = signatureImageDocumentType.getDpi();
+            double dpiY = signatureImageDocumentType.getDpi();
+
+            // Calculate dimensions in mm
+            double widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
+            double heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
+
+            // Check if width and height are within the acceptable range (target ± tolerance)
+            boolean isWidthValid =
+                    (widthInMM >= (targetWidth - tolerance) && widthInMM <= (targetWidth + tolerance));
+            boolean isHeightValid =
+                    (heightInMM >= (targetHeight - tolerance) && heightInMM <= (targetHeight + tolerance));
+
+            if (!isWidthValid || !isHeightValid) {
+                throw new IllegalArgumentException(
+                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm. Keep DPI = " + signatureImageDocumentType.getDpi(),
+                                targetWidth, targetHeight, tolerance)
+                );
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Error reading the signature image: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    public List<ServiceProviderTest> getServiceProviderTestByServiceProviderId(Long serviceProviderId, int page, int limit) throws EntityDoesNotExistsException {
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        // Calculate the start position for pagination
+        int startPosition = page * limit;
+
+        // Create the query
+        TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
+                "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
+                ServiceProviderTest.class
+        );
+        query.setParameter("serviceProviderId", serviceProviderId);
+
+
+        // Apply pagination
+        query.setFirstResult(startPosition);
+        query.setMaxResults(limit);
+
+        return query.getResultList();
+    }
+
+    @Transactional
+    public ResponseEntity<?> getCompletedServiceProviderTest(Long serviceProviderId, HttpServletRequest request) throws Exception {
+        try {
+
+            DocumentType resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+            DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+            DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+            double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+            double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if (serviceProvider == null) {
+                throw new EntityDoesNotExistsException("Service Provider not found");
+            }
+
+            // query to get all tests of the service provider
+            TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
+                    "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
+                    ServiceProviderTest.class
+            );
+
+            // Binding the parameter to the query
+            query.setParameter("serviceProviderId", serviceProviderId);
+
+            List<ServiceProviderTest> serviceProviderTests = query.getResultList();
+            if (serviceProviderTests.isEmpty()) {
+                return ResponseService.generateSuccessResponse("Service Provider has not given any test yet", null, HttpStatus.OK);
+            }
+
+            ServiceProviderTest serviceProviderTestToReturn = null;
+            for (ServiceProviderTest serviceProviderTest : serviceProviderTests) {
+                if ((serviceProviderTest.getIs_test_completed() != null)) {
+                    if (Boolean.TRUE.equals(serviceProviderTest.getIs_test_completed())) {
+                        if (serviceProviderTestToReturn == null || serviceProviderTest.getSubmitted_at().isAfter(serviceProviderTestToReturn.getSubmitted_at())) {
+                            serviceProviderTestToReturn = serviceProviderTest;
+                        }
+                    }
+                }
+            }
+            if (serviceProviderTestToReturn == null) {
+                return ResponseService.generateSuccessResponse("Service Provider has not completed any test yet", null, HttpStatus.OK);
+            }
+            String downloadedImageUrl = fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_image().getFile_path(), request);
+            String downloadedPdfUrl = fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_pdf_image().getFile_path(), request);
+            String downloadedSignatureUrl = fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_signature_image().getFile_path(), request);
+            String resizedImageUrl = fileService.getFileUrl(serviceProviderTestToReturn.getResized_image().getFile_path(), request);
+            String signatureImageUrl = fileService.getFileUrl(serviceProviderTestToReturn.getSignature_image().getFile_path(), request);
+            String pdfUrl = fileService.getFileUrl(serviceProviderTestToReturn.getUploadedPdf().getFile_path(), request);
+            Map<String, Object> completedTestMap = new HashMap<>();
+            completedTestMap.put("completedTest", serviceProviderTestToReturn);
+            completedTestMap.put("downloadedImageUrl", downloadedImageUrl);
+            completedTestMap.put("downloadedSignatureImageUrl", downloadedSignatureUrl);
+            completedTestMap.put("downloadedPdfImageUrl", downloadedPdfUrl);
+            completedTestMap.put("resizedImageUrl", resizedImageUrl);
+            completedTestMap.put("signatureImageUrl", signatureImageUrl);
+            completedTestMap.put("uploadedPdfUrl", pdfUrl);
+            completedTestMap.put("minResizedImageSize", resizedImageDocumentType.getMin_document_size());
+            completedTestMap.put("maxResizedImageSize", resizedImageDocumentType.getMax_document_size());
+            completedTestMap.put("minSignatureImageSize", signatureImageDocumentType.getMin_document_size());
+            completedTestMap.put("maxSignatureImageSize", signatureImageDocumentType.getMax_document_size());
+            completedTestMap.put("minPdfSize", pdfDocumentType.getMin_document_size());
+            completedTestMap.put("maxPdfSize", pdfDocumentType.getMax_document_size());
+            completedTestMap.put("requiredSignatureImageWidth", targetWidth);
+            completedTestMap.put("requiredSignatureImageHeight", targetHeight);
+            completedTestMap.put("uploadedResizedImage", serviceProviderTestToReturn.getResized_image());
+            completedTestMap.put("uploadedSignatureImage", serviceProviderTestToReturn.getSignature_image());
+            completedTestMap.put("dpi", signatureImageDocumentType.getDpi());
+            completedTestMap.put("uploadedPdf", serviceProviderTestToReturn.getUploadedPdf());
+
+            return ResponseService.generateSuccessResponse("Completed test is found", completedTestMap, HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingImplement.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public ResponseEntity<?> givePointsForImageUpload(Long serviceProviderId, GiveUploadedImageScoreDTO giveUploadedImageScoreDTO) throws EntityDoesNotExistsException {
+        if (giveUploadedImageScoreDTO.getImage_test_scores() == null) {
+            return ResponseService.generateErrorResponse("Image Test Score cannot be null", HttpStatus.BAD_REQUEST);
+        }
+        if (giveUploadedImageScoreDTO.getImage_test_scores() < 0) {
+            return ResponseService.generateErrorResponse("Image Upload Score cannot be a negative number", HttpStatus.BAD_REQUEST);
+        }
+        if (giveUploadedImageScoreDTO.getImage_test_scores() > 15) {
+            return ResponseService.generateErrorResponse("Image Upload Score cannot be greater than 15", HttpStatus.BAD_REQUEST);
+        }
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        TypedQuery<ServiceProviderTest> query = entityManager.createQuery(
+                "SELECT spt FROM ServiceProviderTest spt WHERE spt.service_provider.service_provider_id = :serviceProviderId",
+                ServiceProviderTest.class
+        );
+
+        query.setParameter("serviceProviderId", serviceProviderId);
+
+        List<ServiceProviderTest> serviceProviderTests = query.getResultList();
+        if (serviceProviderTests.isEmpty()) {
+            return ResponseService.generateSuccessResponse("Service Provider has not given any test yet", null, HttpStatus.OK);
+        }
+
+        ServiceProviderTest serviceProviderTest = null;
+        for (ServiceProviderTest serviceProviderTest1 : serviceProviderTests) {
+            if ((serviceProviderTest1.getIs_test_completed() != null)) {
+                if (Boolean.TRUE.equals(serviceProviderTest1.getIs_test_completed())) {
+                    if (serviceProviderTest == null || serviceProviderTest1.getSubmitted_at().isAfter(serviceProviderTest.getSubmitted_at())) {
+                        serviceProviderTest = serviceProviderTest1;
+                    }
+                }
+            }
+        }
+        if (serviceProviderTest == null) {
+            return ResponseService.generateSuccessResponse("Service Provider has not completed any test yet", null, HttpStatus.OK);
+        }
+
+        serviceProviderTest.setImage_test_scores(giveUploadedImageScoreDTO.getImage_test_scores());
+        entityManager.merge(serviceProviderTest);
+        serviceProvider.setImageUploadScore(giveUploadedImageScoreDTO.getImage_test_scores());
+        serviceProvider.setTotalSkillTestPoints(serviceProviderTest.getImage_test_scores() + serviceProviderTest.getTyping_test_scores());
+
+        serviceProvider.setTotalScore(0);
+        Integer totalScore = 0;
+
+        if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
+            totalScore += giveUploadedImageScoreDTO.getImage_test_scores() + serviceProvider.getBusinessUnitInfraScore() + serviceProvider.getWorkExperienceScore() + serviceProvider.getTechnicalExpertiseScore() + serviceProvider.getQualificationScore() + serviceProvider.getStaffScore();
+            if (serviceProvider.getWrittenTestScore() != null) {
+                totalScore += serviceProvider.getWrittenTestScore();
+            }
+            serviceProvider.setTotalScore(totalScore);
+            if (serviceProvider.getAutoScoring().equals(true)) {
+                ServiceProviderRank serviceProviderRank = assignRankingForProfessional(totalScore);
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
+            }
+        } else {
+            totalScore += giveUploadedImageScoreDTO.getImage_test_scores() + serviceProvider.getInfraScore() + serviceProvider.getWorkExperienceScore() + serviceProvider.getTechnicalExpertiseScore() + serviceProvider.getQualificationScore() + serviceProvider.getPartTimeOrFullTimeScore();
+            if (serviceProvider.getWrittenTestScore() != null) {
+                totalScore += serviceProvider.getWrittenTestScore();
+            }
+            serviceProvider.setTotalScore(totalScore);
+            if (serviceProvider.getAutoScoring().equals(true)) {
+                ServiceProviderRank serviceProviderRank = assignRankingForIndividual(totalScore);
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
+            }
+        }
+
+        entityManager.merge(serviceProvider);
+        return ResponseService.generateSuccessResponse("Image test scores updated successfully", serviceProviderTest, HttpStatus.OK);
+    }
+
+    private boolean validateResizedImage(ServiceProviderTest test) throws IOException {
+        Image downloadedImage = test.getDownloaded_image();
+        if (downloadedImage == null || downloadedImage.getImage_data() == null) {
+            throw new IllegalStateException("Downloaded image or its data is missing");
+        }
+
+        byte[] downloadedImageData = downloadedImage.getImage_data();
+        byte[] resizedImageData = test.getResized_image_data();
+
+        try {
+            return areImagesVisuallyIdentical(downloadedImageData, resizedImageData);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error comparing images", e);
+        }
+    }
+
+    private Image getRandomImageByTypeId(int typeId) {
+        // Count images with the given type ID
+        Long count = (Long) entityManager.createQuery(
+                        "SELECT COUNT(i) FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
+                .setParameter("typeId", typeId)
+                .getSingleResult();
+
+        if (count == 0) {
+            throw new EntityNotFoundException("No images available for type ID: " + typeId);
+        }
+
+        int randomIndex = new Random().nextInt(count.intValue());
+
+        return (Image) entityManager.createQuery(
+                        "SELECT i FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
+                .setParameter("typeId", typeId)
+                .setFirstResult(randomIndex)
+                .setMaxResults(1)
+                .getSingleResult();
+    }
+
+    private String getRandomTypingText() {
+        // Fetch a random TypingText entity from the database
+        long count = (long) entityManager.createQuery("SELECT COUNT(t) FROM TypingText t WHERE t.archived = false").getSingleResult();
+        if (count == 0) {
+            throw new EntityNotFoundException("No typing texts available");
+        }
+        int randomIndex = new Random().nextInt((int) count);
+        TypingText typingText = (TypingText) entityManager.createQuery("SELECT t FROM TypingText t WHERE t.archived = false")
+                .setFirstResult(randomIndex)
+                .setMaxResults(1)
+                .getSingleResult();
+        return typingText.getText();
+    }
+
+    private int calculateTypingTestScore(String expectedText, String typedText) {
+        // Handle null or empty cases
+        if (expectedText == null || typedText == null || expectedText.isEmpty()) {
+            return 0; // If expectedText is null or empty, no score can be given
+        }
+
+        // Split the texts into words for comparison (can be adjusted for character-level comparison if needed)
+        String[] expectedWords = expectedText.split("\\s+");
+        String[] typedWords = typedText.split("\\s+");
+
+        int totalWords = expectedWords.length;
+        int matchingWords = 0;
+
+        // Compare word by word up to the length of the shortest text
+        for (int i = 0; i < Math.min(expectedWords.length, typedWords.length); i++) {
+            if (expectedWords[i].equalsIgnoreCase(typedWords[i])) {
+                matchingWords++;
+            }
+        }
+
+        // Calculate the accuracy as a percentage of matching words
+        double accuracy = (double) matchingWords / totalWords;
+
+        // Map accuracy to score between 0 and 15
+        int score = (int) Math.round(accuracy * 15);
+
+        // Return the score, ensuring it's between 0 and 15
+        return Math.max(0, Math.min(15, score));
+    }
+
     public ServiceProviderRank assignRankingForProfessional(Integer totalScore) {
-        List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
+        List<ServiceProviderRank> professionalServiceProviderRanks = getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "4");
         }
     }
+
     public ServiceProviderRank assignRankingForIndividual(Integer totalScore) {
-        List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
+        List<ServiceProviderRank> professionalServiceProviderRanks = getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
+            return searchServiceProviderRank(professionalServiceProviderRanks, "4");
         }
     }
-    public  ServiceProviderRank searchServiceProviderRank(List<ServiceProviderRank> serviceProviderRankList,String rankValue)
-    {
-        for(ServiceProviderRank serviceProviderRank:serviceProviderRankList)
-        {
-            if(serviceProviderRank.getRank_name().equalsIgnoreCase(rankValue))
-            {
+
+    public ServiceProviderRank searchServiceProviderRank(List<ServiceProviderRank> serviceProviderRankList, String rankValue) {
+        for (ServiceProviderRank serviceProviderRank : serviceProviderRankList) {
+            if (serviceProviderRank.getRank_name().equalsIgnoreCase(rankValue)) {
                 return serviceProviderRank;
             }
         }
         return null;
     }
-    public  List<ServiceProviderRank> getAllRank() {
-        try
-        {
+
+    public List<ServiceProviderRank> getAllRank() {
+        try {
             TypedQuery<ServiceProviderRank> query = entityManager.createQuery(Constant.FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY, ServiceProviderRank.class);
             List<ServiceProviderRank> serviceProviderRankList = query.getResultList();
             return serviceProviderRankList;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandlingImplement.handleException(e);
         }
         return null;
     }
 
-    public DocumentType getDocumentType(Integer documentTypeId)
-    {
-        DocumentType documentType= entityManager.find(DocumentType.class,documentTypeId);
-        if(documentType==null)
-        {
+    public DocumentType getDocumentType(Integer documentTypeId) {
+        DocumentType documentType = entityManager.find(DocumentType.class, documentTypeId);
+        if (documentType == null) {
             throw new IllegalArgumentException("The requirements not found in DB for image/pdf");
         }
         return documentType;
