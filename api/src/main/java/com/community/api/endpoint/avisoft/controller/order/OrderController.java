@@ -895,7 +895,7 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Order already requested for cancellation",HttpStatus.BAD_REQUEST);
         else if(orderState.getOrderStateId()==9)
             return ResponseService.generateErrorResponse("Order already cancelled",HttpStatus.BAD_REQUEST);
-        if(orderState.getOrderStateId()>1)
+        if(orderState.getOrderStateId()>2)
             return ResponseService.generateErrorResponse("Order cannot be cancelled as it has already been processed",HttpStatus.BAD_REQUEST);
         orderState.setLastState(orderStateRef.getOrderStateName());
         orderState.setOrderStateId(12);

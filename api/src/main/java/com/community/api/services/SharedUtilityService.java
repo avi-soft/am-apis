@@ -242,7 +242,14 @@ public class SharedUtilityService {
         productDetails.put("active_end_date", product.getDefaultSku().getActiveEndDate());
         return productDetails;
     }
-
+    public Map<String,Object> loginDetails(Customer customer,String authHeader,HttpServletRequest httpServletRequest)
+    {
+        Map<String,Object>response=new HashMap<>();
+        response.put("id",customer.getId());
+        CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+        response.put("token",customCustomer.getToken());
+        return response;
+    }
     @Transactional
     public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader,HttpServletRequest httpServletRequest) throws Exception {
         String jwtToken = authHeader.substring(7);
