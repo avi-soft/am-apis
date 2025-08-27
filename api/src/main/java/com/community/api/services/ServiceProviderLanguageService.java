@@ -40,7 +40,7 @@ public class ServiceProviderLanguageService {
             }
             language=sanitizerService.sanitizeInputMap(language);
             String languageName=(String)language.get("language_name");
-            if(languageName==null||languageName.isEmpty())
+            if(languageName==null||languageName.isEmpty()||languageName.trim().isEmpty())
                 return responseService.generateErrorResponse("Error saving language : Language Name required", HttpStatus.BAD_REQUEST);
             ServiceProviderLanguage languageTobeSaved=new ServiceProviderLanguage();
             int id=(int)findCount();

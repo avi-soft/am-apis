@@ -37,7 +37,7 @@ public class ServiceProviderInfraController {
             return responseService.generateSuccessResponse("List fetched successfully",serviceProviderInfraService.findAllInfraList(), HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            return responseService.generateErrorResponse("Error adding infra to list", HttpStatus.INTERNAL_SERVER_ERROR);
+            return responseService.generateErrorResponse("Error fetching infra list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
