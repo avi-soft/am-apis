@@ -26,6 +26,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -143,6 +144,7 @@ public class PdfEditService {
 
 @Autowired
 JwtUtil jwtUtil;
+    @Async
     public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request,Integer role) {
         if (pdfBytes == null || pdfBytes.length == 0) {
             System.out.println("PDF bytes are null or empty, skipping upload.");
