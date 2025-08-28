@@ -33,5 +33,5 @@ public class NewProductWrapper  {
         @JsonProperty("go_live_date")
         private Date activeGoLiveDate;
         @JsonProperty("state")
-        private StateCode state;
+        private String state;
 }

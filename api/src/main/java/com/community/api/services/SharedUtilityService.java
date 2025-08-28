@@ -250,12 +250,18 @@ public class SharedUtilityService {
             response.put("id", customer.getId());
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
         /*    response.put("token", customCustomer.getToken());*/
+            response.put("profileComplete",customCustomer.getProfileComplete());
+            boolean pass= customer.getPassword() != null;
+            response.put("is_password_created",pass);
             return response;
         }
         else
         {
             response.put("id", serviceProviderEntity.getService_provider_id());
-           /* response.put("token", serviceProviderEntity.getToken());*/
+        /*    response.put("token", serviceProviderEntity.getToken());*/
+            response.put("completed",serviceProviderEntity.getCompleted());
+            boolean pass= serviceProviderEntity.getPassword() != null;
+            response.put("is_password_created",pass);
             return response;
         }
     }
@@ -899,7 +905,7 @@ public class SharedUtilityService {
             wrapper.setActiveStartDate(product.getDefaultSku().getActiveStartDate());
             wrapper.setActiveEndDate(product.getDefaultSku().getActiveEndDate());
         }
-
+        wrapper.setState(customProduct.getProductState().getProductState());
         return wrapper;
     }
 
