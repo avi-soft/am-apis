@@ -1694,7 +1694,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             String existingToken = serviceProvider.getToken();
 
-            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false);
+            Map<String, Object> serviceProviderResponse = sharedUtilityService.loginDetails(null,serviceProvider, authToken,request);
 
 
             if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
