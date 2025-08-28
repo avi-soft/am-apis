@@ -21,17 +21,20 @@ public class ServiceProviderLanguageService {
 
     @Autowired
     private EntityManager entityManager;
+
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
+
     @Autowired
     private ResponseService responseService;
+
     @Autowired
     private SharedUtilityService sharedUtilityService;
     @Autowired
+
     private SanitizerService sanitizerService;
 
     @Transactional
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     public ResponseEntity<?> addLanguage(@RequestBody Map<String, Object> language) {
         try {
             if (!sharedUtilityService.validateInputMap(language).equals(SharedUtilityService.ValidationResult.SUCCESS)) {
@@ -60,18 +63,20 @@ public class ServiceProviderLanguageService {
             return query.getSingleResult();
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            throw new Exception("Error Finding count of infra list.");
+            throw new Exception("Error Finding count of Language list.");
         }
     }
 
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     public List<ServiceProviderLanguage> findAllLanguageList() throws Exception {
         try {
+            System.out.println("reached here ------------------");
             TypedQuery<ServiceProviderLanguage> query = entityManager.createQuery(Constant.GET_ALL_LANGUAGES, ServiceProviderLanguage.class);
+            System.out.println("got till here -------------------");
             return query.getResultList();
+
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            throw new Exception("Error Finding count of infra list.");
+            throw new Exception("Error Fetching Languages.");
         }
     }
 
