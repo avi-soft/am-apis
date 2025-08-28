@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.otpmodule;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.endpoint.avisoft.controller.Document.DocumentEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomAdmin;
@@ -171,12 +172,13 @@ public class OtpEndpoint {
             return responseService.generateErrorResponse("Some error occurred: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Autowired
+    DocumentEndpoint documentEndpoint;
     @Transactional
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
         try {
-
+            String seed=null;
             if (authHeadReq != null) {
                 String jwtToken = authHeadReq.substring(7);
                 String ipAddress = request.getRemoteAddr();
@@ -187,6 +189,10 @@ public class OtpEndpoint {
                 if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                     return responseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 }
+                if(role==1||role==2||role==4)
+                {
+                    seed=documentEndpoint.generateUniqueId();
+                }
             }
 
             String authHeader = Constant.BEARER_CONST;
@@ -195,13 +201,14 @@ public class OtpEndpoint {
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
-
             String otpEntered = (String) loginDetails.get("otpEntered");
             Integer role = (Integer) loginDetails.get("role");
             String countryCode = (String) loginDetails.get("countryCode");
             String username = (String) loginDetails.get("username");
             String mobileNumber = (String) loginDetails.get("mobileNumber");
             String ackId = (String) loginDetails.get("ack");
+            if(seed!=null)
+                ackId=seed;
             if (role == null) {
                 return responseService.generateErrorResponse(ApiConstants.ROLE_EMPTY, HttpStatus.BAD_REQUEST);
             }
