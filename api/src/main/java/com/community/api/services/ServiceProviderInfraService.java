@@ -37,6 +37,7 @@ public class ServiceProviderInfraService {
             return responseService.generateErrorResponse("Error saving skill : " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     public long findCount() throws Exception {
         try {
             String queryString = Constant.GET_INFRA_COUNT;
