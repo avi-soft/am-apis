@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.EligibilityResult;
+import com.community.api.dto.NewProductWrapper;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
@@ -881,6 +882,31 @@ public class SharedUtilityService {
         }
         return ValidationResult.SUCCESS;
 
+    }
+
+    public NewProductWrapper wrapDetailsAddProduct(Product product) throws Exception {
+        CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+
+        NewProductWrapper wrapper = new NewProductWrapper();
+        wrapper.setId(product.getId());
+        wrapper.setMetaTitle(product.getMetaTitle());
+        wrapper.setDisplayTemplate(product.getDisplayTemplate());
+        wrapper.setMetaDescription(product.getMetaDescription());
+
+        if (product.getDefaultCategory() != null) {
+            wrapper.setCategoryName(product.getDefaultCategory().getName());
+        }
+
+        if (customProduct != null) {
+            wrapper.setActiveGoLiveDate(customProduct.getGoLiveDate());
+        }
+
+        if (product.getDefaultSku() != null) {
+            wrapper.setActiveStartDate(product.getDefaultSku().getActiveStartDate());
+            wrapper.setActiveEndDate(product.getDefaultSku().getActiveEndDate());
+        }
+
+        return wrapper;
     }
 
     @Transactional
