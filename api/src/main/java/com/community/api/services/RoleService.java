@@ -3,7 +3,6 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.entity.Role;
-import com.community.api.entity.Skill;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,6 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,47 +48,48 @@ public class RoleService {
     }
 
     public String findRoleName(int role_id) {
-        String response= entityManager.createQuery(Constant.FETCH_ROLE, String.class)
+        String response = entityManager.createQuery(Constant.FETCH_ROLE, String.class)
                 .setParameter("role_id", role_id)
                 .getResultStream()
                 .findFirst()
                 .orElse(null);
-        if(response==null)
+        if (response == null)
             return "EMPTY";
         else return response;
     }
+
     @Transactional
-    public ResponseEntity<?> addRole(Role role)
-    {
-        try{
-            if(role.getRole_name()==null)
+    public ResponseEntity<?> addRole(Role role) {
+        try {
+            if (role.getRole_name() == null)
                 return responseService.generateErrorResponse("Role name cannot be Empty", HttpStatus.BAD_REQUEST);
-            int count=(int) sharedUtilityService.findCount(Constant.GET_COUNT_OF_ROLES);
+            int count = (int) sharedUtilityService.findCount(Constant.GET_COUNT_OF_ROLES);
             role.setRole_id(++count);
             role.setCreated_at(sharedUtilityService.getCurrentTimestamp());
             role.setUpdated_at(sharedUtilityService.getCurrentTimestamp());
             role.setCreated_by("SUPER_ADMIN");//@TODO- get role id from token and check role name fromm it
             entityManager.persist(role);
-            return responseService.generateSuccessResponse("role added successfully",role,HttpStatus.OK);
-        }catch (Exception e)
-        {
+            return responseService.generateSuccessResponse("role added successfully", role, HttpStatus.OK);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error saving role : " + e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+            return responseService.generateErrorResponse("Error saving role : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     public List<Role> findAllRoleList() {
         TypedQuery<Role> query = entityManager.createQuery(Constant.GET_ALL_ROLES, Role.class);
         return query.getResultList();
     }
 
-        public Role getRoleByRoleId(int roleId) {
+    public Role getRoleByRoleId(int roleId) {
         return entityManager.createQuery(Constant.GET_ROLE_BY_ROLE_ID, Role.class)
                 .setParameter("roleId", roleId)
                 .getResultStream()
                 .findFirst()
                 .orElse(null);
     }
-    public List<Role>getCondRoles(String authHeader) throws NotAuthorizedException {
+
+    public List<Role> getCondRoles(String authHeader) throws NotAuthorizedException {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         List<Role> allRoles = roleService.findAllRoleList();
@@ -117,25 +115,29 @@ public class RoleService {
         return allRoles;
     }
 
-
-    public List<Role> getRolesForSuperAdmin() {
-        List<Role> roles = new ArrayList<>();
-        Role role2 = roleService.getRoleByRoleId(2);
-//        Role role3 = roleService.getRoleByRoleId(3);
-        Role role4 = roleService.getRoleByRoleId(4);
-        if (role2 != null) roles.add(role2);
-//        if (role3 != null) roles.add(role3);
-        if (role4 != null) roles.add(role4);
-        return roles;
+    public List<Role> getRolesForSuperAdmin() throws Exception {
+        try {
+            List<Role> roles = new ArrayList<>();
+            Role role2 = roleService.getRoleByRoleId(2);
+            Role role4 = roleService.getRoleByRoleId(4);
+            if (role2 != null) roles.add(role2);
+            if (role4 != null) roles.add(role4);
+            return roles;
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception(exception);
+        }
     }
 
-
-    public List<Role> getRolesForAdmin() {
-        List<Role> roles = new ArrayList<>();
-//        Role role3 = roleService.getRoleByRoleId(3);
-        Role role4 = roleService.getRoleByRoleId(4);
-//        if (role3 != null) roles.add(role3);
-        if (role4 != null) roles.add(role4);
-        return roles;
+    public List<Role> getRolesForAdmin() throws Exception {
+        try {
+            List<Role> roles = new ArrayList<>();
+            Role role4 = roleService.getRoleByRoleId(4);
+            if (role4 != null) roles.add(role4);
+            return roles;
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception(exception);
+        }
     }
 }
