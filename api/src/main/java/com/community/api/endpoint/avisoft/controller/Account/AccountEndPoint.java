@@ -551,11 +551,11 @@ public class AccountEndPoint {
                         String token = jwtUtil.generateToken(customer.getId(), role, ipAddress, userAgent);
                         authHeader = authHeader + authHeadReq;
                         session.setAttribute(tokenKey, token);
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
                     }
                     if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
 
                     } else {
@@ -564,7 +564,7 @@ public class AccountEndPoint {
                         authHeader = authHeader + token;
                         em.persist(customCustomer);
                         session.setAttribute(tokenKey, token);
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
                     }
                 } else {
@@ -688,12 +688,12 @@ public class AccountEndPoint {
                             String token = jwtUtil.generateToken(customer.getId(), role, ipAddress, userAgent);
                             authHeader = authHeader + authHeadReq;
                             session.setAttribute(tokenKey, token);
-                            OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                            OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                             return ResponseEntity.ok(response);
                         }
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                             authHeader = authHeader + existingToken;
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
 
                         } else {
                             String token = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
@@ -701,7 +701,7 @@ public class AccountEndPoint {
                             existingCustomer.setToken(token);
                             em.persist(existingCustomer);
                             session.setAttribute(tokenKey, token);
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
                         }
 
                     } else {
