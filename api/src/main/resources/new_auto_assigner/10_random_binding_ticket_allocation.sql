@@ -42,9 +42,7 @@ BEGIN
 	            WHERE r.customer_id = v_customer_id AND r.primary_ref = true AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
 	        LOOP
 	            CALL public.allocate_ticket(v_order_id, ref.service_provider_id, assigned, assigned_tickets);
-	            IF assigned THEN
-	                assigned := true;
-	            END IF;
+	            IF assigned THEN EXIT; END IF;
 	        END LOOP;
 	
 	        IF assigned THEN CONTINUE; END IF;
@@ -57,9 +55,7 @@ BEGIN
 	            WHERE r.customer_id = v_customer_id AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
 	        LOOP
 	            CALL public.allocate_ticket(v_order_id, ref.service_provider_id, assigned, assigned_tickets);
-	            IF assigned THEN
-	                assigned := true;
-	            END IF;
+	            IF assigned THEN EXIT; END IF;
 	        END LOOP;
 	
 	        IF assigned THEN CONTINUE; END IF;

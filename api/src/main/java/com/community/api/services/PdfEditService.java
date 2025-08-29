@@ -15,9 +15,6 @@ import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.VerticalAlignment;
-import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -26,35 +23,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Date;
-
-import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.kernel.colors.Color;
-import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
-import com.itextpdf.kernel.geom.Rectangle;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfPage;
-import com.itextpdf.kernel.pdf.PdfReader;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
-import com.itextpdf.layout.Canvas;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Paragraph;
-import org.springframework.core.io.Resource;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayOutputStream;
@@ -65,6 +38,8 @@ import java.util.Date;
 public class PdfEditService {
 
     private final ResourceLoader resourceLoader;
+    @Autowired
+    JwtUtil jwtUtil;
 
     public PdfEditService(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
@@ -121,7 +96,6 @@ public class PdfEditService {
                     .setMarginBottom(8);
 
 
-
             // Define the area on the last page to put the text block
             PdfPage lastPageObj = pdfDoc.getPage(lastPage);
             PdfCanvas pdfCanvas = new PdfCanvas(lastPageObj);
@@ -141,9 +115,9 @@ public class PdfEditService {
         }
     }
 
-@Autowired
-JwtUtil jwtUtil;
-    public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request,Integer role) {
+
+    @Async
+    public void sendPdfToApi(byte[] pdfBytes, Long customerId, HttpServletRequest request, Integer role) {
         if (pdfBytes == null || pdfBytes.length == 0) {
             System.out.println("PDF bytes are null or empty, skipping upload.");
             return;
@@ -164,17 +138,17 @@ JwtUtil jwtUtil;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        String token=jwtUtil.generateShortLivedToken(22L,1, request.getRemoteAddr());
+        String token = jwtUtil.generateShortLivedToken(22L, 1, request.getRemoteAddr());
         headers.setBearerAuth(token);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("fileTypes", "42"); // send as string, backend will map to Integer
         body.add("files", contentsAsResource);
-        body.add("removeFileTypes","0");
+        body.add("removeFileTypes", "0");
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-        String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId="+customerId;
-        if(role==5)
-            apiUrl=apiUrl+"&extUpdate=true";
+        String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId=" + customerId;
+        if (role == 5)
+            apiUrl = apiUrl + "&extUpdate=true";
         System.out.println(apiUrl);
         try {
             ResponseEntity<String> response = new RestTemplate()
