@@ -1372,6 +1372,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("state", "Invalid Current State ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
@@ -1383,6 +1385,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("district", "Invalid Current District ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
@@ -1433,6 +1437,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("permanent_state", "Invalid Permanent State ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
@@ -1445,6 +1451,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("permanent_district", "Invalid Permanent District ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
@@ -1495,6 +1503,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("business_state", "Invalid business State ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
@@ -1507,6 +1517,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } catch (NumberFormatException e) {
                 errorMessages.put("business_district", "Invalid business District ID format");
+            } catch (Exception exception) {
+                errorMessages.put("state", "some exception occurred");
             }
         }
 
