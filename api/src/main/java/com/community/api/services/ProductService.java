@@ -4646,7 +4646,13 @@ public class ProductService {
         }
 
         // Get all districts for this state
-        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code(),false);
+        List<Districts> stateDistricts = null;
+        try {
+            stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code(),false);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+        }
+
         Set<Integer> validDistrictIds = stateDistricts.stream()
                 .map(Districts::getDistrict_id)
                 .collect(Collectors.toSet());
