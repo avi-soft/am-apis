@@ -236,6 +236,7 @@ public class DistrictService {
             for (StateCode stateCode1 : existingState) {
                 if (stateCode1.getState_name().equalsIgnoreCase(stateCode.getState_name())) {
                     throw new IllegalArgumentException("State with this state name already exists");
+                }
                 if (stateCode1.getState_code().equalsIgnoreCase(stateCode.getState_code())) {
                     throw new IllegalArgumentException("State with this state code already exists");
                 }
