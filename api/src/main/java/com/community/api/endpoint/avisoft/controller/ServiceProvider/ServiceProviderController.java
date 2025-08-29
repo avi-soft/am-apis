@@ -1189,11 +1189,11 @@ public class ServiceProviderController {
                 }
                 serviceProvider.setIsArchived(false);
                 //set the last status
-                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, serviceProvider.getLastStatusId());
+                /*ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, serviceProvider.getLastStatusId());
                 if (serviceProviderTestStatus == null) {
                     return ResponseService.generateErrorResponse("Test Status id " + serviceProvider.getLastStatusId() + " Not found", HttpStatus.NOT_FOUND);
                 }
-                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);*/
             }
 
             if (action.equals(Constant.ACTION_SUSPEND)) {
