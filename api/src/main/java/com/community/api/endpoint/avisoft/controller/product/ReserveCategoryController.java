@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,7 +32,7 @@ public class ReserveCategoryController {
     }
 
     @GetMapping("/get-all-reserve-category")
-    public ResponseEntity<?> getAllReserveCategory(@RequestParam(required =  false,defaultValue = "false")Boolean archived) {
+    public ResponseEntity<?> getAllReserveCategory(@RequestParam(required = false, defaultValue = "false") Boolean archived) {
         try {
             List<CustomReserveCategory> authorities = reserveCategoryService.getAllReserveCategory(archived);
             if (authorities.isEmpty()) {
@@ -59,6 +58,7 @@ public class ReserveCategoryController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("reserve-category/add")
     public ResponseEntity<?> addReserveCategory(@RequestBody CustomReserveCategory reserveCategory) {
@@ -68,10 +68,12 @@ public class ReserveCategoryController {
                     reserveCategoryService.addReserveCategory(reserveCategory),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot add reserve category: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot add reserve category: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
@@ -85,7 +87,7 @@ public class ReserveCategoryController {
             @RequestBody CustomReserveCategory reserveCategory) {
         try {
             CustomReserveCategory existingCategory = reserveCategoryService.getReserveCategoryById(reserveCategoryId);
-            if(existingCategory == null) {
+            if (existingCategory == null) {
                 return ResponseService.generateErrorResponse(
                         "Reserve category not found",
                         HttpStatus.BAD_REQUEST);
@@ -95,11 +97,12 @@ public class ReserveCategoryController {
                     reserveCategoryService.editReserveCategory(reserveCategoryId, reserveCategory),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot edit reserve category: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            System.out.println(e);
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot edit reserve category: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
@@ -113,7 +116,7 @@ public class ReserveCategoryController {
             @RequestParam(defaultValue = "true") Boolean archive) {
         try {
             CustomReserveCategory existingCategory = reserveCategoryService.getReserveCategoryById(reserveCategoryId);
-            if(existingCategory == null) {
+            if (existingCategory == null) {
                 return ResponseService.generateErrorResponse(
                         "Reserve category not found",
                         HttpStatus.BAD_REQUEST);
@@ -123,10 +126,12 @@ public class ReserveCategoryController {
                     reserveCategoryService.manageReserveCategory(reserveCategoryId, archive),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot archive reserve category: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Cannot archive reserve category: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
