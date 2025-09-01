@@ -6,17 +6,13 @@ import com.community.api.entity.Institution;
 import com.community.api.services.InstitutionService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.community.api.utils.DocumentType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-        import javax.persistence.EntityManager;
+import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
-import javax.transaction.Transactional;
 import java.util.List;
-
-import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
 @RestController
 @RequestMapping("/institution")

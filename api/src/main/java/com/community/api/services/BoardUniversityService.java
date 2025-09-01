@@ -207,6 +207,7 @@ public class BoardUniversityService
             if(boardUniversity.getCreated_date()!=null|| boardUniversity.getCreated_by()!=null)
             {
                 throw new IllegalArgumentException("Created Date and Created By cannot be modified");
+
             }
             boardUniversityToUpdate.setModified_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
