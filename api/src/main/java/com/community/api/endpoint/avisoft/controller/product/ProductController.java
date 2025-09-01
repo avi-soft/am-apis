@@ -1445,8 +1445,8 @@ public class ProductController extends CatalogEndpoint {
                 NewProductWrapper wrapper = new NewProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
-                wrapper.wrapDetailsAddProduct(customProduct);
-                responses.add(wrapper);
+                Product product=catalogService.findProductById(customProduct.getId());
+                responses.add(sharedUtilityService.wrapDetailsAddProduct(product));
             }
 
             // Pagination logic
