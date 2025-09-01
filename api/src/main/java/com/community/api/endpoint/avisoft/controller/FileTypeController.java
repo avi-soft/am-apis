@@ -49,6 +49,7 @@ public class FileTypeController {
             List<?> randomFileTypes = fileTypeService.addAllRandomFileTypes(fileTypes);
             return ResponseService.generateSuccessResponse("The File Types are added successfully", randomFileTypes, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);

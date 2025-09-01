@@ -58,7 +58,7 @@ public class FileTypeService {
                 List<FileType> existingFileType = getAllArchivedNonArchivedRandomFileTypes();
                 for (FileType existingFileType1 : existingFileType) {
                     if (existingFileType1.getFile_type_name().trim().equalsIgnoreCase(fileType.getFile_type_name().trim())) {
-                        throw new IllegalArgumentException("File Type with name '" + fileType.getFile_type_name().trim() + "' already exists");
+                        throw new IllegalArgumentException("File Type with name '\" + fileType.getFile_type_name().trim() + \"' already exists");
                     }
                 }
                 fileTypeToAdd.setFile_type_id(id);
@@ -87,23 +87,28 @@ public class FileTypeService {
 
     @Transactional
     public FileType archiveOrUnarchiveFileType(Integer fileTypeId, Boolean archive) {
-        FileType fileType = entityManager.find(FileType.class, fileTypeId);
-        if (fileType == null) {
-            throw new IllegalArgumentException("No file type exists in db with id " + fileTypeId);
-        }
-        if (archive) {
-            if (fileType.getArchived().equals(true)) {
-                throw new IllegalArgumentException("File type is already archived");
+        try {
+            FileType fileType = entityManager.find(FileType.class, fileTypeId);
+            if (fileType == null) {
+                throw new IllegalArgumentException("No file type exists in db with id " + fileTypeId);
             }
-            fileType.setArchived(true);
-        } else {
-            if (!fileType.getArchived()) {
-                throw new IllegalArgumentException("File type already unarchived");
+            if (archive) {
+                if (fileType.getArchived().equals(true)) {
+                    throw new IllegalArgumentException("File type is already archived");
+                }
+                fileType.setArchived(true);
+            } else {
+                if (!fileType.getArchived()) {
+                    throw new IllegalArgumentException("File type already unarchived");
+                }
+                fileType.setArchived(false);
             }
-            fileType.setArchived(false);
+            entityManager.merge(fileType);
+            return fileType;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
-        entityManager.merge(fileType);
-        return fileType;
     }
 
     @Transactional
