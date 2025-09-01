@@ -113,7 +113,7 @@ public class RoleController {
     }
 
     @Transactional
-//    @Authorize(value = {Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/change-role/{id}/{roleToBeId}")
     public ResponseEntity<?> changeRole(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long id, @PathVariable Integer roleToBeId) {
         try {
@@ -195,7 +195,8 @@ public class RoleController {
             }
             return response;
         } catch (Exception exception) {
-            return ResponseService.generateErrorResponse("Some error occured" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Some error occurred" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
