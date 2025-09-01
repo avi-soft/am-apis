@@ -34,13 +34,14 @@ public class BoardUniversityService
     RoleService roleService;
 
     @Transactional
-    public BoardUniversity addBoardUniversities( BoardUniversity boardUniversity, String authHeader) {
-        String jwtToken = authHeader.substring(7);
+    public BoardUniversity addBoardUniversities( BoardUniversity boardUniversity, String authHeader) throws Exception {
+        try {
+            String jwtToken = authHeader.substring(7);
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        List<BoardUniversity> savedBoardUniversities = new ArrayList<>();
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            List<BoardUniversity> savedBoardUniversities = new ArrayList<>();
 
             BoardUniversity boardUniversityToBeSaved =new BoardUniversity();
             long id = findCount() + 1;
@@ -93,8 +94,8 @@ public class BoardUniversityService
                     throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
-        Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM BoardUniversity i WHERE i.sortOrder <> 1000000");
-        Long sortOrder = (Long) query.getSingleResult();
+            Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM BoardUniversity i WHERE i.sortOrder <> 1000000");
+            Long sortOrder = (Long) query.getSingleResult();
             boardUniversityToBeSaved.setBoard_university_name(boardUniversity.getBoard_university_name());
             boardUniversityToBeSaved.setSortOrder(sortOrder);
             boardUniversityToBeSaved.setBoard_university_location(boardUniversity.getBoard_university_location());
@@ -108,96 +109,116 @@ public class BoardUniversityService
             entityManager.persist(boardUniversityToBeSaved);
             savedBoardUniversities.add(boardUniversityToBeSaved);
             return boardUniversityToBeSaved;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
     }
 
-    public List<BoardUniversity> getAllBoardUniversities() {
-        TypedQuery<BoardUniversity> query = entityManager.createQuery(
-                Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
-        query.setParameter("archived", false);
-        List<BoardUniversity> boardUniversityList = query.getResultList(); // then execute
-        return boardUniversityList;
+    public List<BoardUniversity> getAllBoardUniversities() throws Exception {
+        try {
+            TypedQuery<BoardUniversity> query = entityManager.createQuery(
+                    Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
+            query.setParameter("archived", false);
+            List<BoardUniversity> boardUniversityList = query.getResultList(); // then execute
+            return boardUniversityList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
     }
-
 
     //need to be change here
-    public long findCount() {
-        String queryString = Constant.GET_BOARD_UNIVERSITY_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
-        return query.getSingleResult();
+    public long findCount() throws Exception {
+        try {
+            String queryString = Constant.GET_BOARD_UNIVERSITY_COUNT;
+            TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
+            return query.getSingleResult();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
     }
 
     @Transactional
-    public BoardUniversity updateBoardUniversity(Long boardUniversityId, BoardUniversity boardUniversity,String authHeader){
-        String jwtToken = authHeader.substring(7);
+    public BoardUniversity updateBoardUniversity(Long boardUniversityId, BoardUniversity boardUniversity,String authHeader) throws Exception {
+        try {
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String jwtToken = authHeader.substring(7);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        BoardUniversity boardUniversityToUpdate= entityManager.find(BoardUniversity.class,boardUniversityId);
-        if(boardUniversityToUpdate==null)
-        {
-            throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+" not found");
-        }
-        List<BoardUniversity> boardUniversities = getAllBoardUniversities();
-        if (Objects.nonNull(boardUniversity.getBoard_university_name())) {
-            if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
-                throw new IllegalArgumentException("Board or University name cannot contain numeric values, special characters or leading spaces");
-            }
-            for (BoardUniversity existingBoardUniversity : boardUniversities) {
-                if (existingBoardUniversity.getBoard_university_name().equalsIgnoreCase(boardUniversity.getBoard_university_name()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
-                    throw new IllegalArgumentException("Duplicate name not allowed");
-                }
-            }
-            boardUniversityToUpdate.setBoard_university_name(boardUniversity.getBoard_university_name());
-        }
-        if (Objects.nonNull(boardUniversity.getBoard_university_code())) {
-            if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z][a-zA-Z ]*$")){
-                throw new IllegalArgumentException("Board or university code cannot contain numeric values, special characters or leading spaces");
-            }
-            for (BoardUniversity existingBoardUniversity : boardUniversities) {
-                if (existingBoardUniversity.getBoard_university_code().equalsIgnoreCase(boardUniversity.getBoard_university_code()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
-                    throw new IllegalArgumentException("Duplicate code not allowed");
-                }
-            }
-            boardUniversityToUpdate.setBoard_university_code(boardUniversity.getBoard_university_code());
-        }
-        if (Objects.nonNull(boardUniversity.getBoard_university_type())) {
-            if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z][a-zA-Z ]*$")){
-                throw new IllegalArgumentException("Board or university type cannot contain numeric values ,special characters or leading spaces");
-            }
-            if(!boardUniversity.getBoard_university_type().equalsIgnoreCase("BOARD") && !boardUniversity.getBoard_university_type().equalsIgnoreCase("UNIVERSITY"))
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            BoardUniversity boardUniversityToUpdate= entityManager.find(BoardUniversity.class,boardUniversityId);
+            if(boardUniversityToUpdate==null)
             {
-                throw new IllegalArgumentException("Board or university type can be either 'BOARD' or 'UNIVERSITY'");
+                throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+" not found");
             }
-            boardUniversityToUpdate.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
-        }
-        if (Objects.nonNull(boardUniversity.getBoard_university_location())) {
-            if (!boardUniversity.getBoard_university_location().matches("^[#a-zA-Z0-9].*")) {
-                throw new IllegalArgumentException("Board or University location must start with #, letter, or number");
+            List<BoardUniversity> boardUniversities = getAllBoardUniversities();
+            if (Objects.nonNull(boardUniversity.getBoard_university_name())) {
+                if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                    throw new IllegalArgumentException("Board or University name cannot contain numeric values, special characters or leading spaces");
+                }
+                for (BoardUniversity existingBoardUniversity : boardUniversities) {
+                    if (existingBoardUniversity.getBoard_university_name().equalsIgnoreCase(boardUniversity.getBoard_university_name()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
+                        throw new IllegalArgumentException("Duplicate name not allowed");
+                    }
+                }
+                boardUniversityToUpdate.setBoard_university_name(boardUniversity.getBoard_university_name());
             }
+            if (Objects.nonNull(boardUniversity.getBoard_university_code())) {
+                if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z][a-zA-Z ]*$")){
+                    throw new IllegalArgumentException("Board or university code cannot contain numeric values, special characters or leading spaces");
+                }
+                for (BoardUniversity existingBoardUniversity : boardUniversities) {
+                    if (existingBoardUniversity.getBoard_university_code().equalsIgnoreCase(boardUniversity.getBoard_university_code()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
+                        throw new IllegalArgumentException("Duplicate code not allowed");
+                    }
+                }
+                boardUniversityToUpdate.setBoard_university_code(boardUniversity.getBoard_university_code());
+            }
+            if (Objects.nonNull(boardUniversity.getBoard_university_type())) {
+                if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z][a-zA-Z ]*$")){
+                    throw new IllegalArgumentException("Board or university type cannot contain numeric values ,special characters or leading spaces");
+                }
+                if(!boardUniversity.getBoard_university_type().equalsIgnoreCase("BOARD") && !boardUniversity.getBoard_university_type().equalsIgnoreCase("UNIVERSITY"))
+                {
+                    throw new IllegalArgumentException("Board or university type can be either 'BOARD' or 'UNIVERSITY'");
+                }
+                boardUniversityToUpdate.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
+            }
+            if (Objects.nonNull(boardUniversity.getBoard_university_location())) {
+                if (!boardUniversity.getBoard_university_location().matches("^[#a-zA-Z0-9].*")) {
+                    throw new IllegalArgumentException("Board or University location must start with #, letter, or number");
+                }
 
-            if (boardUniversity.getBoard_university_location().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
-                throw new IllegalArgumentException("Board or University location contains invalid special characters");
-            }
+                if (boardUniversity.getBoard_university_location().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
+                    throw new IllegalArgumentException("Board or University location contains invalid special characters");
+                }
 
-            if (boardUniversity.getBoard_university_location().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
-                throw new IllegalArgumentException("Board or University location cannot contain only special characters");
+                if (boardUniversity.getBoard_university_location().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
+                    throw new IllegalArgumentException("Board or University location cannot contain only special characters");
+                }
+                if (boardUniversity.getBoard_university_location().matches("^[0-9]+$")) {
+                    throw new IllegalArgumentException("Board or University location cannot contain only numbers");
+                }
+                boardUniversityToUpdate.setBoard_university_location(boardUniversity.getBoard_university_location());
             }
-            if (boardUniversity.getBoard_university_location().matches("^[0-9]+$")) {
-                throw new IllegalArgumentException("Board or University location cannot contain only numbers");
+            if(boardUniversity.getCreated_date()!=null|| boardUniversity.getCreated_by()!=null)
+            {
+                throw new IllegalArgumentException("Created Date and Created By cannot be modified");
             }
-            boardUniversityToUpdate.setBoard_university_location(boardUniversity.getBoard_university_location());
+            boardUniversityToUpdate.setModified_by(role);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String now = LocalDateTime.now().format(formatter);
+            boardUniversityToUpdate.setModified_date(now);
+            return entityManager.merge(boardUniversityToUpdate);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
-        if(boardUniversity.getCreated_date()!=null|| boardUniversity.getCreated_by()!=null)
-        {
-            throw new IllegalArgumentException("Created Date and Created By cannot be modified");
-        }
-        boardUniversityToUpdate.setModified_by(role);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String now = LocalDateTime.now().format(formatter);
-        boardUniversityToUpdate.setModified_date(now);
-        return entityManager.merge(boardUniversityToUpdate);
     }
+
     @Transactional
     public BoardUniversity manageUni(Long boardUnivId, Boolean active) throws Exception {
         try {
@@ -221,6 +242,7 @@ public class BoardUniversityService
             entityManager.merge(subject);
             return subject;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw e;
         }
     }

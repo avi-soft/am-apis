@@ -60,7 +60,7 @@ public class BoardUniversityController {
     public ResponseEntity<?> addBoardUniversity(@RequestBody BoardUniversity boardUniversities, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             BoardUniversity addedBoardUniversities = boardUniversityService.addBoardUniversities(boardUniversities, authHeader);
-            return responseService.generateResponse(HttpStatus.CREATED, "Board or University is added successfully", addedBoardUniversities);
+            return responseService.generateResponse(HttpStatus.OK, "Board or University is added successfully", addedBoardUniversities);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
