@@ -155,6 +155,7 @@ public class GenderService {
             entityManager.persist(customGender);
             return customGender;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception(e.getMessage());
         }
     }
