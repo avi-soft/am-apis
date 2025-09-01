@@ -1,7 +1,6 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
