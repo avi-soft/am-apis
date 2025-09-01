@@ -141,7 +141,7 @@ public class InstitutionService
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             Institution institutionToUpdate = entityManager.find(Institution.class, institutionId);
             if (institutionToUpdate == null) {
-                throw new IllegalArgumentException("Institution with id " + institutionId + " not found");
+                throw new IllegalArgumentException("Institution with id \" + institutionId + \" not found");
             }
             List<Institution> institutions = getAllInstitutions();
             if (Objects.nonNull(institution.getInstitution_name())) {
@@ -206,7 +206,7 @@ public class InstitutionService
             }
 
             if (archive == null) {
-                throw new IllegalArgumentException("Archive status must be provided (true/false)");
+                throw new IllegalArgumentException("Archive status must be provided (true/false)Archive status must be provided (true/false)");
             }
 
             if (institution.getArchived().equals(archive)) {

@@ -8,6 +8,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,29 +50,16 @@ public class InstitutionConstroller {
             return responseService.generateResponse(HttpStatus.OK, "Institution List Retrieved Successfully", institutionList);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @PostMapping("/add")
-    public ResponseEntity<?> addInstitution(@RequestBody Institution institutions, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
-        try {
-            Institution addedInstitutions = institutionService.addInstitutions(institutions, authHeader);
-            return responseService.generateResponse(HttpStatus.CREATED, "Institution is added successfully", addedInstitutions);
-        } catch (IllegalArgumentException e) {
-            exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PutMapping("/update/{institutionId}")
-    public ResponseEntity<?> updateInstitution(@PathVariable Long institutionId, @RequestBody Institution institution, @RequestHeader(value = "Authorization") String authHeader) {
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @PostMapping("/add")
+    public ResponseEntity<?> addInstitution(@RequestBody Institution institutions, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
-            Institution updatedInstitution = institutionService.updateInstitution(institutionId, institution, authHeader);
-            return responseService.generateResponse(HttpStatus.CREATED, "Institution is updated successfully", updatedInstitution);
+            Institution addedInstitutions = institutionService.addInstitutions(institutions, authHeader);
+            return responseService.generateResponse(HttpStatus.OK, "Institution is added successfully", addedInstitutions);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -82,10 +70,25 @@ public class InstitutionConstroller {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PutMapping("/{id}/manage")
+    @PutMapping("/update/{institutionId}")
+    public ResponseEntity<?> updateInstitution(@PathVariable Long institutionId, @RequestBody Institution institution, @RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            Institution updatedInstitution = institutionService.updateInstitution(institutionId, institution, authHeader);
+            return responseService.generateResponse(HttpStatus.OK, "Institution is updated successfully", updatedInstitution);
+        } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @DeleteMapping("/{id}/manage")
     public ResponseEntity<?> manageInstitutionArchiveStatus(
             @PathVariable Long id,
-            @RequestParam Boolean archive) {
+            @RequestParam(defaultValue = "false") Boolean archive) {
         try {
             Institution institution = institutionService.manageInstitutionArchiveStatus(id, archive);
             String message = archive ? "Institution archived successfully" : "Institution unarchived successfully";
