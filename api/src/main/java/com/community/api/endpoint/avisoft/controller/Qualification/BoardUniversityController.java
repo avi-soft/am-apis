@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.Qualification;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
+import com.community.api.dto.BoardUnviDTO;
 import com.community.api.entity.BoardUniversity;
 import com.community.api.services.BoardUniversityService;
 import com.community.api.services.ResponseService;
@@ -55,7 +56,7 @@ public class BoardUniversityController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addBoardUniversity(@RequestBody BoardUniversity  boardUniversities,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
+    public ResponseEntity<?> addBoardUniversity(@RequestBody BoardUnviDTO  boardUniversities,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try
         {
             BoardUniversity addedBoardUniversities = boardUniversityService.addBoardUniversities(boardUniversities,authHeader);
@@ -73,7 +74,7 @@ public class BoardUniversityController {
     }
 
     @PutMapping("/update/{boardUniversityId}")
-    public ResponseEntity<?> updateBoardUniversity(@PathVariable Long boardUniversityId,@RequestBody BoardUniversity boardUniversity,@RequestHeader(value = "Authorization")String authHeader)
+    public ResponseEntity<?> updateBoardUniversity(@PathVariable Long boardUniversityId, @RequestBody BoardUnviDTO boardUniversity, @RequestHeader(value = "Authorization")String authHeader)
     {
         try
         {

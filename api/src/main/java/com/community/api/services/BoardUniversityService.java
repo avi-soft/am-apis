@@ -2,7 +2,10 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.BoardUnviDTO;
 import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.BoardUniversityLocation;
+import com.community.api.entity.BoardUniversityType;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,7 +37,7 @@ public class BoardUniversityService
     RoleService roleService;
 
     @Transactional
-    public BoardUniversity addBoardUniversities( BoardUniversity boardUniversity, String authHeader) {
+    public BoardUniversity addBoardUniversities(BoardUnviDTO boardUniversity, String authHeader) {
         String jwtToken = authHeader.substring(7);
 
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -97,15 +100,23 @@ public class BoardUniversityService
         Long sortOrder = (Long) query.getSingleResult();
             boardUniversityToBeSaved.setBoard_university_name(boardUniversity.getBoard_university_name());
             boardUniversityToBeSaved.setSortOrder(sortOrder);
-            boardUniversityToBeSaved.setBoard_university_location(boardUniversity.getBoard_university_location());
+
             boardUniversityToBeSaved.setBoard_university_code(boardUniversity.getBoard_university_code());
-            boardUniversityToBeSaved.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
+
             boardUniversityToBeSaved.setCreated_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
             boardUniversityToBeSaved.setArchived(false);
             boardUniversityToBeSaved.setCreated_date(now);
             entityManager.persist(boardUniversityToBeSaved);
+        BoardUniversityLocation location=new BoardUniversityLocation();
+        location.setBoardUniversityId(boardUniversityToBeSaved.getBoard_university_id());
+        location.setBoard_university_location(boardUniversity.getBoard_university_location());
+        BoardUniversityType type=new BoardUniversityType();
+        type.setBoardUniversityId(boardUniversityToBeSaved.getBoard_university_id());
+        type.setBoard_university_type(boardUniversity.getBoard_university_type());
+        entityManager.persist(location);
+        entityManager.persist(type);
             savedBoardUniversities.add(boardUniversityToBeSaved);
             return boardUniversityToBeSaved;
     }
@@ -127,7 +138,7 @@ public class BoardUniversityService
     }
 
     @Transactional
-    public BoardUniversity updateBoardUniversity(Long boardUniversityId, BoardUniversity boardUniversity,String authHeader){
+    public BoardUniversity updateBoardUniversity(Long boardUniversityId, BoardUnviDTO boardUniversity,String authHeader){
         String jwtToken = authHeader.substring(7);
 
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -161,6 +172,8 @@ public class BoardUniversityService
             }
             boardUniversityToUpdate.setBoard_university_code(boardUniversity.getBoard_university_code());
         }
+        BoardUniversityLocation boardUniversityLocation=entityManager.find(BoardUniversityLocation.class,boardUniversityId);
+        BoardUniversityType boardUniversityType=entityManager.find(BoardUniversityType.class,boardUniversityId);
         if (Objects.nonNull(boardUniversity.getBoard_university_type())) {
             if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z][a-zA-Z ]*$")){
                 throw new IllegalArgumentException("Board or university type cannot contain numeric values ,special characters or leading spaces");
@@ -169,7 +182,7 @@ public class BoardUniversityService
             {
                 throw new IllegalArgumentException("Board or university type can be either 'BOARD' or 'UNIVERSITY'");
             }
-            boardUniversityToUpdate.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
+            boardUniversityType.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
         }
         if (Objects.nonNull(boardUniversity.getBoard_university_location())) {
             if (!boardUniversity.getBoard_university_location().matches("^[#a-zA-Z0-9].*")) {
@@ -186,7 +199,7 @@ public class BoardUniversityService
             if (boardUniversity.getBoard_university_location().matches("^[0-9]+$")) {
                 throw new IllegalArgumentException("Board or University location cannot contain only numbers");
             }
-            boardUniversityToUpdate.setBoard_university_location(boardUniversity.getBoard_university_location());
+            boardUniversityLocation.setBoard_university_location(boardUniversity.getBoard_university_location());
         }
         if(boardUniversity.getCreated_date()!=null|| boardUniversity.getCreated_by()!=null)
         {
@@ -196,6 +209,8 @@ public class BoardUniversityService
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String now = LocalDateTime.now().format(formatter);
         boardUniversityToUpdate.setModified_date(now);
+        entityManager.merge(boardUniversityLocation);
+        entityManager.merge(boardUniversityType);
         return entityManager.merge(boardUniversityToUpdate);
     }
     @Transactional
