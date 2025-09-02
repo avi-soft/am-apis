@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -29,8 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.persistence.EntityManager;
 import javax.validation.Valid;
 import java.util.List;
-
-
 
 @RestController
 public class SubjectController {
@@ -50,6 +47,7 @@ public class SubjectController {
         this.entityManager = entityManager;
     }
 
+    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/add-subject")
     public ResponseEntity<?> addSubject(@Valid @RequestBody AddSubjectDto addSubjectDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
@@ -117,6 +115,7 @@ public class SubjectController {
         }
     }
 
+    @Authorize(value = {Constant.roleSuperAdmin})
     @DeleteMapping("/remove-subject-by-id/{subjectIdString}")
     public ResponseEntity<?> removeSubjectBySubjectId(@PathVariable String subjectIdString) {
         try {
@@ -153,6 +152,7 @@ public class SubjectController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Authorize(value = {Constant.roleSuperAdmin})
     @PutMapping("subject/{subjectId}/edit")
     public ResponseEntity<?> editSubject(
@@ -170,8 +170,10 @@ public class SubjectController {
                     subjectService.editSubject(subjectId,streamIds, subject),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Cannot edit subject: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Cannot edit subject: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -192,8 +194,10 @@ public class SubjectController {
                     subjectService.manageSubject(subjectId, archive),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Cannot update subject: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Cannot update subject: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -207,8 +211,10 @@ public class SubjectController {
                     streams,
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Error retrieving streams", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -66,6 +66,7 @@ public class SectorController {
     SharedUtilityService sharedUtilityService;
     @Autowired
     CatalogService catalogService;
+
     @Autowired
     public SectorController(ExceptionHandlingService exceptionHandlingService, SectorService sectorService, StaticDataService staticDataService) {
         this.exceptionHandlingService = exceptionHandlingService;
