@@ -10,8 +10,10 @@ import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CompressedProductWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.ProductCompressedDTO;
-import com.community.api.entity.*;
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.Role;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.GenderService;
 import com.community.api.services.ProductService;
@@ -48,20 +50,20 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 import static com.community.api.component.Constant.request;
 import static com.community.api.services.ProductService.stripTime;
-import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
-import static elemental2.core.JsRegExp.input;
 
 @RestController
 @RequestMapping(value = "/advertisement", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -132,7 +134,6 @@ public class AdvertisementController {
         } catch (DataIntegrityViolationException dataIntegrityViolationException) {
             exceptionHandlingService.handleException(dataIntegrityViolationException);
             return ResponseService.generateErrorResponse(dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
-
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -183,7 +184,6 @@ public class AdvertisementController {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
@@ -239,7 +239,6 @@ public class AdvertisementController {
                             products.add(wrapper);
                         }
                     }
-
                 }
                 AdvertisementWrapper wrapper = new AdvertisementWrapper();
                 wrapper.wrapDetails(advertisement, products, null);
