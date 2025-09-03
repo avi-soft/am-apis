@@ -100,7 +100,7 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
         Long categoryId = 1L; // Default to 1 (GEN)
         int flag = 0;
         this.fee = null;
-
+        this.totalVacanciesInProduct=product.getTotalVacanciesInProduct();
         System.out.println("\n=== FEE CALCULATION DEBUG ===");
         System.out.println("Initial customer state: " + (customCustomer != null ? "Logged in" : "Not logged in"));
 
