@@ -27,7 +27,7 @@ public class SectorService {
 
     public List<CustomSector> getAllSector(Boolean archived) {
         try {
-            List<CustomSector> sectorList = entityManager.createQuery(Constant.GET_ALL_SECTOR, CustomSector.class).setParameter("archived",archived)
+            List<CustomSector> sectorList = entityManager.createQuery(Constant.GET_ALL_SECTOR, CustomSector.class).setParameter("archived", archived)
                     .getResultList();
             return sectorList;
         } catch (Exception exception) {
@@ -54,18 +54,19 @@ public class SectorService {
             return null;
         }
     }
+
     public Boolean validateAddSubjectDto(AddSectorDto addSectorDto) throws Exception {
-        try{
-            if(addSectorDto.getSectorName() == null || addSectorDto.getSectorDescription().trim().isEmpty()) {
+        try {
+            if (addSectorDto.getSectorName() == null || addSectorDto.getSectorDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("SECTOR NAME CANNOT BE NULL OR EMPTY");
             }
-            if(addSectorDto.getSectorDescription() != null && addSectorDto.getSectorDescription().trim().isEmpty()) {
+            if (addSectorDto.getSectorDescription() != null && addSectorDto.getSectorDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("SECTOR DESCRIPTION CANNOT BE EMPTY");
             }
             return true;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
     }
 
@@ -104,6 +105,7 @@ public class SectorService {
             throw new Exception("Failed to add sector: " + e.getMessage());
         }
     }
+
     @Transactional
     public CustomSector editSector(Long sectorId, AddSectorDto addSectorDto)
             throws IllegalArgumentException, Exception {
@@ -150,28 +152,35 @@ public class SectorService {
             throw new Exception("Failed to update sector: " + e.getMessage());
         }
     }
-    @Transactional
-    public CustomSector manageSector(Long sectorId,Boolean archive) throws NotFoundException {
-        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
-        if(customSector==null)
-            throw new NotFoundException("Sector not found");
-        if (archive) {
-            if (Boolean.TRUE.equals(customSector.getArchived())) {
-                throw new IllegalArgumentException("Sector is already archived");
-            }
-            customSector.setArchived(true);
-            // Optionally move to high sort order when archiving
-        } else {
-            if (Boolean.FALSE.equals(customSector.getArchived())) {
-                throw new IllegalArgumentException("Sector is already active");
-            }
-            customSector.setArchived(false);
-            // When unarchiving, assign next available sort order
-        }
 
-        entityManager.merge(customSector);
-        return customSector;
+    @Transactional
+    public CustomSector manageSector(Long sectorId, Boolean archive) throws Exception {
+        try {
+            CustomSector customSector = entityManager.find(CustomSector.class, sectorId);
+            if (customSector == null)
+                throw new NotFoundException("Sector not found");
+            if (archive) {
+                if (Boolean.TRUE.equals(customSector.getArchived())) {
+                    throw new IllegalArgumentException("Sector is already archived");
+                }
+                customSector.setArchived(true);
+                // Optionally move to high sort order when archiving
+            } else {
+                if (Boolean.FALSE.equals(customSector.getArchived())) {
+                    throw new IllegalArgumentException("Sector is already active");
+                }
+                customSector.setArchived(false);
+                // When unarchiving, assign next available sort order
+            }
+
+            entityManager.merge(customSector);
+            return customSector;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
     }
+
     public List<Object[]> getCompressedProductsBySector(List<Long> sectorIds, Integer offset, Integer limit, List<Long> categoryId) {
         try {
             System.out.println(categoryId);
@@ -187,7 +196,7 @@ public class SectorService {
                     "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
             if (categoryId != null && !categoryId.isEmpty()) {
-                sql.append( "AND bp.default_category_id IN (:categoryId) ");
+                sql.append("AND bp.default_category_id IN (:categoryId) ");
             }
             if (sectorIds != null && !sectorIds.isEmpty()) {
                 sql.append("AND c.sector_id IN (:sectorIds) ");
@@ -209,9 +218,11 @@ public class SectorService {
             System.out.println(query.getResultList().size());
             return query.getResultList();
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new RuntimeException("Failed to fetch compressed products by sector: " + e.getMessage(), e);
         }
     }
+
     public List<BigInteger> getCompressedProductBySector(Long sectorId, Integer offset, Integer limit, List<Long> categoryId) {
         try {
             StringBuilder sql = new StringBuilder("SELECT c.product_id " +
@@ -223,7 +234,7 @@ public class SectorService {
                     "WHERE bp.archived = 'N' " +
                     "AND c.product_state_id NOT IN (7) ");
             if (categoryId != null && !categoryId.isEmpty()) {
-                sql.append( "AND bp.default_category_id IN (:categoryId) ");
+                sql.append("AND bp.default_category_id IN (:categoryId) ");
             }
 
             sql.append("AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
@@ -242,6 +253,7 @@ public class SectorService {
             throw new RuntimeException("Failed to fetch compressed products by sector: " + e.getMessage(), e);
         }
     }
+
     public BigInteger getCompressedProductsBySectorCount(List<Long> sectorIds, List<Long> categoryId) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT cs.sector_id) " +
                 "FROM custom_product c " +
@@ -250,9 +262,9 @@ public class SectorService {
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE bp.archived = 'N' " +
-                "AND c.product_state_id NOT IN (7) " );
+                "AND c.product_state_id NOT IN (7) ");
         if (categoryId != null && !categoryId.isEmpty()) {
-            sql.append( "AND bp.default_category_id IN (:categoryId) ");
+            sql.append("AND bp.default_category_id IN (:categoryId) ");
         }
 
         sql.append(
@@ -276,6 +288,7 @@ public class SectorService {
             throw new RuntimeException("Failed to count sectors: " + e.getMessage(), e);
         }
     }
+
     public BigInteger getCompressedProductsCount(Long sectorId, List<Long> categoryId) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT c.product_id) " +
                 "FROM custom_product c " +
@@ -286,7 +299,7 @@ public class SectorService {
                 "WHERE bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) ");
         if (categoryId != null && !categoryId.isEmpty()) {
-            sql.append( "AND bp.default_category_id IN (:categoryId) ");
+            sql.append("AND bp.default_category_id IN (:categoryId) ");
         }
 
         sql.append(
