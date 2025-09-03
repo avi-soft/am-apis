@@ -4,14 +4,10 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
-import org.apache.tomcat.util.bcel.Const;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -25,8 +21,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
 @Service
 public class StreamService {
@@ -76,11 +70,11 @@ public class StreamService {
 
     public List<CustomStream> getAllStream(Boolean archived) {
         try {
-            Query query=entityManager.createQuery(Constant.GET_ALL_STREAM, CustomStream.class);
-            if(archived)
-                query.setParameter("archived",'Y');
+            Query query = entityManager.createQuery(Constant.GET_ALL_STREAM, CustomStream.class);
+            if (archived)
+                query.setParameter("archived", 'Y');
             else
-                query.setParameter("archived",'N');
+                query.setParameter("archived", 'N');
             List<CustomStream> streamList = query.getResultList();
             return streamList;
         } catch (Exception exception) {
@@ -89,9 +83,9 @@ public class StreamService {
         }
     }
 
-    public List<CustomStream> getAllStreamArchiveNonArchive( ){
+    public List<CustomStream> getAllStreamArchiveNonArchive() {
         try {
-            Query query=entityManager.createQuery(Constant.GET_ALL_STREAM_ARCHIVE_NONARCHIVE, CustomStream.class);
+            Query query = entityManager.createQuery(Constant.GET_ALL_STREAM_ARCHIVE_NONARCHIVE, CustomStream.class);
             List<CustomStream> streamList = query.getResultList();
             return streamList;
         } catch (Exception exception) {
@@ -122,7 +116,7 @@ public class StreamService {
             List<CustomStream> stream = query.getResultList();
 
             if (!stream.isEmpty()) {
-                if(stream.get(0).getArchived() == 'Y'){
+                if (stream.get(0).getArchived() == 'Y') {
                     throw new IllegalArgumentException("Subject is already Archived");
                 }
                 return stream.get(0);
@@ -147,30 +141,30 @@ public class StreamService {
             return stream;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
     }
 
     public Boolean validateAddStreamDto(AddStreamDto addStreamDto) throws Exception {
-        try{
+        try {
 
-            if(addStreamDto.getStreamName() != null) {
+            if (addStreamDto.getStreamName() != null) {
                 addStreamDto.setStreamName(addStreamDto.getStreamName().trim());
             }
             List<CustomStream> streams = getStreamByStreamName(addStreamDto.getStreamName());
-            if(streams != null && !streams.isEmpty()) {
+            if (streams != null && !streams.isEmpty()) {
                 throw new IllegalArgumentException("Duplicate Unarchived Stream Name");
             }
-            if(addStreamDto.getStreamDescription() != null) {
+            if (addStreamDto.getStreamDescription() != null) {
                 addStreamDto.setStreamDescription(addStreamDto.getStreamDescription().trim());
             }
             return true;
-        } catch(IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException("ILLEGAL ARGUMENT EXCEPTION OCCURRED: "+ illegalArgumentException.getMessage());
+            throw new IllegalArgumentException("ILLEGAL ARGUMENT EXCEPTION OCCURRED: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
     }
 
@@ -230,6 +224,7 @@ public class StreamService {
 
         } catch (IllegalArgumentException e) {
             // Re-throw validation exceptions directly
+            exceptionHandlingService.handleException(e);
             throw e;
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
@@ -241,7 +236,7 @@ public class StreamService {
     public void removeStreamById(CustomStream stream) throws Exception {
         try {
 
-            if(stream == null) {
+            if (stream == null) {
                 throw new IllegalArgumentException("No Stream Found");
             }
             stream.setArchived('Y');
@@ -252,6 +247,7 @@ public class StreamService {
             throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
         }
     }
+
     @Transactional
     public CustomStream manageStream(Long streamId, Boolean archive) throws IllegalArgumentException, Exception {
         try {
@@ -277,6 +273,7 @@ public class StreamService {
             }
             return stream;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception(e.getMessage());
         }
     }
@@ -292,6 +289,7 @@ public class StreamService {
                 .setParameter("streamId", streamId)
                 .getResultList();
     }
+
     @Transactional
     public CustomStream editStream(Long streamId, List<Integer> qualificationIds, CustomStream stream)
             throws IllegalArgumentException, Exception {
@@ -312,12 +310,12 @@ public class StreamService {
             if (stream.getStreamName() != null) {
                 // Case-insensitive duplicate check
                 List<CustomStream> existingStreams = getAllStreamArchiveNonArchive();
-                for (CustomStream existingStream: existingStreams) {
+                for (CustomStream existingStream : existingStreams) {
                     if (existingStream.getStreamName().equalsIgnoreCase(stream.getStreamName()) && !existingStream.getStreamId().equals(streamId)) {
-                        throw new IllegalArgumentException("Stream with name '"+stream.getStreamName()+"' already exists");
+                        throw new IllegalArgumentException("Stream with name '" + stream.getStreamName() + "' already exists");
                     }
                 }
-               /* // Validate name format
+               /*Validate name format
                 if (!sharedUtilityService.isAlphabeticWithHyphen(stream.getStreamName())) {
                     throw new IllegalArgumentException(
                             "Stream name should contain only alphabets and hyphens");
@@ -358,9 +356,7 @@ public class StreamService {
                 }
 
                 streamToEdit.setQualifications(newQualifications);
-            }
-            else
-            {
+            } else {
                 streamToEdit.setQualifications(new ArrayList<>());
             }
 
@@ -369,8 +365,10 @@ public class StreamService {
             return streamToEdit;
 
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception("Failed to update stream: " + e.getMessage());
         }
     }
