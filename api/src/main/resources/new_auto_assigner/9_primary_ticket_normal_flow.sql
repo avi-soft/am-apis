@@ -31,6 +31,8 @@ BEGIN
 		RAISE NOTICE 'Assigned Tickets (RBTA) {for normal flow}: %', assigned_tickets;
 	END IF;
 
+    RAISE NOTICE 'AFter RBTA Order is %', custom_orders;
+
 	IF custom_orders IS NOT NULL AND array_length(custom_orders, 1) > 0 THEN
     -- Step 4: VDTA logic — will also append to assigned_tickets
     CALL public.vertical_distribution_ticket_allocation(custom_orders, available_service_providers, assigned_tickets);

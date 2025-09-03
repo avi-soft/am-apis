@@ -49,6 +49,11 @@ BEGIN
         WHERE
             order_id = p_order_id;
 
+        -- Initialize assigned_tickets array if null
+                IF p_assigned_ticket_ids IS NULL THEN
+                    p_assigned_ticket_ids := ARRAY[]::BIGINT[];
+                END IF;
+
         -- Append the ticket_id to output list
         p_assigned_ticket_ids := array_append(p_assigned_ticket_ids, ticket_id);
         p_assigned := TRUE;

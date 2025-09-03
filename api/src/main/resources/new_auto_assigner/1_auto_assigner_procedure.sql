@@ -4,12 +4,12 @@ AS $BODY$
 
 DECLARE
     available_service_providers BIGINT[];         -- IDs of available SPs
-    primary_rejected_assigned_tickets BIGINT[];
-    primary_assigned_tickets BIGINT[];            -- Tickets from primary flow (RBTA + VDTA)
+    primary_rejected_assigned_tickets BIGINT[] := ARRAY[]::BIGINT[];
+    primary_assigned_tickets BIGINT[] := ARRAY[]::BIGINT[];            -- Tickets from primary flow (RBTA + VDTA)
     
-    rejected_review_tickets BIGINT[];            -- Tickets from rejection/review logic
-    review_rejected_assigned_tickets BIGINT[];
-    review_assigned_tickets BIGINT[];
+    rejected_review_tickets BIGINT[] := ARRAY[]::BIGINT[];            -- Tickets from rejection/review logic
+    review_rejected_assigned_tickets BIGINT[] := ARRAY[]::BIGINT[];
+    review_assigned_tickets BIGINT[] := ARRAY[]::BIGINT[];
 BEGIN
 
 	RAISE NOTICE '1. Auto-Assigner';

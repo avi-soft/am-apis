@@ -906,6 +906,7 @@ public class SharedUtilityService {
             wrapper.setActiveEndDate(product.getDefaultSku().getActiveEndDate());
         }
         wrapper.setState(customProduct.getProductState().getProductState());
+        wrapper.setStateId(customProduct.getProductState().getProductStateId());
         return wrapper;
     }
 

@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE public.random_binding_ticket_allocation(IN custom_orders bigint[], INOUT assigned_tickets bigint[])
+CREATE OR REPLACE PROCEDURE public.random_binding_ticket_allocation(INOUT custom_orders bigint[], INOUT assigned_tickets bigint[])
 LANGUAGE 'plpgsql' 
 AS $BODY$
 
@@ -8,7 +8,7 @@ DECLARE
     ref RECORD;
     v_product_id BIGINT;
 	v_creator_user_id BIGINT;
-	unassigned_orders BIGINT[];
+	unassigned_orders BIGINT[] := ARRAY[]::BIGINT[];
     assigned BOOLEAN;
     v_sp_id BIGINT;
 BEGIN
@@ -84,9 +84,7 @@ BEGIN
 			    CALL public.allocate_ticket(v_order_id, v_sp_id, assigned, assigned_tickets);
 			END IF;
 		
-	        IF assigned THEN
-	            assigned := true;
-	        END IF;
+	        IF assigned THEN CONTINUE; END IF;
 	
 	        -- If not assigned, keep in unassigned_orders
 	        IF NOT assigned THEN
@@ -96,10 +94,11 @@ BEGIN
 
 	    -- Replace custom_orders with only unassigned orders
 	    custom_orders := unassigned_orders;
-	
-	    RAISE NOTICE 'RBTA Completed. Assigned: %, Unassigned Remaining: %',
-	                 array_length(assigned_tickets, 1),
-	                 array_length(custom_orders, 1);
+
+	    RAISE NOTICE 'RBTA Completed. Assigned: %, Unassigned Remaining: %, Remaining Orders: %',
+                     array_length(assigned_tickets, 1),
+                     array_length(custom_orders, 1),
+                     custom_orders;
 	END IF;
 END;
 $BODY$;
