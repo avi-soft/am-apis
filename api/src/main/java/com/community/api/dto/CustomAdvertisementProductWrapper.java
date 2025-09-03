@@ -20,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import javax.persistence.Column;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Optional;
 
@@ -346,12 +349,14 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
             this.ageLimit = "N/A";
             return;
         }
+        LocalDate localDate = LocalDate.now();
+        Date utilDate = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
         int[] ageLimits=null;
         if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
             ageLimits = sharedUtilityService.calculateAgeRange(
                     ageLimitResult.getBornBefore(),
                     ageLimitResult.getBornAfter(),
-                    null);
+                    utilDate);
         }
 
 
@@ -362,6 +367,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
                 ? ageLimits[0] + "-" + ageLimits[1]
                 : "N/A";
     }
+
     public void wrapDetailsSimplified(CustomProduct product,
                             HttpServletRequest httpServletRequest,
                             ReserveCategoryService reserveCategoryService,

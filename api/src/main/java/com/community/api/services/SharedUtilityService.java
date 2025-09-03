@@ -973,6 +973,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("qualification_score", serviceProvider.getQualificationScore());
         serviceProviderDetails.put("technical_expertise_score", serviceProvider.getTechnicalExpertiseScore());
         serviceProviderDetails.put("work_experience_score", serviceProvider.getWorkExperienceScore());
+        serviceProviderDetails.put("suspended",serviceProvider.getIsArchived());
         serviceProviderDetails.put("written_test_score", serviceProvider.getWrittenTestScore());
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
@@ -2301,7 +2302,7 @@ public class SharedUtilityService {
         }
 
         text.append("\nTo view the latest changes, please visit:\n");
-        text.append("https://dev-next-am-public-ui.vercel.app/")
+        text.append("https://am-public-ui.vercel.app/")
                 .append("\n\n");
 
         text.append("Thank you,\nSystem Administrator");

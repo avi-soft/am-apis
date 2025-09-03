@@ -355,7 +355,6 @@ public class TicketStateService {
                             entityManager.merge(orderState);
                         }
                     }
-
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
             }
