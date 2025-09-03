@@ -2,16 +2,12 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.AddStreamDto;
 import com.community.api.dto.AddSubjectDto;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
-import com.community.api.entity.TypingText;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -61,22 +57,27 @@ public class SubjectService {
     }
 
     public void addSubjectToStream(Long streamId, Long subjectId) {
-        CustomStream stream = entityManager.find(CustomStream.class, streamId);
-        CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+        try {
+            CustomStream stream = entityManager.find(CustomStream.class, streamId);
+            CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
 
-        if (stream != null && subject != null) {
-            stream.getSubjects().add(subject);
-            entityManager.merge(stream);
+            if (stream != null && subject != null) {
+                stream.getSubjects().add(subject);
+                entityManager.merge(stream);
+            }
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
     }
 
     public List<CustomSubject> getAllSubject(Boolean archived) {
         try {
-            Query query=entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class);
-            if(archived)
-                query.setParameter("archived",'Y');
+            Query query = entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class);
+            if (archived)
+                query.setParameter("archived", 'Y');
             else
-                query.setParameter("archived",'N');
+                query.setParameter("archived", 'N');
             List<CustomSubject> subjectList = query.getResultList();
             return subjectList;
         } catch (Exception exception) {
@@ -87,7 +88,7 @@ public class SubjectService {
 
     public List<CustomSubject> getAllArchivedNonArchivedSubject() {
         try {
-            Query query=entityManager.createQuery(Constant.GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE, CustomSubject.class);
+            Query query = entityManager.createQuery(Constant.GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE, CustomSubject.class);
             List<CustomSubject> subjectList = query.getResultList();
             return subjectList;
         } catch (Exception exception) {
@@ -95,6 +96,7 @@ public class SubjectService {
             return Collections.emptyList();
         }
     }
+
     public List<CustomSubject> getSubjectsByStreamIds(Long streamId) {
         try {
             String jpql = "SELECT s FROM CustomStream cs JOIN cs.subjects s " +
@@ -121,7 +123,7 @@ public class SubjectService {
             List<CustomSubject> subject = query.getResultList();
 
             if (!subject.isEmpty()) {
-                if(subject.get(0).getArchived() == 'Y'){
+                if (subject.get(0).getArchived() == 'Y') {
                     throw new IllegalArgumentException("Subject is already Archived");
                 }
                 return subject.get(0);
@@ -146,30 +148,30 @@ public class SubjectService {
             return subject;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
     }
 
     public Boolean validateAddSubjectDto(AddSubjectDto addSubjectDto) throws Exception {
-        try{
+        try {
 
-            if(addSubjectDto.getSubjectName() != null) {
+            if (addSubjectDto.getSubjectName() != null) {
                 addSubjectDto.setSubjectName(addSubjectDto.getSubjectName().trim());
             }
             List<CustomSubject> subjects = getSubjectBySubjectName(addSubjectDto.getSubjectName());
-            if(subjects != null && !subjects.isEmpty()) {
+            if (subjects != null && !subjects.isEmpty()) {
                 throw new IllegalArgumentException("Duplicate Unarchived Subject Name");
             }
-            if(addSubjectDto.getSubjectDescription() != null) {
+            if (addSubjectDto.getSubjectDescription() != null) {
                 addSubjectDto.setSubjectDescription(addSubjectDto.getSubjectDescription().trim());
             }
             return true;
-        } catch(IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException("ILLEGAL ARGUMENT EXCEPTION OCCURRED: "+ illegalArgumentException.getMessage());
+            throw new IllegalArgumentException("ILLEGAL ARGUMENT EXCEPTION OCCURRED: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
 
     }
@@ -188,7 +190,7 @@ public class SubjectService {
             if (addSubjectDto.getSubjectName() == null || addSubjectDto.getSubjectName().trim().isEmpty()) {
                 throw new IllegalArgumentException("Subject name is required");
             }
-/*            if(!sharedUtilityService.isAlphabeticWithHyphen(addSubjectDto.getSubjectName()))
+            /*  if(!sharedUtilityService.isAlphabeticWithHyphen(addSubjectDto.getSubjectName()))
                 throw new IllegalArgumentException("Subject names can contain only alphabets and hyphens");*/
 
             // 3. Check for duplicate subject name (case-insensitive)
@@ -252,6 +254,7 @@ public class SubjectService {
             return subject;
 
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
@@ -263,7 +266,7 @@ public class SubjectService {
     public void removeSubjectById(CustomSubject subject) throws Exception {
         try {
 
-            if(subject == null) {
+            if (subject == null) {
                 throw new IllegalArgumentException("No Subject Found");
             }
             subject.setArchived('Y');
@@ -274,6 +277,7 @@ public class SubjectService {
             throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
         }
     }
+
     @Transactional
     public CustomSubject editSubject(Long subjectId, List<Long> streamIds, CustomSubject subject)
             throws IllegalArgumentException, Exception {
@@ -298,15 +302,14 @@ public class SubjectService {
                             "Subject name should contain only alphabetic characters");
                 }*/
 
-                if(subject.getSubjectName().isEmpty())
-                {
+                if (subject.getSubjectName().isEmpty()) {
                     throw new IllegalArgumentException("Subject name cannot be empty");
                 }
 
                 List<CustomSubject> existingSubjects = getAllArchivedNonArchivedSubject();
-                for (CustomSubject existingSubject: existingSubjects) {
+                for (CustomSubject existingSubject : existingSubjects) {
                     if (existingSubject.getSubjectName().equalsIgnoreCase(subject.getSubjectName()) && !existingSubject.getSubjectId().equals(subjectId)) {
-                        throw new IllegalArgumentException("Subject with name '"+subject.getSubjectName()+"' already exists");
+                        throw new IllegalArgumentException("Subject with name '" + subject.getSubjectName() + "' already exists");
                     }
                 }
 
@@ -315,8 +318,7 @@ public class SubjectService {
 
             // 4. Process description update if provided
             if (subject.getSubjectDescription() != null) {
-                if(subject.getSubjectDescription().isEmpty())
-                {
+                if (subject.getSubjectDescription().isEmpty()) {
                     throw new IllegalArgumentException("Subject description cannot be empty");
                 }
                 subjectToEdit.setSubjectDescription(subject.getSubjectDescription());
@@ -346,7 +348,7 @@ public class SubjectService {
                 if (!validStreams.isEmpty()) {
                     subjectToEdit.setStreams(validStreams);
                 }
-            }else {
+            } else {
                 subjectToEdit.setStreams(new ArrayList<>());
             }
 
@@ -355,8 +357,10 @@ public class SubjectService {
             return subjectToEdit;
 
         } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
             throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception("Failed to update subject: " + e.getMessage());
         }
     }
@@ -384,20 +388,26 @@ public class SubjectService {
             entityManager.merge(subject);
             return subject;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw e;
         }
     }
 
     public List<CustomStream> getStreamsForSubject(Long subjectId) {
-        CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
-        if (subject == null) {
-            throw new IllegalArgumentException("Subject not found");
+        try {
+            CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+            if (subject == null) {
+                throw new IllegalArgumentException("Subject not found");
+            }
+            return entityManager.createQuery(
+                            "SELECT s FROM CustomStream s JOIN s.subjects sub WHERE sub.subjectId = :subjectId",
+                            CustomStream.class)
+                    .setParameter("subjectId", subjectId)
+                    .getResultList();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
-        return entityManager.createQuery(
-                        "SELECT s FROM CustomStream s JOIN s.subjects sub WHERE sub.subjectId = :subjectId",
-                        CustomStream.class)
-                .setParameter("subjectId", subjectId)
-                .getResultList();
     }
 
 }
