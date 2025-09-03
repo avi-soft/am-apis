@@ -48,7 +48,7 @@ public class Constant {
     public static final String ADMIN = "ADMIN";
     public static final String SUPER_ADMIN = "SUPER_ADMIN";
     public static final String SERVICE_PROVIDER = "SERVICE_PROVIDER";
-    public static final String USER = "USER";
+    public static final String USER = "CUSTOMER";
     public static final int INITIAL_STATUS = 1;
     public static final Long INITIAL_TEST_STATUS = 1L;
     public static final Long TEST_COMPLETED_STATUS = 2L;

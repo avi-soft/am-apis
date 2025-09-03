@@ -308,8 +308,8 @@ public class OrderDTOService {
         if (Arrays.asList(1, 0, 3).contains(orderStateId)) return "New";
         if (Arrays.asList(2, 4, 6, 8).contains(orderStateId)) return "In Progress";
         if (orderStateId.equals(7)) return "Fulfilled";
-        if (Arrays.asList(999, 5, 9).contains(orderStateId)) return "Cancelled";
-        if (Arrays.asList(10, 11).contains(orderStateId)) return "Refund";
+        if (Arrays.asList(5, 9).contains(orderStateId)) return "Cancelled";
+        if (Arrays.asList(999).contains(orderStateId)) return "Payment Failed";
         if (Arrays.asList(12).contains(orderStateId)) return "Cancellation Requested";
 
         return "Unknown";

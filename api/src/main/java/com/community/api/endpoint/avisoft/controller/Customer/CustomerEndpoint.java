@@ -3703,7 +3703,9 @@ public class CustomerEndpoint {
                 wrappers.add(dto);
             }
             Map<String, Object> response = new HashMap<>();
-            response.put("forms", wrappers);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, customProducts.size());
+            response.put("forms", wrappers.subList(fromIndex, toIndex));
             response.put("totalItems", customProducts.size());
             long totalPages = (customProducts.size() + limit - 1) / limit;
             response.put("totalPages", totalPages);

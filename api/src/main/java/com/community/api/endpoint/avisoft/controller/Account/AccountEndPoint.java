@@ -7,7 +7,6 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ExternalUseToken;
-import com.community.api.entity.Role;
 import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ApiConstants;
@@ -30,12 +29,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
@@ -44,7 +43,6 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
-
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +176,7 @@ public class AccountEndPoint {
             return ResponseService.generateErrorResponse("Error logging in :" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + exception.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -233,8 +231,7 @@ public class AccountEndPoint {
             }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -344,7 +341,7 @@ public class AccountEndPoint {
                 }
                 Customer customer = customerService.readCustomerById(customerRecords.getId());
                 if (customer != null) {
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null,ackId);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode, null, ackId);
                     Map<String, Object> responseBody = otpResponse.getBody();
 
                     if (responseBody.get("otp") != null) {
@@ -554,11 +551,11 @@ public class AccountEndPoint {
                         String token = jwtUtil.generateToken(customer.getId(), role, ipAddress, userAgent);
                         authHeader = authHeader + authHeadReq;
                         session.setAttribute(tokenKey, token);
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
                     }
                     if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
 
                     } else {
@@ -567,7 +564,7 @@ public class AccountEndPoint {
                         authHeader = authHeader + token;
                         em.persist(customCustomer);
                         session.setAttribute(tokenKey, token);
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                         return ResponseEntity.ok(response);
                     }
                 } else {
@@ -617,7 +614,7 @@ public class AccountEndPoint {
                 if (customCustomer != null) {
                     String storedOtp = customCustomer.getOtp();
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null,null);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE, null, null);
                     Map<String, Object> responseBody = otpResponse.getBody();
                     if (responseBody.get("otp") != null) {
                         return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);
@@ -673,7 +670,7 @@ public class AccountEndPoint {
             if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                 CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode);
 
-                if(existingCustomer == null) {
+                if (existingCustomer == null) {
                     return responseService.generateErrorResponse("No User Found.", HttpStatus.BAD_REQUEST);
                 }
                 System.out.println("archived:" + existingCustomer.getArchived());
@@ -691,12 +688,12 @@ public class AccountEndPoint {
                             String token = jwtUtil.generateToken(customer.getId(), role, ipAddress, userAgent);
                             authHeader = authHeader + authHeadReq;
                             session.setAttribute(tokenKey, token);
-                            OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
+                            OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been signed in");
                             return ResponseEntity.ok(response);
                         }
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                             authHeader = authHeader + existingToken;
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
 
                         } else {
                             String token = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
@@ -704,7 +701,7 @@ public class AccountEndPoint {
                             existingCustomer.setToken(token);
                             em.persist(existingCustomer);
                             session.setAttribute(tokenKey, token);
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.loginDetails(customer,null,authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in"));
                         }
 
                     } else {
@@ -729,18 +726,17 @@ public class AccountEndPoint {
 
     @Transactional
     @GetMapping("/genAuth")
-    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request,@RequestParam(required = false,name = "xcd1s")Long id,@RequestParam(required = false,name = "3a9f",defaultValue ="false")Boolean ext)
-    {
-        Long userId=null;
-        Integer roleId=null;
+    public ResponseEntity<?> generateShortLivedToken(@RequestHeader(required = true, value = "Authorization") String authHeader, HttpServletRequest request, @RequestParam(required = false, name = "xcd1s") Long id, @RequestParam(required = false, name = "3a9f", defaultValue = "false") Boolean ext) {
+        Long userId = null;
+        Integer roleId = null;
         if (authHeader != null) {
             String jwtToken = authHeader.substring(7);
             userId = jwtUtil.extractId(jwtToken);
             roleId = jwtUtil.extractRoleId(jwtToken);
         }
 
-        System.out.println("user"+userId);
-        System.out.println("role"+roleId);
+        System.out.println("user" + userId);
+        System.out.println("role" + roleId);
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
@@ -749,19 +745,15 @@ public class AccountEndPoint {
             ip = ip.split(",")[0];
         }
 
-        String token=null;
-        if(roleId==4&&ext)
-        {
-            ExternalUseToken externalUseToken=em.find(ExternalUseToken.class,userId);
-            Long uid=jwtUtil.extractId(externalUseToken.getToken());
-            token = jwtUtil.generateShortLivedToken(uid,5, ip);
-        }
-        else if(id!=null&&roleId!=null&&(roleId==1||roleId==2))
-        {
+        String token = null;
+        if (roleId == 4 && ext) {
+            ExternalUseToken externalUseToken = em.find(ExternalUseToken.class, userId);
+            Long uid = jwtUtil.extractId(externalUseToken.getToken());
+            token = jwtUtil.generateShortLivedToken(uid, 5, ip);
+        } else if (id != null && roleId != null && (roleId == 1 || roleId == 2)) {
             System.out.println("case1");
-            token = jwtUtil.generateShortLivedToken(id,5, ip);
-        }
-        else {
+            token = jwtUtil.generateShortLivedToken(id, 5, ip);
+        } else {
             System.out.println("case2");
             token = jwtUtil.generateShortLivedToken(userId, roleId, ip);
         }

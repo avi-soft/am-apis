@@ -1145,8 +1145,7 @@ public class CartEndPoint extends BaseEndpoint {
             /*emptyTheCart(customerId,authHeader);*/
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
-
-            return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
+            return ResponseService.generateErrorResponse("Failed to place order due to Payment Failure", HttpStatus.PAYMENT_REQUIRED);
         }
     }
 

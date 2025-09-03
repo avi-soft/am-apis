@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.EligibilityResult;
+import com.community.api.dto.NewProductWrapper;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
@@ -242,7 +243,28 @@ public class SharedUtilityService {
         productDetails.put("active_end_date", product.getDefaultSku().getActiveEndDate());
         return productDetails;
     }
-
+    public Map<String,Object> loginDetails(Customer customer,ServiceProviderEntity serviceProviderEntity,String authHeader,HttpServletRequest httpServletRequest)
+    {
+        Map<String,Object>response=new HashMap<>();
+        if(customer!=null) {
+            response.put("id", customer.getId());
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+        /*    response.put("token", customCustomer.getToken());*/
+            response.put("profileComplete",customCustomer.getProfileComplete());
+            boolean pass= customer.getPassword() != null;
+            response.put("is_password_created",pass);
+            return response;
+        }
+        else
+        {
+            response.put("id", serviceProviderEntity.getService_provider_id());
+        /*    response.put("token", serviceProviderEntity.getToken());*/
+            response.put("completed",serviceProviderEntity.getCompleted());
+            boolean pass= serviceProviderEntity.getPassword() != null;
+            response.put("is_password_created",pass);
+            return response;
+        }
+    }
     @Transactional
     public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader,HttpServletRequest httpServletRequest) throws Exception {
         String jwtToken = authHeader.substring(7);
@@ -860,6 +882,31 @@ public class SharedUtilityService {
         }
         return ValidationResult.SUCCESS;
 
+    }
+
+    public NewProductWrapper wrapDetailsAddProduct(Product product) throws Exception {
+        CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+
+        NewProductWrapper wrapper = new NewProductWrapper();
+        wrapper.setId(product.getId());
+        wrapper.setMetaTitle(product.getMetaTitle());
+        wrapper.setDisplayTemplate(product.getDisplayTemplate());
+        wrapper.setMetaDescription(product.getMetaDescription());
+
+        if (product.getDefaultCategory() != null) {
+            wrapper.setCategoryName(product.getDefaultCategory().getName());
+        }
+
+        if (customProduct != null) {
+            wrapper.setActiveGoLiveDate(customProduct.getGoLiveDate());
+        }
+
+        if (product.getDefaultSku() != null) {
+            wrapper.setActiveStartDate(product.getDefaultSku().getActiveStartDate());
+            wrapper.setActiveEndDate(product.getDefaultSku().getActiveEndDate());
+        }
+        wrapper.setState(customProduct.getProductState().getProductState());
+        return wrapper;
     }
 
     @Transactional

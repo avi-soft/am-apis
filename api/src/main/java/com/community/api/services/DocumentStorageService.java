@@ -528,14 +528,12 @@ public class DocumentStorageService {
                     }
                 }
             }
-
             String url = fileServerUrl + "/files/delete?customerId=" + customerId +
                     "&documentType=" + documentType + "&fileName=" + fileNameToDelete + "&role=" + role;
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
 
             String deletedFilePath = response.getBody();
-
             if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
             } else {
                 // If original attempt failed and we haven't already tried with original name
@@ -552,6 +550,8 @@ public class DocumentStorageService {
                     } catch (Exception e) {
                         System.out.println("Also failed with original filename: " + e.getMessage());
                     }
+                } else {
+                    return null;
                 }
 
                 throw new IOException("No file path returned from server.");

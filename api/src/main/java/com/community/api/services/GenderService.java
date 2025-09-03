@@ -1,7 +1,6 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,7 @@ public class GenderService {
 
     public List<CustomGender> getAllGender(Boolean archived) {
         try {
-            List<CustomGender> customGenderList = entityManager.createQuery(Constant.GET_ALL_GENDER, CustomGender.class).setParameter("archived",archived).getResultList();
+            List<CustomGender> customGenderList = entityManager.createQuery(Constant.GET_ALL_GENDER, CustomGender.class).setParameter("archived", archived).getResultList();
             return customGenderList;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -57,7 +56,6 @@ public class GenderService {
     }
 
 
-
     public CustomGender getGenderByGenderId(Long genderId) {
         try {
 
@@ -76,8 +74,8 @@ public class GenderService {
             return null;
         }
     }
-    public CustomGender getGenderByName(String genderName)
-    {
+
+    public CustomGender getGenderByName(String genderName) {
         try {
             genderName = genderName.toUpperCase();
             Query query = entityManager.createQuery(Constant.GET_GENDER_BY_GENDER_NAME, CustomGender.class);
@@ -89,20 +87,19 @@ public class GenderService {
             } else {
                 return null;
             }
-        }
-            catch (NoResultException exception) {
-                exceptionHandlingService.handleException(exception);
-                return null;
-            }
-        catch (Exception exception) {
+        } catch (NoResultException exception) {
+            exceptionHandlingService.handleException(exception);
+            return null;
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return null;
         }
-        }
+    }
+
     public Long getMaxGenderId() {
         String query = "SELECT MAX(gender_id) AS max_gender_id FROM custom_gender";
         Query nquery = entityManager.createNativeQuery(query);
-        return ((Number)nquery.getSingleResult()).longValue();
+        return ((Number) nquery.getSingleResult()).longValue();
     }
 
     @Transactional
@@ -113,12 +110,12 @@ public class GenderService {
             query.setParameter("genderName", customGender.getGenderName());
             List<CustomGender> genders = query.getResultList();
 
-            if(customGender.getGenderId() != null)
-                throw new IllegalArgumentException("Cannot give gender id when adding");
+            if (customGender.getGenderId() != null)
+                throw new IllegalArgumentException("Cannot give gender id when addingCannot give gender id when adding");
 
             customGender.setGenderId(getMaxGenderId() + 1);
 
-            if(!genders.isEmpty())
+            if (!genders.isEmpty())
                 throw new IllegalArgumentException("Gender already exists");
 
 
@@ -128,26 +125,27 @@ public class GenderService {
             query.setParameter("symbol", customGender.getGenderSymbol());
             genders = query.getResultList();
 
-            if(!genders.isEmpty())
+            if (!genders.isEmpty())
                 throw new IllegalArgumentException("Gender already exists with same name and symbol");
+
 
             query = entityManager.createQuery(
                     "SELECT g FROM CustomGender g WHERE LOWER(g.genderSymbol) = LOWER(:symbol) ", CustomGender.class);
             query.setParameter("symbol", customGender.getGenderSymbol());
             genders = query.getResultList();
-            if(!genders.isEmpty())
+            if (!genders.isEmpty())
                 throw new IllegalArgumentException("Gender with this symbol already exists");
 
-            if(customGender.getGenderName() == null)
+            if (customGender.getGenderName() == null)
                 throw new IllegalArgumentException("Gender name is required");
 
-            if(customGender.getGenderSymbol() == null)
+            if (customGender.getGenderSymbol() == null)
                 throw new IllegalArgumentException("Gender symbol is required");
 
             if (!sharedUtilityService.isAlphabetic(customGender.getGenderName()))
                 throw new IllegalArgumentException("Gender name should contain only alphabets");
 
-            if(customGender.getArchived() != null) {
+            if (customGender.getArchived() != null) {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a gender");
             }
 
@@ -155,6 +153,7 @@ public class GenderService {
             entityManager.persist(customGender);
             return customGender;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception(e.getMessage());
         }
     }
@@ -235,6 +234,7 @@ public class GenderService {
             entityManager.merge(existingGender);
             return existingGender;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception(e.getMessage());
         }
     }
@@ -245,7 +245,7 @@ public class GenderService {
         try {
             CustomGender gender = entityManager.find(CustomGender.class, genderId);
 
-            if(archive) {
+            if (archive) {
                 if (gender.getArchived())
                     throw new IllegalArgumentException("Gender already archived");
                 else {
@@ -262,8 +262,9 @@ public class GenderService {
             }
             return gender;
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception(e.getMessage());
         }
     }
-    }
+}
 

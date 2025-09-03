@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.otpmodule;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.endpoint.avisoft.controller.Document.DocumentEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomAdmin;
@@ -27,8 +28,6 @@ import com.mchange.rmi.NotAuthorizedException;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
-import io.swagger.annotations.ApiResponse;
-import jakarta.jws.soap.SOAPBinding;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -63,48 +62,36 @@ import java.util.Map;
 public class OtpEndpoint {
 
     private static final Logger log = LoggerFactory.getLogger(OtpEndpoint.class);
-
+    @Autowired
+    PdfEditService pdfEditService;
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
-
     @Autowired
     private SharedUtilityService sharedUtilityService;
-
     @Autowired
     private TwilioService twilioService;
-
     @Autowired
     private CustomCustomerService customCustomerService;
-
     @Autowired
     private JwtUtil jwtUtil;
-
     @Autowired
     private RateLimiterService rateLimiterService;
-
     @Autowired
     private EntityManager em;
-
     @Autowired
     private CustomerService customerService;
     @Autowired
     private JwtUtil jwtTokenUtil;
-
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
-
     @Autowired
     private RoleService roleService;
-
     @Autowired
     private SanitizerService sanitizerService;
-
     @Autowired
     private ResponseService responseService;
-
     @Value("${twilio.authToken}")
     private String authToken;
-
     @Value("${twilio.accountSid}")
     private String accountSid;
     @Autowired
@@ -185,15 +172,13 @@ public class OtpEndpoint {
             return responseService.generateErrorResponse("Some error occurred: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     @Autowired
-    PdfEditService pdfEditService;
-
+    DocumentEndpoint documentEndpoint;
     @Transactional
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth", required = false, defaultValue = "false") Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization", required = false) String authHeadReq) {
         try {
-
+            String seed=null;
             if (authHeadReq != null) {
                 String jwtToken = authHeadReq.substring(7);
                 String ipAddress = request.getRemoteAddr();
@@ -204,6 +189,10 @@ public class OtpEndpoint {
                 if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                     return responseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 }
+                if(role==1||role==2||role==4)
+                {
+                    seed=documentEndpoint.generateUniqueId();
+                }
             }
 
             String authHeader = Constant.BEARER_CONST;
@@ -212,13 +201,14 @@ public class OtpEndpoint {
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
-
             String otpEntered = (String) loginDetails.get("otpEntered");
             Integer role = (Integer) loginDetails.get("role");
             String countryCode = (String) loginDetails.get("countryCode");
             String username = (String) loginDetails.get("username");
             String mobileNumber = (String) loginDetails.get("mobileNumber");
             String ackId = (String) loginDetails.get("ack");
+            if(seed!=null)
+                ackId=seed;
             if (role == null) {
                 return responseService.generateErrorResponse(ApiConstants.ROLE_EMPTY, HttpStatus.BAD_REQUEST);
             }
@@ -271,9 +261,9 @@ public class OtpEndpoint {
                         return ResponseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
                     } else if (!existingCustomer.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
                         try {
-                            UserAcknowledgement userAcknowledgement= em.find(UserAcknowledgement.class,ackId);
-                                    if(userAcknowledgement!=null)
-                                        return ResponseService.generateErrorResponse("Acknowledgement ID has already been registered with other user",HttpStatus.BAD_REQUEST);
+                            UserAcknowledgement userAcknowledgement = em.find(UserAcknowledgement.class, ackId);
+                            if (userAcknowledgement != null)
+                                return ResponseService.generateErrorResponse("Acknowledgement ID has already been registered with other user", HttpStatus.BAD_REQUEST);
                             userAcknowledgement = new UserAcknowledgement();
                             userAcknowledgement.setUserId(existingCustomer.getId());
                             userAcknowledgement.setAcknowledgementVersion("v1");
@@ -309,17 +299,21 @@ public class OtpEndpoint {
                                 em.merge(externalUseToken);
                             }
                         }
-                        ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                        if(ackId!=null)
-                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
+
+                        ApiResponse response = new ApiResponse(newToken, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+                        if (ackId != null)
+                            pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(), request, 5);
+
                         return ResponseEntity.ok(response);
                     } else {
                         String existingToken = existingCustomer.getToken();
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                             authHeader = authHeader + existingToken;
-                            ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
+
+                            ApiResponse response = new ApiResponse(existingToken, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+                            if (ackId != null)
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(), request, 5);
+
                             return ResponseEntity.ok(response);
 
                         } else {
@@ -328,9 +322,11 @@ public class OtpEndpoint {
                             existingCustomer.setToken(newToken);
                             authHeader = authHeader + newToken;
                             em.persist(existingCustomer);
-                            ApiResponse response = new ApiResponse(newToken, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
-                            if(ackId!=null)
-                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(),request,5);
+
+                            ApiResponse response = new ApiResponse(newToken, sharedUtilityService.loginDetails(customer,null, authHeader, request), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+                            if (ackId != null)
+                                pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory(ackId, 5, existingCustomer.getId(), mobileNumber), existingCustomer.getId(), request, 5);
+
                             return ResponseEntity.ok(response);
                         }
                     }
@@ -348,31 +344,24 @@ public class OtpEndpoint {
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
+        } catch (
+                NotAuthorizedException notAuthorizedException) {
+            notAuthorizedException.printStackTrace();
+            exceptionHandling.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
+        } catch (
+                PersistenceException persistenceException) {
+            persistenceException.printStackTrace();
+            exceptionHandling.handleException(persistenceException);
+            return ResponseService.generateErrorResponse("Error verifying otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (
+                Exception exception) {
+            exception.printStackTrace();
+            /* exceptionHandling.handleException(exception);*/
+            return responseService.generateErrorResponse("Otp verification error:" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+
         }
-    catch(
-    NotAuthorizedException notAuthorizedException)
-
-    {
-        notAuthorizedException.printStackTrace();
-        exceptionHandling.handleException(notAuthorizedException);
-        return ResponseService.generateErrorResponse("Your account is suspended ,please contact support.", HttpStatus.UNAUTHORIZED);
-    } catch(
-    PersistenceException persistenceException)
-
-    {
-        persistenceException.printStackTrace();
-        exceptionHandling.handleException(persistenceException);
-        return ResponseService.generateErrorResponse("Error verifying otp:" + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }catch(
-    Exception exception)
-
-    {
-        exception.printStackTrace();
-        /* exceptionHandling.handleException(exception);*/
-        return responseService.generateErrorResponse("Otp verification error:" + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-
     }
-}
 
     @Transactional
     @PostMapping("/service-provider-signup")

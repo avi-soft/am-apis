@@ -9,6 +9,7 @@ import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.FilterProductTitleDto;
+import com.community.api.dto.NewProductWrapper;
 import com.community.api.dto.PostProjectionDTO;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
@@ -1447,14 +1448,14 @@ public class ProductController extends CatalogEndpoint {
 
             // Filtering out archived products
             int skipped = 0;
-            List<CustomProductWrapper> responses = new ArrayList<>();
+            List<NewProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
                 /* if (customProduct != null && ((Status) customProduct).getArchived() != 'Y') {*/
-                CustomProductWrapper wrapper = new CustomProductWrapper();
+                NewProductWrapper wrapper = new NewProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
-                wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
-                responses.add(wrapper);
+                Product product=catalogService.findProductById(customProduct.getId());
+                responses.add(sharedUtilityService.wrapDetailsAddProduct(product));
             }
 
             // Pagination logic
