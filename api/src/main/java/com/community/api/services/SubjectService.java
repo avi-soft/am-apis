@@ -360,6 +360,7 @@ public class SubjectService {
             exceptionHandlingService.handleException(e);
             throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new Exception("Failed to update subject: " + e.getMessage());
         }
     }
