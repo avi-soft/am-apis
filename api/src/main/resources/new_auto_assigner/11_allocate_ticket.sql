@@ -10,7 +10,7 @@ DECLARE
     is_active BOOLEAN;
 BEGIN
 
-	RAISE NOTICE '11. Allocate ticket';
+    RAISE NOTICE '11. Allocate ticket';
 
     -- Fetch service provider details
     SELECT sp.maximum_ticket_size, sp.ticket_assigned, sp.ticket_pending, sp.is_active
@@ -48,6 +48,11 @@ BEGIN
             modified_date = NOW()
         WHERE
             order_id = p_order_id;
+
+        -- Initialize assigned_tickets array if null
+                IF p_assigned_ticket_ids IS NULL THEN
+                    p_assigned_ticket_ids := ARRAY[]::BIGINT[];
+                END IF;
 
         -- Append the ticket_id to output list
         p_assigned_ticket_ids := array_append(p_assigned_ticket_ids, ticket_id);

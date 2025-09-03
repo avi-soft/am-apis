@@ -34,4 +34,6 @@ public class NewProductWrapper  {
         private Date activeGoLiveDate;
         @JsonProperty("state")
         private String state;
+        @JsonProperty("state_id")
+        private Long stateId;
 }
