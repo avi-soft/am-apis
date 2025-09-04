@@ -380,7 +380,48 @@ public class EarningsController {
             else
                 return ResponseService.generateErrorResponse("Transaction has already been unsettled", HttpStatus.BAD_REQUEST);
         }
-        earnings.setSettled(settle);
+        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,earnings.getProviderId());
+        if(serviceProvider.getSurplus()<0&&settle)
+        {
+            return ResponseService.generateErrorResponse("Cannot unsettle an earning when due is left",HttpStatus.BAD_REQUEST);
+        }
+        if(Boolean.FALSE.equals(settle)&&serviceProvider.getSurplus()<0)
+        {
+            if(-(serviceProvider.getSurplus())>earnings.getPending())
+            {
+                serviceProvider.setSurplus(-(serviceProvider.getSurplus())+earnings.getPending());
+                earnings.setPaid(earnings.getPending());
+                earnings.setPending(0.0);
+                earnings.setSettled(true);
+                earnings.setPaymentDone(true);
+                entityManager.merge(serviceProvider);
+                entityManager.merge(earnings);
+            }
+            else if(-(serviceProvider.getSurplus())<=earnings.getPending())
+            {
+
+                earnings.setPaid((-serviceProvider.getSurplus()));
+                earnings.setPending(earnings.getPending()-(-serviceProvider.getSurplus()));
+                serviceProvider.setSurplus(0.0);
+                if(earnings.getPending()>0) {
+                    earnings.setSettled(false);
+                    earnings.setPaymentDone(false);
+                }
+                else
+                {
+                    earnings.setSettled(true);
+                    earnings.setPaymentDone(true);
+                }
+                entityManager.merge(serviceProvider);
+                earnings.setSettled(earnings.isSettled());
+                entityManager.merge(earnings);
+            }
+        }
+        else
+        {
+            earnings.setSettled(settle);
+        }
+
         entityManager.merge(earnings);
         return ResponseService.generateSuccessResponse("Transaction status altered",earnings,HttpStatus.OK);
     }
