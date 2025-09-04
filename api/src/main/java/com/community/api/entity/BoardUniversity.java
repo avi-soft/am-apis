@@ -22,14 +22,11 @@
         @Column(name="board_university_name",nullable = false)
         private String board_university_name;
 
-        @Column(name = "board_university_location", nullable = false)
-        private String board_university_location;
+
 
         @Column(name = "board_university_code",nullable = false)
         private String board_university_code;
 
-        @Column(name= "board_university_type",nullable = false)
-        private String board_university_type;
 
         @Column(name = "created_date", updatable = false)
         private String created_date;
