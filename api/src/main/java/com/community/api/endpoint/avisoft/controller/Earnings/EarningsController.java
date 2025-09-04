@@ -448,7 +448,8 @@ public class EarningsController {
           /*if(transactionDTO.getAmountToSettle()>checkAmt)
               return ResponseService.generateErrorResponse("Amount cannot be settled for selected transactions",HttpStatus.BAD_REQUEST);*/
                 Double amt = 0.0;
-/*                Collections.sort(txnIds);*/
+
+               /* Collections.sort(txnIds);*/
 
                 if(transactionDTO.getAmountToSettle()>balances[0]+balances[1])
                 {
@@ -494,14 +495,7 @@ public class EarningsController {
                 {
                 for (Long txnId : txnIds) {
                     Earnings earnings = entityManager.find(Earnings.class, txnId);
-                    if (earnings.getPending() + amt < transactionDTO.getAmountToSettle()) {
-                        amt = amt + earnings.getPending();
-                        earnings.setPaid(earnings.getPending());
-                        earnings.setPending(0.0);
-                        earnings.setPaymentDone(true);
-                        earnings.setSettled(true);
-                        entityManager.merge(earnings);
-                    } else if (amt == transactionDTO.getAmountToSettle()) {
+                   if (amt == transactionDTO.getAmountToSettle()) {
                         Transaction transaction = new Transaction();
                         transaction.setCurrentMonthPayable(balances[1]);
                         transaction.setLastMonthPayable(balances[0]);
@@ -517,7 +511,15 @@ public class EarningsController {
                             entityManager.merge(earningWithCarryOver);
                         }
                         return ResponseService.generateSuccessResponse("Transaction Done", transaction, HttpStatus.OK);
-                    } else if (earnings.getPending() + amt > transactionDTO.getAmountToSettle()) {
+                    }
+                    else if (earnings.getPending() + amt < transactionDTO.getAmountToSettle()) {
+                        amt = amt + earnings.getPending();
+                        earnings.setPaid(earnings.getPending());
+                        earnings.setPending(0.0);
+                        earnings.setPaymentDone(true);
+                        earnings.setSettled(true);
+                        entityManager.merge(earnings);
+                    }else if (earnings.getPending() + amt > transactionDTO.getAmountToSettle()) {
                         if(earningWithCarryOver!=null) {
                             earnings.setPending(earnings.getPending() - (transactionDTO.getAmountToSettle() - amt) + earningWithCarryOver.getCarryOver());
                         }
