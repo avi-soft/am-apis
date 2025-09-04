@@ -448,7 +448,7 @@ public class EarningsController {
           /*if(transactionDTO.getAmountToSettle()>checkAmt)
               return ResponseService.generateErrorResponse("Amount cannot be settled for selected transactions",HttpStatus.BAD_REQUEST);*/
                 Double amt = 0.0;
-                Collections.sort(txnIds);
+/*                Collections.sort(txnIds);*/
 
                 if(transactionDTO.getAmountToSettle()>balances[0]+balances[1])
                 {
