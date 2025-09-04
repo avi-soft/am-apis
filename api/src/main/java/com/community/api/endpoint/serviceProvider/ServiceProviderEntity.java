@@ -317,8 +317,8 @@ public class ServiceProviderEntity {
 
     @Column(name = "policy_acknowledgement", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean policyAcknowledgement = false;
-
-
+    @Column(name = "surplus_payment", columnDefinition = "DOUBLE PRECISION DEFAULT 0")
+    private Double surplus;
 }
 
 
