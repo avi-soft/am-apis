@@ -396,63 +396,93 @@ public class EarningsController {
     @Transactional
     @PostMapping("/settle-amount")
     public ResponseEntity<?> getFilteredEarnings(@RequestHeader(value = "Authorization") String authHeader, @RequestBody TransactionDTO transactionDTO) {
-        try {
-            // Validate input
-            if (transactionDTO.getUserId() == null)
-                return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
 
-            if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() == 0)
-                return ResponseService.generateErrorResponse("Amount to settle is needed", HttpStatus.BAD_REQUEST);
+        // Basic validations
+        if (transactionDTO.getUserId() == null)
+            return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
 
-            if (transactionDTO.getAmountToSettle() < 0)
-                return ResponseService.generateErrorResponse("Amount to settle cannot be negative", HttpStatus.BAD_REQUEST);
+        if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() == 0)
+            return ResponseService.generateErrorResponse("Amount to settle is needed", HttpStatus.BAD_REQUEST);
 
-            // Find service provider
-            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
-            if (serviceProvider == null)
-                return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+        if (transactionDTO.getAmountToSettle() < 0)
+            return ResponseService.generateErrorResponse("Amount to settle cannot be negative", HttpStatus.BAD_REQUEST);
 
-            // Get balances
-            double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
-            double totalBalance = balances[0] + balances[1];
+        // Find service provider
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
+        if (serviceProvider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
 
-            if (transactionDTO.getAmountToSettle() > totalBalance)
-                return ResponseService.generateErrorResponse("Amount to settle cannot be more than total balance", HttpStatus.BAD_REQUEST);
+        // Get balances
+        double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
+        double totalBalance = balances[0] + balances[1];
 
-            // Get earnings with negative carry over (if any)
-            Earnings earningWithCarryOver = getEarningWithNegativeCarryOver(transactionDTO.getUserId());
+        // Get ALL earnings (both settled and unsettled) sorted by date (oldest first)
+        Query query = entityManager.createQuery("SELECT e FROM Earnings e WHERE e.providerId = :userId ORDER BY e.date ASC", Earnings.class);
+        query.setParameter("userId", transactionDTO.getUserId());
+        List<Earnings> allEarnings = query.getResultList();
 
-            // Get earnings to process - sorted by date (oldest first)
-            List<Earnings> earningsToProcess = getEarningsToProcess(transactionDTO);
+        if (allEarnings.isEmpty()) {
+            return ResponseService.generateErrorResponse("No earnings found for this user", HttpStatus.BAD_REQUEST);
+        }
 
-            if (earningsToProcess.isEmpty()) {
-                return ResponseService.generateErrorResponse("No earnings found to settle", HttpStatus.BAD_REQUEST);
-            }
+        double amountToSettle = transactionDTO.getAmountToSettle();
+        double settledAmount = 0;
+        Earnings lastProcessedEarning = null;
 
-            // Process settlement with FIFO logic
-            SettlementResult result = processSettlement(earningsToProcess, transactionDTO.getAmountToSettle(), earningWithCarryOver);
+        // Process earnings in FIFO order (oldest first)
+        for (Earnings earning : allEarnings) {
+            if (amountToSettle <= 0) break;
 
-            // Update earnings in database
-            for (Earnings earning : result.getProcessedEarnings()) {
+            double availableInEarning = earning.getPending();
+
+            if (availableInEarning > 0) {
+                double amountToDeduct = Math.min(availableInEarning, amountToSettle);
+
+                earning.setPaid(earning.getPaid() + amountToDeduct);
+                earning.setPending(earning.getPending() - amountToDeduct);
+
+                // Mark as settled if fully paid
+                if (earning.getPending() == 0) {
+                    earning.setSettled(true);
+                    earning.setPaymentDone(true);
+                }
+
+                amountToSettle -= amountToDeduct;
+                settledAmount += amountToDeduct;
+                lastProcessedEarning = earning;
+
                 entityManager.merge(earning);
             }
-
-            // Handle carry over if it was used
-            if (earningWithCarryOver != null && result.isCarryOverUsed()) {
-                earningWithCarryOver.setCarryOver(0.0);
-                entityManager.merge(earningWithCarryOver);
-            }
-
-            // Create transaction record
-            Transaction transaction = createTransactionRecord(serviceProvider, balances, transactionDTO, result.getSettledAmount());
-
-            entityManager.persist(transaction);
-
-            return ResponseService.generateSuccessResponse("Transaction completed successfully", transaction, HttpStatus.OK);
-
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Error processing settlement: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
+        // Handle remaining amount (carry over)
+        if (amountToSettle > 0) {
+            // Add the remaining amount as negative carry over to the last processed earning
+            if (lastProcessedEarning != null) {
+                lastProcessedEarning.setCarryOver(-amountToSettle);
+                entityManager.merge(lastProcessedEarning);
+            } else {
+                // If no earnings were processed, add carry over to the first earning
+                Earnings firstEarning = allEarnings.get(0);
+                firstEarning.setCarryOver(-amountToSettle);
+                entityManager.merge(firstEarning);
+            }
+        }
+
+        // Create transaction record
+        Transaction transaction = new Transaction();
+        transaction.setCurrentMonthPayable(balances[1]);
+        transaction.setLastMonthPayable(balances[0]);
+        transaction.setSettledAmount(settledAmount);
+        transaction.setBalance(Math.max(0, totalBalance - settledAmount)); // Balance can't be negative
+        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+        transaction.setRole(serviceProvider.getRole());
+        transaction.setUserId(serviceProvider.getService_provider_id());
+        transaction.setDate(new Date());
+
+        entityManager.persist(transaction);
+
+        return ResponseService.generateSuccessResponse("Settlement processed successfully", transaction, HttpStatus.OK);
     }
 
     // Helper method to get earnings with negative carry over
