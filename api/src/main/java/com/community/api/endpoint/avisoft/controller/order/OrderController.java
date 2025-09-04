@@ -864,8 +864,8 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1, 0, 3)));
         groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
-        groupedStates.add(new OrderStateGroupDto("Cancelled", Arrays.asList(999, 5, 9)));
-        groupedStates.add(new OrderStateGroupDto("Refund", Arrays.asList(10, 11)));
+        groupedStates.add(new OrderStateGroupDto("Cancelled", Arrays.asList(5, 9)));
+        groupedStates.add(new OrderStateGroupDto("Payment Failed", Arrays.asList(999 )));
         groupedStates.add(new OrderStateGroupDto("Cancellation Requested", Arrays.asList(12)));
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
@@ -916,6 +916,7 @@ public class OrderController {
         entityManager.merge(orderState);
         return ResponseService.generateErrorResponse("Order processed for cancellation", HttpStatus.OK);
     }
+
     @Autowired
     CartEndPoint cartEndPoint;
     @Transactional

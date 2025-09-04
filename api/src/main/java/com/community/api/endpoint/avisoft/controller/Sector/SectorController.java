@@ -4,7 +4,6 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddSectorDto;
-import com.community.api.dto.AdvertisementCompressedDTO;
 import com.community.api.dto.CompressedProductWrapper;
 import com.community.api.dto.SectorDTO;
 import com.community.api.entity.CustomCustomer;
@@ -24,7 +23,7 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,6 +50,22 @@ public class SectorController {
     private final ExceptionHandlingService exceptionHandlingService;
     private final SectorService sectorService;
     private final StaticDataService staticDataService;
+    @Autowired
+    EntityManager entityManager;
+    @Autowired
+    ReserveCategoryService reserveCategoryService;
+    @Autowired
+    GenderService genderService;
+    @Autowired
+    JwtUtil jwtTokenUtil;
+    @Autowired
+    RoleService roleService;
+    @Autowired
+    ReserveCategoryAgeService reserveCategoryAgeService;
+    @Autowired
+    SharedUtilityService sharedUtilityService;
+    @Autowired
+    CatalogService catalogService;
 
     @Autowired
     public SectorController(ExceptionHandlingService exceptionHandlingService, SectorService sectorService, StaticDataService staticDataService) {
@@ -59,10 +74,11 @@ public class SectorController {
         this.staticDataService = staticDataService;
     }
 
+    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/add-sector")
     public ResponseEntity<?> addSubject(@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
-        try{
-            if(!staticDataService.validiateAuthorization(authHeader)) {
+        try {
+            if (!staticDataService.validiateAuthorization(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.FORBIDDEN);
             }
 
@@ -70,38 +86,40 @@ public class SectorController {
             sectorService.addSector(addSectorDto);
 
             return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", addSectorDto, HttpStatus.OK);
-        }  catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PostMapping("/edit-sector/{sectorId}")
-    public ResponseEntity<?> editSector(@PathVariable Long sectorId,@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
-        try{
-            if(!staticDataService.validiateAuthorization(authHeader)) {
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @PutMapping("/edit-sector/{sectorId}")
+    public ResponseEntity<?> editSector(@PathVariable Long sectorId, @RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            if (!staticDataService.validiateAuthorization(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.FORBIDDEN);
             }
             sectorService.validateAddSubjectDto(addSectorDto);
-            sectorService.editSector(sectorId,addSectorDto);
-            Map<String,Object>details=new HashMap<>();
-            details.put("sector_id",sectorId);
-            details.put("sector_name",addSectorDto.getSectorName());
-            details.put("sector_description",addSectorDto.getSectorDescription());
+            sectorService.editSector(sectorId, addSectorDto);
+            Map<String, Object> details = new HashMap<>();
+            details.put("sector_id", sectorId);
+            details.put("sector_name", addSectorDto.getSectorName());
+            details.put("sector_description", addSectorDto.getSectorDescription());
             return ResponseService.generateSuccessResponse("SUCCESSFULLY EDITED", details, HttpStatus.OK);
-        }  catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-
     @GetMapping("/get-all-sector")
-    public ResponseEntity<?> getAllSubject(@RequestParam(defaultValue = "false",required = false) Boolean archived) {
+    public ResponseEntity<?> getAllSubject(@RequestParam(defaultValue = "false", required = false) Boolean archived) {
         try {
             List<CustomSector> subjectList = sectorService.getAllSector(archived);
             if (subjectList.isEmpty()) {
@@ -124,41 +142,26 @@ public class SectorController {
             return ResponseService.generateSuccessResponse("SECTORS FOUND", sector, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PutMapping("/{sectorId}/manage")
-    public ResponseEntity<?> manageSector(@PathVariable Long sectorId, @RequestParam (required = false,defaultValue = "true")Boolean archive) {
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @DeleteMapping("/{sectorId}/manage")
+    public ResponseEntity<?> manageSector(@PathVariable Long sectorId, @RequestParam(required = false, defaultValue = "true") Boolean archive) {
         try {
-            if (sectorId==null)
-                return ResponseService.generateErrorResponse("Sector id is required",HttpStatus.BAD_REQUEST);
-            return ResponseService.generateSuccessResponse("Sector status altered",sectorService.manageSector(sectorId,archive), HttpStatus.OK);
+            if (sectorId == null)
+                return ResponseService.generateErrorResponse("Sector id is required", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("Sector status altered", sectorService.manageSector(sectorId, archive), HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Autowired
-    EntityManager entityManager;
-    @Autowired
-    ReserveCategoryService reserveCategoryService;
-    @Autowired
-    GenderService genderService;
-    @Autowired
-    JwtUtil jwtTokenUtil;
-    @Autowired
-    RoleService roleService;
-    @Autowired
-    ReserveCategoryAgeService reserveCategoryAgeService;
-    @Autowired
-    SharedUtilityService sharedUtilityService;
 
-    @Autowired
-    CatalogService catalogService;
     @GetMapping("/get-products-by-sectors")
     public ResponseEntity<?> getProductsByAdvertisementId(
             @RequestParam(value = "sectors", required = false) String sectors,
@@ -181,12 +184,11 @@ public class SectorController {
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
                 }
             }
-            if(categoryId!=null)
-            {
-                for(Long id:categoryId) {
+            if (categoryId != null) {
+                for (Long id : categoryId) {
                     Category category = catalogService.findCategoryById(id);
-                    if(category==null)
-                        return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
+                    if (category == null)
+                        return ResponseService.generateErrorResponse("Category with id " + id + " not found", HttpStatus.BAD_REQUEST);
                 }
             }
             List<Long> longList = new ArrayList<>();
@@ -251,6 +253,7 @@ public class SectorController {
             return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
 
         } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             e.printStackTrace();
             return ResponseService.generateErrorResponse("Failed to retrieve sectors: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
@@ -258,66 +261,70 @@ public class SectorController {
     }
 
     @GetMapping("/get-products-by-sector-id")
-    public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
-            ,@RequestParam(value = "limit",required = false,defaultValue = "30")Integer limit
-            ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
-            ,@RequestHeader(value = "Authorization", required = false) String authHeader
-            ,@RequestParam(value = "categoryId", required = false) List<Long> categoryId)
-    {
-        CustomCustomer customCustomer = null;
-        String role=Constant.roleUser;
-        if (authHeader != null) {
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            role  = roleService.findRoleName(roleId);
-            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if (roleId == 5)
-                customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
-        }
-        if(categoryId!=null)
-        {
-            for(Long id:categoryId) {
-                Category category = catalogService.findCategoryById(id);
-                if(category==null)
-                    return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
+            , @RequestParam(value = "limit", required = false, defaultValue = "30") Integer limit
+            , @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset
+            , @RequestHeader(value = "Authorization", required = false) String authHeader
+            , @RequestParam(value = "categoryId", required = false) List<Long> categoryId) {
+        try {
+            CustomCustomer customCustomer = null;
+            String role = Constant.roleUser;
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 5)
+                    customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
             }
-        }
-       CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
-        if(customSector==null)
-            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
-        BigInteger count=sectorService.getCompressedProductsCount(sectorId,categoryId);
-        SectorDTO sectorDTO=new SectorDTO();
-        sectorDTO.setSectorName(customSector.getSectorName());
-        sectorDTO.setSectorDescription(customSector.getSectorDescription());
-        sectorDTO.setSectorId(customSector.getSectorId());
-        List<BigInteger> productIds = sectorService.getCompressedProductBySector(sectorId, offset, limit,categoryId);
-        List<CompressedProductWrapper> products = new ArrayList<>();
-        for (BigInteger productId : productIds) {
-            CustomProduct product = entityManager.find(CustomProduct.class, productId.longValue());
-            if (product != null) {
-                CompressedProductWrapper wrapper = new CompressedProductWrapper();
-                wrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
-                products.add(wrapper);
+            if (categoryId != null) {
+                for (Long id : categoryId) {
+                    Category category = catalogService.findCategoryById(id);
+                    if (category == null)
+                        return ResponseService.generateErrorResponse("Category with id " + id + " not found", HttpStatus.BAD_REQUEST);
+                }
             }
+            CustomSector customSector = entityManager.find(CustomSector.class, sectorId);
+            if (customSector == null)
+                return ResponseService.generateErrorResponse("Sector not found", HttpStatus.BAD_REQUEST);
+            BigInteger count = sectorService.getCompressedProductsCount(sectorId, categoryId);
+            SectorDTO sectorDTO = new SectorDTO();
+            sectorDTO.setSectorName(customSector.getSectorName());
+            sectorDTO.setSectorDescription(customSector.getSectorDescription());
+            sectorDTO.setSectorId(customSector.getSectorId());
+            List<BigInteger> productIds = sectorService.getCompressedProductBySector(sectorId, offset, limit, categoryId);
+            List<CompressedProductWrapper> products = new ArrayList<>();
+            for (BigInteger productId : productIds) {
+                CustomProduct product = entityManager.find(CustomProduct.class, productId.longValue());
+                if (product != null) {
+                    CompressedProductWrapper wrapper = new CompressedProductWrapper();
+                    wrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                    products.add(wrapper);
+                }
+            }
+
+            int totalItems = products.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            products = products.subList(fromIndex, toIndex);
+            sectorDTO.setProducts(products);
+
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("sectors", sectorDTO);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+            return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("Failed to retrieve sectors by product id: " + exception.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        int totalItems = products.size();
-        int totalPages = (int) Math.ceil((double) totalItems / limit);
-        int fromIndex = offset * limit;
-        int toIndex = Math.min(fromIndex + limit, totalItems);
-
-        products = products.subList(fromIndex, toIndex);
-        sectorDTO.setProducts(products);
-
-        if (fromIndex >= totalItems && offset != 0) {
-            return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
-        }
-        // Construct paginated response
-        Map<String, Object> response = new HashMap<>();
-        response.put("sectors", sectorDTO);
-        response.put("totalItems", totalItems);
-        response.put("totalPages", totalPages);
-        response.put("currentPage", offset);
-        return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
 }

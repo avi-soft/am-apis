@@ -790,12 +790,14 @@ public class ServiceProviderController {
                 }
             }
 
+
             if (rank != null) {
                 for (Long id : rank) {
                     if (serviceProviderRankService.getServiceProviderRankByRankId(id) == null)
                         return ResponseService.generateErrorResponse("Invalid rank Id", HttpStatus.BAD_REQUEST);
                 }
             }
+
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
@@ -861,15 +863,16 @@ public class ServiceProviderController {
                 return ResponseService.generateSuccessResponse("No " + resp.get(role) + " Found", response, HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse(resp.get(role), response, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
@@ -1189,11 +1192,11 @@ public class ServiceProviderController {
                 }
                 serviceProvider.setIsArchived(false);
                 //set the last status
-                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, serviceProvider.getLastStatusId());
+                /*ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, serviceProvider.getLastStatusId());
                 if (serviceProviderTestStatus == null) {
                     return ResponseService.generateErrorResponse("Test Status id " + serviceProvider.getLastStatusId() + " Not found", HttpStatus.NOT_FOUND);
                 }
-                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);*/
             }
 
             if (action.equals(Constant.ACTION_SUSPEND)) {

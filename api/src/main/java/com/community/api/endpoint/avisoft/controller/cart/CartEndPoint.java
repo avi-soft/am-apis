@@ -331,6 +331,7 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
             double noReserveCategoryFee = 0.0;
 
+
             /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
                 return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category and gender", HttpStatus.UNPROCESSABLE_ENTITY);
                // noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L,1L);//1 for general
@@ -437,7 +438,6 @@ public class CartEndPoint extends BaseEndpoint {
         }
     }
 
-//    @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall", required = false, defaultValue = "false") boolean inFunctionCall,@RequestHeader(value = "Authorization")String authHeader) {
         try {
@@ -482,7 +482,6 @@ public class CartEndPoint extends BaseEndpoint {
                        /* EligibilityResult result=new EligibilityResult();
                         result.setStatus(CartService.EligibilityStatus.ELIGIBLE);*/
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
-
                        products.add(productDetails);
                         individualFee = null;
 
@@ -1146,8 +1145,7 @@ public class CartEndPoint extends BaseEndpoint {
             /*emptyTheCart(customerId,authHeader);*/
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
-
-            return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
+            return ResponseService.generateErrorResponse("Failed to place order due to Payment Failure", HttpStatus.PAYMENT_REQUIRED);
         }
     }
 

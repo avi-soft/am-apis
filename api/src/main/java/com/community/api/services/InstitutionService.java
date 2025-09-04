@@ -2,30 +2,21 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.configuration.ImageSizeConfig;
-import com.community.api.entity.Image;
 import com.community.api.entity.Institution;
-import com.community.api.entity.RandomImageType;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityNotFoundException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.community.api.services.DocumentStorageService.isValidFileType;
-import static com.community.api.services.ServiceProviderTestService.areImagesVisuallyIdentical;
 
 @Service
 public class InstitutionService
@@ -45,12 +36,13 @@ public class InstitutionService
 
     @Transactional
     public Institution addInstitutions(Institution institution, String authHeader) {
-        String jwtToken = authHeader.substring(7);
+        try {
+            String jwtToken = authHeader.substring(7);
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        List<Institution> savedInstitutions = new ArrayList<>();
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            List<Institution> savedInstitutions = new ArrayList<>();
 
             Institution institutionToBeSaved =new Institution();
             long id = findCount() + 1;
@@ -95,8 +87,8 @@ public class InstitutionService
                     throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
-        Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM Institution i WHERE i.sortOrder <> 1000000");
-        Long sortOrder = (Long) query.getSingleResult();
+            Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM Institution i WHERE i.sortOrder <> 1000000");
+            Long sortOrder = (Long) query.getSingleResult();
             institutionToBeSaved.setInstitution_name(institution.getInstitution_name());
             institutionToBeSaved.setInstitution_address(institution.getInstitution_address());
             institutionToBeSaved.setInstitution_code(institution.getInstitution_code());
@@ -108,105 +100,125 @@ public class InstitutionService
             institutionToBeSaved.setArchived(false);
             entityManager.persist(institutionToBeSaved);
 
-        return institutionToBeSaved;
+            return institutionToBeSaved;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
+        }
     }
 
     public List<Institution> getAllInstitutions() {
-        TypedQuery<Institution> query = entityManager.createQuery(Constant.FIND_ALL_INSTITUTION_QUERY, Institution.class);
-        query.setParameter("archived", false); // or true, depending on what you want
-        return query.getResultList();
+        try {
+            TypedQuery<Institution> query = entityManager.createQuery(Constant.FIND_ALL_INSTITUTION_QUERY, Institution.class);
+            query.setParameter("archived", false); // or true, depending on what you want
+            return query.getResultList();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
+        }
     }
 
 
     //need to be change here
     public long findCount() {
-        String queryString = Constant.GET_INSTITUTION_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
-        return query.getSingleResult();
+        try {
+            String queryString = Constant.GET_INSTITUTION_COUNT;
+            TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
+            return query.getSingleResult();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public Institution updateInstitution(Long institutionId, Institution institution,String authHeader){
-        String jwtToken = authHeader.substring(7);
+        try {
+            String jwtToken = authHeader.substring(7);
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        Institution institutionToUpdate= entityManager.find(Institution.class,institutionId);
-        if(institutionToUpdate==null)
-        {
-            throw new IllegalArgumentException("Institution with id "+ institutionId+" not found");
-        }
-        List<Institution> institutions = getAllInstitutions();
-        if (Objects.nonNull(institution.getInstitution_name())) {
-            if (!institution.getInstitution_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
-                throw new IllegalArgumentException("Institution name cannot contain numeric values, special characters or leading spaces");
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            Institution institutionToUpdate = entityManager.find(Institution.class, institutionId);
+            if (institutionToUpdate == null) {
+                throw new IllegalArgumentException("Institution with id \" + institutionId + \" not found");
             }
-            for (Institution existingInstitution : institutions) {
-                if (existingInstitution.getInstitution_name().equalsIgnoreCase(institution.getInstitution_name()) && !existingInstitution.getInstitution_id().equals(institutionId)) {
-                    throw new IllegalArgumentException("Duplicate name not allowed");
+            List<Institution> institutions = getAllInstitutions();
+            if (Objects.nonNull(institution.getInstitution_name())) {
+                if (!institution.getInstitution_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                    throw new IllegalArgumentException("Institution name cannot contain numeric values, special characters or leading spaces");
                 }
-            }
-            institutionToUpdate.setInstitution_name(institution.getInstitution_name());
-        }
-        if (Objects.nonNull(institution.getInstitution_code())) {
-            if (!institution.getInstitution_code().matches("^[a-zA-Z][a-zA-Z ]*$")){
-                throw new IllegalArgumentException("Institution code cannot contain numeric values, special characters or leading spaces");
-            }
-            for (Institution existingInstitution : institutions) {
-                if (existingInstitution.getInstitution_code().equalsIgnoreCase(institution.getInstitution_code()) && !existingInstitution.getInstitution_id().equals(institutionId)) {
-                    throw new IllegalArgumentException("Duplicate code not allowed");
+                for (Institution existingInstitution : institutions) {
+                    if (existingInstitution.getInstitution_name().equalsIgnoreCase(institution.getInstitution_name()) && !existingInstitution.getInstitution_id().equals(institutionId)) {
+                        throw new IllegalArgumentException("Duplicate name not allowed");
+                    }
                 }
+                institutionToUpdate.setInstitution_name(institution.getInstitution_name());
             }
-            institutionToUpdate.setInstitution_code(institution.getInstitution_code());
-        }
-        if (Objects.nonNull(institution.getInstitution_address())) {
-            if (!institution.getInstitution_address().matches("^[#a-zA-Z0-9].*")) {
-                throw new IllegalArgumentException("Institution address must start with #, letter, or number");
+            if (Objects.nonNull(institution.getInstitution_code())) {
+                if (!institution.getInstitution_code().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                    throw new IllegalArgumentException("Institution code cannot contain numeric values, special characters or leading spaces");
+                }
+                for (Institution existingInstitution : institutions) {
+                    if (existingInstitution.getInstitution_code().equalsIgnoreCase(institution.getInstitution_code()) && !existingInstitution.getInstitution_id().equals(institutionId)) {
+                        throw new IllegalArgumentException("Duplicate code not allowed");
+                    }
+                }
+                institutionToUpdate.setInstitution_code(institution.getInstitution_code());
             }
+            if (Objects.nonNull(institution.getInstitution_address())) {
+                if (!institution.getInstitution_address().matches("^[#a-zA-Z0-9].*")) {
+                    throw new IllegalArgumentException("Institution address must start with #, letter, or number");
+                }
 
-            if (institution.getInstitution_address().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
-                throw new IllegalArgumentException("Institution address contains invalid special characters");
-            }
+                if (institution.getInstitution_address().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
+                    throw new IllegalArgumentException("Institution address contains invalid special characters");
+                }
 
-            if (institution.getInstitution_address().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
-                throw new IllegalArgumentException("Institution address cannot contain only special characters");
+                if (institution.getInstitution_address().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
+                    throw new IllegalArgumentException("Institution address cannot contain only special characters");
+                }
+                if (institution.getInstitution_address().matches("^[0-9]+$")) {
+                    throw new IllegalArgumentException("Institution address cannot contain only numbers");
+                }
+                institutionToUpdate.setInstitution_address(institution.getInstitution_address());
             }
-            if (institution.getInstitution_address().matches("^[0-9]+$")) {
-                throw new IllegalArgumentException("Institution address cannot contain only numbers");
+            if (institution.getCreated_date() != null || institution.getCreated_by() != null) {
+                throw new IllegalArgumentException("Created Date and Created By cannot be modified");
             }
-            institutionToUpdate.setInstitution_address(institution.getInstitution_address());
+            institutionToUpdate.setModified_by(role);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String now = LocalDateTime.now().format(formatter);
+            institutionToUpdate.setModified_date(now);
+            return entityManager.merge(institutionToUpdate);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
-        if(institution.getCreated_date()!=null|| institution.getCreated_by()!=null)
-        {
-            throw new IllegalArgumentException("Created Date and Created By cannot be modified");
-        }
-        institutionToUpdate.setModified_by(role);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String now = LocalDateTime.now().format(formatter);
-        institutionToUpdate.setModified_date(now);
-        return entityManager.merge(institutionToUpdate);
     }
-
     @Transactional
     public Institution manageInstitutionArchiveStatus(Long id, Boolean archive) {
-        Institution institution = entityManager.find(Institution.class, id);
-        if (institution == null) {
-            throw new IllegalArgumentException("Institution not found with id: " + id);
-        }
+        try {
+            Institution institution = entityManager.find(Institution.class, id);
+            if (institution == null) {
+                throw new IllegalArgumentException("Institution not found with id: " + id);
+            }
 
-        if (archive == null) {
-            throw new IllegalArgumentException("Archive status must be provided (true/false)");
-        }
+            if (archive == null) {
+                throw new IllegalArgumentException("Archive status must be provided (true/false)Archive status must be provided (true/false)");
+            }
 
-        if (institution.getArchived().equals(archive)) {
-            throw new IllegalArgumentException("Institution already " + (archive ? "archived" : "unarchived"));
-        }
+            if (institution.getArchived().equals(archive)) {
+                throw new IllegalArgumentException("Institution already " + (archive ? "archived" : "unarchived"));
+            }
 
-        institution.setArchived(archive);
-        entityManager.merge(institution);
-        return institution;
+            institution.setArchived(archive);
+            entityManager.merge(institution);
+            return institution;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
+        }
     }
 
 }
-

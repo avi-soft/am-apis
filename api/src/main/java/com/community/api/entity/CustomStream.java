@@ -32,7 +32,6 @@ import java.util.List;
 public class CustomStream {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "stream_id")
     @JsonProperty("stream_id")
     protected Long streamId;

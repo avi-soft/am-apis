@@ -1,7 +1,6 @@
 package com.community.api.entity;
 
 import com.community.api.utils.DocumentType;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -10,8 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.Entity;
-import javax.persistence.GenerationType;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.Column;
@@ -42,4 +39,5 @@ public class FileType
     @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     @JsonProperty("archived")
     protected Boolean archived=false;
+
 }
