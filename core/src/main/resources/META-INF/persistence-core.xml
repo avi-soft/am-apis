@@ -126,6 +126,8 @@
         <class>com.community.api.entity.SPAcknowledgement</class>
         <class>com.community.api.entity.OrderConsent</class>
         <class>com.community.api.entity.Refunds</class>
+        <class>com.community.api.entity.BoardUniversityType</class>
+        <class>com.community.api.entity.BoardUniversityLocation</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
