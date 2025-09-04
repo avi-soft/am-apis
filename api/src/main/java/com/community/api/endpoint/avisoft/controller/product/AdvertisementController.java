@@ -23,6 +23,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -65,6 +66,7 @@ import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 import static com.community.api.component.Constant.request;
 import static com.community.api.services.ProductService.stripTime;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/advertisement", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class AdvertisementController {
