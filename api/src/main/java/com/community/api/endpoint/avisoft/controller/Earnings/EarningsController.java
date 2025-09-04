@@ -721,7 +721,7 @@ public class EarningsController {
         double[] balances = paymentService.balances(provider.getService_provider_id());
         double requestedSettleAmount = transactionDTO.getAmountToSettle();
 
-        // Fetch unsettled earnings ordered oldest first
+        // Fetch all unsettled earnings oldest first
         Query earningsQuery = entityManager.createQuery(
                 "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
         earningsQuery.setParameter("id", transactionDTO.getUserId());
@@ -730,43 +730,40 @@ public class EarningsController {
         double remainingAmount = requestedSettleAmount;
         double currentSurplus = provider.getSurplus() != null ? provider.getSurplus() : 0.0;
 
+        // First, settle earnings from requested amount and surplus if negative
         for (Earnings earning : earningsList) {
-            if (remainingAmount <= 0) break;
+            if (remainingAmount <= 0 && currentSurplus >= 0) break;
 
             double pending = earning.getPending();
-            double paidNow = Math.min(pending, remainingAmount);
 
-            // Pay from the requested amount first
-            earning.setPaid(earning.getPaid() + paidNow);
-            earning.setPending(pending - paidNow);
-            remainingAmount -= paidNow;
+            // Apply from requested amount first
+            double paidNow = 0.0;
+            if (remainingAmount > 0) {
+                paidNow = Math.min(pending, remainingAmount);
+                earning.setPaid(earning.getPaid() + paidNow);
+                earning.setPending(pending - paidNow);
+                remainingAmount -= paidNow;
+                pending -= paidNow;
+            }
 
-            // If earning still has pending, try to cover from negative surplus (loan)
-            if (earning.getPending() > 0 && currentSurplus < 0) {
-                double amountToCover = earning.getPending();
+            // If still pending and surplus negative, use surplus to cover
+            if (pending > 0 && currentSurplus < 0) {
                 double surplusAbs = Math.abs(currentSurplus);
+                double coverFromSurplus = Math.min(pending, surplusAbs);
 
-                if (surplusAbs >= amountToCover) {
-                    // Surplus fully covers remaining pending
-                    earning.setPending(0.0);
-                    earning.setSettled(true);
-                    earning.setPaymentDone(true);
+                earning.setPaid(earning.getPaid() + coverFromSurplus);
+                earning.setPending(pending - coverFromSurplus);
+                currentSurplus += coverFromSurplus;  // reduces negative surplus (towards zero)
 
-                    currentSurplus += amountToCover; // Reduce negative surplus (loan repaid)
-                } else {
-                    // Surplus partially covers remaining pending
-                    earning.setPending(amountToCover - surplusAbs);
-                    earning.setSettled(false);
-                    earning.setPaymentDone(false);
+                pending -= coverFromSurplus;
+            }
 
-                    currentSurplus = 0.0; // Surplus fully used
-                }
-            } else if (earning.getPending() == 0) {
-                // Fully settled earning
+            // Update earning status
+            if (pending <= 0) {
+                earning.setPending(0.0);
                 earning.setSettled(true);
                 earning.setPaymentDone(true);
             } else {
-                // Pending > 0 and surplus >= 0
                 earning.setSettled(false);
                 earning.setPaymentDone(false);
             }
@@ -774,37 +771,70 @@ public class EarningsController {
             entityManager.merge(earning);
         }
 
-        // Calculate total unpaid from balances (without surplus)
+        // Edge case handling:
+        // If surplus is still negative, but total paid + pending earnings cover the loan fully,
+        // mark those earnings settled and set surplus to zero.
+
+        double totalPendingAndPaid = 0.0;
+        for (Earnings e : earningsList) {
+            totalPendingAndPaid += (e.getPending() + e.getPaid());
+        }
+
+        if (currentSurplus < 0 && totalPendingAndPaid >= Math.abs(currentSurplus)) {
+            double loanCoverageRemaining = Math.abs(currentSurplus);
+
+            for (Earnings earning : earningsList) {
+                if (loanCoverageRemaining <= 0) break;
+
+                double pending = earning.getPending();
+                if (pending > 0) {
+                    if (pending <= loanCoverageRemaining) {
+                        earning.setPending(0.0);
+                        earning.setSettled(true);
+                        earning.setPaymentDone(true);
+                        loanCoverageRemaining -= pending;
+                    } else {
+                        earning.setPending(pending - loanCoverageRemaining);
+                        earning.setSettled(false);
+                        earning.setPaymentDone(false);
+                        loanCoverageRemaining = 0;
+                    }
+                    entityManager.merge(earning);
+                } else if (!earning.isSettled()) {
+                    earning.setSettled(true);
+                    earning.setPaymentDone(true);
+                    entityManager.merge(earning);
+                }
+            }
+            // Loan fully covered, set surplus to zero
+            currentSurplus = 0.0;
+        }
+
+        // Now adjust surplus if requestedSettleAmount differs from unpaid balances (last month + this month)
         double totalUnpaidAtStart = balances[0] + balances[1];
 
-        // Adjust surplus: if settled more than unpaid, surplus (loan) increases (more negative)
         if (requestedSettleAmount > totalUnpaidAtStart) {
             double overpayment = requestedSettleAmount - totalUnpaidAtStart;
             currentSurplus -= overpayment;
         } else if (requestedSettleAmount < totalUnpaidAtStart) {
-            // If less settled than unpaid, loan increases by unused unpaid amount
             double unusedAmount = totalUnpaidAtStart - requestedSettleAmount;
             currentSurplus += unusedAmount;
-            // But ensure surplus never becomes positive
-            if (currentSurplus > 0) currentSurplus = 0;
         }
 
-        // Update provider surplus (loan)
+        // Never let surplus be positive
+        if (currentSurplus > 0) currentSurplus = 0;
+
         provider.setSurplus(currentSurplus);
         entityManager.merge(provider);
 
-        // Calculate final balance after settlement and surplus adjustments
-        double finalBalance = balances[0] + balances[1] + currentSurplus;
-        if (finalBalance < 0) finalBalance = 0; // balance can’t be negative
-
-        // Create and persist transaction
+        // Create and persist transaction record
         Transaction transaction = new Transaction();
         transaction.setLastMonthPayable(balances[0]);
         transaction.setCurrentMonthPayable(balances[1]);
-        // transaction.setSurplus(currentSurplus); // Uncomment if Transaction has surplus field
+        // transaction.setSurplus(currentSurplus); // if applicable
 
         transaction.setSettledAmount(requestedSettleAmount);
-        transaction.setBalance(finalBalance);
+        transaction.setBalance(balances[0] + balances[1] + balances[2] - requestedSettleAmount);
         transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
         transaction.setRole(provider.getRole());
         transaction.setUserId(provider.getService_provider_id());
@@ -814,6 +844,7 @@ public class EarningsController {
 
         return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
     }
+
 
 }
 
