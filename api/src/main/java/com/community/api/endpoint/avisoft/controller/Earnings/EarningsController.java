@@ -14,7 +14,6 @@ import com.community.api.services.PaymentService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.SharedUtilityService;
-import jakarta.jws.soap.SOAPBinding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +37,11 @@ import javax.persistence.criteria.Root;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import static antlr.build.ANTLR.root;
 
 @Controller
 @RequestMapping("/payments")
@@ -821,11 +814,6 @@ public class EarningsController {
 
         return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
     }
-
-
-
-
-
 
 }
 
