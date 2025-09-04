@@ -435,7 +435,7 @@ public class EarningsController {
             }
 
             else {
-                Query query = entityManager.createQuery("Select id from Earnings WHERE providerId = :userId AND settled = false sort by txnId ASC", Long.class);
+                Query query = entityManager.createQuery("SELECT e.id FROM Earnings e WHERE e.providerId = :userId AND e.settled = false ORDER BY e.id ASC", Long.class);
                 query.setParameter("userId", transactionDTO.getUserId());
                 txnIds = query.getResultList();
                 if(txnIds.isEmpty())
