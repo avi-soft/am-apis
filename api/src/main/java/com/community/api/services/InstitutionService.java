@@ -196,7 +196,6 @@ public class InstitutionService
             throw exception;
         }
     }
-
     @Transactional
     public Institution manageInstitutionArchiveStatus(Long id, Boolean archive) {
         try {

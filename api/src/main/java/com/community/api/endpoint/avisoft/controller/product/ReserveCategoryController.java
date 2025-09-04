@@ -34,7 +34,9 @@ public class ReserveCategoryController {
     @GetMapping("/get-all-reserve-category")
     public ResponseEntity<?> getAllReserveCategory(@RequestParam(required = false, defaultValue = "false") Boolean archived) {
         try {
+
             List<CustomReserveCategory> authorities = reserveCategoryService.getAllReserveCategory(archived);
+
             if (authorities.isEmpty()) {
                 return ResponseService.generateErrorResponse("No Reserve Category Found", HttpStatus.OK);
             }

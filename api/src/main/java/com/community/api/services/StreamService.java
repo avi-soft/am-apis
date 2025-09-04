@@ -210,6 +210,7 @@ public class StreamService {
 
             // 5. Create and persist new stream
             CustomStream stream = new CustomStream();
+            stream.setStreamId(getNextStreamId());
             stream.setStreamName(addStreamDto.getStreamName());
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setQualifications(qualifications);
@@ -231,7 +232,11 @@ public class StreamService {
             throw new Exception("Failed to create stream: " + e.getMessage());
         }
     }
-
+    public Long getNextStreamId() {
+        String sql = "SELECT COALESCE(MAX(stream_id), 0) + 1 FROM custom_stream";
+        Object result = entityManager.createNativeQuery(sql).getSingleResult();
+        return ((Number) result).longValue();  // Cast result safely
+    }
     @Transactional
     public void removeStreamById(CustomStream stream) throws Exception {
         try {

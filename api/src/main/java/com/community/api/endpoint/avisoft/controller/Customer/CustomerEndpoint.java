@@ -294,11 +294,9 @@ public class CustomerEndpoint {
                 try {
                     LocalDate dob = LocalDate.parse(dobStr, formatter);
                     LocalDate today = LocalDate.now();
-
                     // Check if DOB is not in the future
                     if (dob.isAfter(today))
                         errorMessages.put("dob", "DOB cannot be of future");
-
                 } catch (DateTimeParseException e) {
                     // Invalid date format
                     errorMessages.put("dob", "Invalid DOB");
@@ -1451,6 +1449,7 @@ public class CustomerEndpoint {
 //                    entityManager.merge(customCustomer);
                 }
 //
+
             } else if (!details.containsKey("category")) {
                 if (customCustomer.getCategory() != null) {
                     if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
@@ -3704,7 +3703,9 @@ public class CustomerEndpoint {
                 wrappers.add(dto);
             }
             Map<String, Object> response = new HashMap<>();
-            response.put("forms", wrappers);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, customProducts.size());
+            response.put("forms", wrappers.subList(fromIndex, toIndex));
             response.put("totalItems", customProducts.size());
             long totalPages = (customProducts.size() + limit - 1) / limit;
             response.put("totalPages", totalPages);

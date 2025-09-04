@@ -38,8 +38,10 @@ public class Constant {
     public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = :archived";
     public static final String GET_ALL_ARCHIVED_NONARCHIVED_FILE_TYPE="SELECT q FROM FileType q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
+
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
+
     public static String PHONE_QUERY_ADMIN="SELECT c FROM CustomAdmin c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String USERNAME_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.user_name = :username";
     public static String USERNAME_QUERY_CUSTOM_ADMIN = "SELECT c FROM CustomAdmin c WHERE c.user_name = :username";
@@ -326,6 +328,7 @@ public class Constant {
 
     public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID_AND_TICKET = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.serviceProviderTicket = :serviceProviderTicket AND d.name IS NOT NULL";
 
+
     public static final String GET_SERVICE_PROVIDER_CONDITION_ADMIN_OVERRIDDEN = "SELECT sp FROM ServiceProviderEntity sp WHERE sp.adminOverridden = :adminOverridden AND sp.type IS NOT NULL";
 
     public static final String SERVICE_PROVIDER_PROFESSIONAL = "PROFESSIONAL";
@@ -333,6 +336,7 @@ public class Constant {
 
     public static final Long PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT = 10L;
     public static final Long INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT = 4L;
+
 
     public static final Long REVIEW_TICKET_STATUS_SUCCESS = 5L;
     public static final Long REVIEW_TICKET_STATUS_FAIL = -5L;
@@ -343,8 +347,10 @@ public class Constant {
     public static final Long REVIEW_TICKET_FEEDBACK_HIGH = 5L;
     public static final Long REVIEW_TICKET_FEEDBACK_LOW = -5L;
 
+
     public static final Long GENDER_ALL=4L;
     public static final Long RESERVED_CATEGORY_ALL=7L;
+
 
     //add constants above this query//*******************************************************************************
     public static final String recosQuery =
@@ -545,4 +551,5 @@ public class Constant {
     public static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     public static final SecureRandom random = new SecureRandom();
     //add constants above this query//*******************************************************************************
+
 }

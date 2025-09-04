@@ -434,6 +434,7 @@ public class ProductController extends CatalogEndpoint {
                 } else {
                     wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode, customSector, currentDate, advertisement, genderService, entityManager, postList, addProductDto.getPosts(), totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }
+
                 ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                 return response;
             }
@@ -720,6 +721,12 @@ public class ProductController extends CatalogEndpoint {
                         customProduct.setProductState(productState);
                     }
                 }
+            }
+            else if(addProductDto.getProductState()==null&&customProduct.getProductState().getProductStateId()==1)
+            {
+
+                CustomProductState  productState=entityManager.find(CustomProductState.class,2L);
+                    customProduct.setProductState(productState);
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if (saveAsDraft) {
@@ -1031,6 +1038,7 @@ public class ProductController extends CatalogEndpoint {
                 expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
                 boolean isExpired = expiry.isBefore(now);
 
+
                 if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId() != 6) || allowExpiredAccess || bypass) {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList = customProduct.getPosts();
@@ -1042,6 +1050,7 @@ public class ProductController extends CatalogEndpoint {
                 }
 
             } else {
+
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
@@ -1585,7 +1594,7 @@ public class ProductController extends CatalogEndpoint {
     }
 
     // Run every one hour
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 0,30 * * * *")
     @PutMapping("/update-product-resources")
     public void updateProductStates() {
         try {

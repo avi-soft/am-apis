@@ -14,7 +14,6 @@ import com.community.api.services.PaymentService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.SharedUtilityService;
-import jakarta.jws.soap.SOAPBinding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +37,11 @@ import javax.persistence.criteria.Root;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import static antlr.build.ANTLR.root;
 
 @Controller
 @RequestMapping("/payments")
@@ -73,6 +66,7 @@ public class EarningsController {
     }
     @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
     @GetMapping("filter")
+    @Transactional
     public ResponseEntity<?> getFilteredEarnings(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(required = false, defaultValue = "true") Boolean settled,
@@ -184,9 +178,10 @@ public class EarningsController {
         resultMap.put("total_number_of_items",result.size());
         resultMap.put("total_number_of_pages",result.size()/limit);
         resultMap.put("current_page",page);
-        resultMap.put("last_month_payable",balances[0]);
-        resultMap.put("this_month_payable",balances[1]);
-        resultMap.put("balance_amount",balances[0]+balances[1]);
+        resultMap.put("last_month_payable", balances[0]);
+        resultMap.put("this_month_payable", balances[1]);
+        resultMap.put("surplus", balances[2]); // Optional: include it explicitly
+        resultMap.put("balance_amount", balances[0] + balances[1] + balances[2]);
         resultMap.put("payments", result.subList(fromIndex, toIndex));
         return new ResponseService().generateSuccessResponse("Payments", resultMap, HttpStatus.OK);
     }
@@ -389,165 +384,437 @@ public class EarningsController {
         entityManager.merge(earnings);
         return ResponseService.generateSuccessResponse("Transaction status altered",earnings,HttpStatus.OK);
     }
-
-    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin})
+    //working if no surplus is included
+   /* @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @PostMapping("/settle-amount")
-    public ResponseEntity<?> getFilteredEarnings(@RequestHeader(value = "Authorization")String authHeader, @RequestBody TransactionDTO transactionDTO) {
-            List<Long> txnIds = new ArrayList<>();
-            Earnings earningWithCarryOver=null;
-            Query queryForCarryOver = entityManager.createQuery("Select e.id from Earnings e where e.carryOver < 0 and e.providerId =:id", Long.class);
-            queryForCarryOver.setParameter("id",transactionDTO.getUserId());
-            List<Long> ids = queryForCarryOver.getResultList();
-            if (!ids.isEmpty()) {
-                Long id = ids.get(0);
-                earningWithCarryOver = entityManager.find(Earnings.class, id);
-            } else {
-                earningWithCarryOver = null; // No result found, avoid exception
-            }
-            if (transactionDTO.getUserId() == null)
-                return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
-            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
-            if (serviceProvider == null)
-                return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
-            double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
-            if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() == 0)
-                return ResponseService.generateErrorResponse("Amount to settle is needed", HttpStatus.BAD_REQUEST);
-            else if (transactionDTO.getAmountToSettle() < 0)
-                return ResponseService.generateErrorResponse("Amount to settle cannot be negative", HttpStatus.BAD_REQUEST);
-          /*if(transactionDTO.getAmountToSettle()>(balances[0]+balances[1]))
-              return ResponseService.generateErrorResponse("Amount to settle cannot be more than balance",HttpStatus.BAD_REQUEST);*/
-          /*if(transactionDTO.getTxnIds()==null||transactionDTO.getTxnIds().isEmpty())
-              return ResponseService.generateErrorResponse("Transaction ids are required",HttpStatus.BAD_REQUEST);*/
-            double checkAmt = 0.0;
-            if (transactionDTO.getTxnIds() != null && !transactionDTO.getTxnIds().isEmpty()) {
-                for (Long txnId : transactionDTO.getTxnIds()) {
-                    Earnings earnings = entityManager.find(Earnings.class, txnId);
-                    if (earnings == null)
-                        return ResponseService.generateErrorResponse("Invalid txn id provided", HttpStatus.BAD_REQUEST);
-                    if (!earnings.getProviderId().equals(transactionDTO.getUserId()))
-                        return ResponseService.generateErrorResponse("Payment with id : " + txnId + " does not belong to the selected user", HttpStatus.BAD_REQUEST);
-                    if (earnings.isSettled())
-                        return ResponseService.generateErrorResponse("Payment with Id : " + txnId + " is already settled", HttpStatus.BAD_REQUEST);
-                    checkAmt += earnings.getPending();
-                    txnIds = transactionDTO.getTxnIds();
-                }
-            }
+    public ResponseEntity<?> settleEarnings(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestBody TransactionDTO transactionDTO) {
 
-            else {
-                Query query = entityManager.createQuery("Select id from Earnings WHERE providerId = :userId AND settled = false", Long.class);
-                query.setParameter("userId", transactionDTO.getUserId());
-                txnIds = query.getResultList();
-                if(txnIds.isEmpty())
-                {
-                    query = entityManager.createQuery("Select MAX(id) from Earnings WHERE providerId = :userId AND settled = true", Long.class);
-                    query.setParameter("userId", transactionDTO.getUserId());
-                    txnIds.add((Long) query.getResultList().get(0));
-                }
-            }
-          /*if(transactionDTO.getAmountToSettle()>checkAmt)
-              return ResponseService.generateErrorResponse("Amount cannot be settled for selected transactions",HttpStatus.BAD_REQUEST);*/
-                Double amt = 0.0;
-                Collections.sort(txnIds);
+        if (transactionDTO.getUserId() == null)
+            return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
 
-                if(transactionDTO.getAmountToSettle()>balances[0]+balances[1])
-                {
-                    for (Long txnId : txnIds) {
-                    Earnings earnings = entityManager.find(Earnings.class, txnId);
-                        amt += earnings.getPending();
-                        earnings.setPaid(earnings.getPaid()+earnings.getPending());
-                        earnings.setPending(0.0);
-                        earnings.setPaymentDone(true);
-                        earnings.setSettled(true);
-                        entityManager.merge(earnings);
-                    }
-                    Earnings earnings = entityManager.find(Earnings.class, txnIds.get(txnIds.size()-1));
-                    if(earningWithCarryOver!=null) {
-                        earningWithCarryOver.setCarryOver(0.0);
-                        if(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver()<0)
-                            earnings.setCarryOver(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver());
-                        entityManager.merge(earningWithCarryOver);
-                        entityManager.merge(earnings);
-                    }
-                    else
-                    {
-                        earnings.setCarryOver(amt - transactionDTO.getAmountToSettle());
-                        entityManager.merge(earnings);
-                    }
-                    Transaction transaction = new Transaction();
-                    transaction.setCurrentMonthPayable(balances[1]);
-                    transaction.setLastMonthPayable(balances[0]);
-                    transaction.setSettledAmount(transactionDTO.getAmountToSettle());
-                    transaction.setBalance(balances[0] + balances[1] - transactionDTO.getAmountToSettle());
-                    transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
-                    transaction.setRole(serviceProvider.getRole());
-                    transaction.setUserId(serviceProvider.getService_provider_id());
-                    transaction.setDate(new Date());
-                    entityManager.persist(transaction);
-                    if(earningWithCarryOver!=null&&balances[0]+balances[1]>=(-earningWithCarryOver.getCarryOver())) {
-                        earningWithCarryOver.setCarryOver(0.0);
-                        entityManager.merge(earningWithCarryOver);
-                    }
-                    return ResponseService.generateSuccessResponse("Transaction Done", transaction, HttpStatus.OK);
-                }
-                else
-                {
-                for (Long txnId : txnIds) {
-                    Earnings earnings = entityManager.find(Earnings.class, txnId);
-                    if (earnings.getPending() + amt < transactionDTO.getAmountToSettle()) {
-                        amt = amt + earnings.getPending();
-                        earnings.setPaid(earnings.getPending());
-                        earnings.setPending(0.0);
-                        earnings.setPaymentDone(true);
-                        earnings.setSettled(true);
-                        entityManager.merge(earnings);
-                    } else if (amt == transactionDTO.getAmountToSettle()) {
-                        Transaction transaction = new Transaction();
-                        transaction.setCurrentMonthPayable(balances[1]);
-                        transaction.setLastMonthPayable(balances[0]);
-                        transaction.setSettledAmount(amt);
-                        transaction.setBalance(balances[0] + balances[1] - amt);
-                        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
-                        transaction.setRole(serviceProvider.getRole());
-                        transaction.setUserId(serviceProvider.getService_provider_id());
-                        transaction.setDate(new Date());
-                        entityManager.persist(transaction);
-                        if(earningWithCarryOver!=null&&earningWithCarryOver!=null&&balances[0]+balances[1]>=(-earningWithCarryOver.getCarryOver())) {
-                            earningWithCarryOver.setCarryOver(0.0);
-                            entityManager.merge(earningWithCarryOver);
-                        }
-                        return ResponseService.generateSuccessResponse("Transaction Done", transaction, HttpStatus.OK);
-                    } else if (earnings.getPending() + amt > transactionDTO.getAmountToSettle()) {
-                        if(earningWithCarryOver!=null) {
-                            earnings.setPending(earnings.getPending() - (transactionDTO.getAmountToSettle() - amt) + earningWithCarryOver.getCarryOver());
-                        }
-                        else
-                            earnings.setPending(earnings.getPending() - (transactionDTO.getAmountToSettle() - amt));
-                        earnings.setPaid(transactionDTO.getAmountToSettle() - amt);
-                        amt = transactionDTO.getAmountToSettle();
-                        earnings.setPaymentDone(false);
-                        earnings.setSettled(false);
-                        Transaction transaction = new Transaction();
-                        transaction.setCurrentMonthPayable(balances[1]);
-                        transaction.setLastMonthPayable(balances[0]);
-                        transaction.setSettledAmount(amt);
-                        transaction.setBalance(balances[0] + balances[1] - amt);
-                        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
-                        transaction.setRole(serviceProvider.getRole());
-                        transaction.setUserId(serviceProvider.getService_provider_id());
-                        transaction.setDate(new Date());
-                        entityManager.persist(transaction);
-                        entityManager.merge(earnings);
-                        if(earningWithCarryOver!=null&&earningWithCarryOver!=null&&balances[0]+balances[1]>=(-earningWithCarryOver.getCarryOver())) {
-                            earningWithCarryOver.setCarryOver(0.0);
-                            entityManager.merge(earningWithCarryOver);
-                        }
-                        return ResponseService.generateSuccessResponse("Transaction Done", transaction, HttpStatus.OK);
-                    }
-                }
-                }
-            return null;
+        if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() <= 0)
+            return ResponseService.generateErrorResponse("Amount to settle must be greater than 0", HttpStatus.BAD_REQUEST);
+
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
+        if (serviceProvider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+
+        double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
+        double availableBalance = balances[0] + balances[1];
+        double amountToSettle = transactionDTO.getAmountToSettle();
+
+        if (amountToSettle > availableBalance) {
+            return ResponseService.generateErrorResponse("Amount to settle cannot exceed available balance", HttpStatus.BAD_REQUEST);
         }
+
+        // Fetch carry over entry if exists
+        Earnings earningWithCarryOver = null;
+        Query carryOverQuery = entityManager.createQuery(
+                "SELECT e.id FROM Earnings e WHERE e.carryOver < 0 AND e.providerId = :id", Long.class);
+        carryOverQuery.setParameter("id", transactionDTO.getUserId());
+        List<Long> carryOverIds = carryOverQuery.getResultList();
+
+        if (!carryOverIds.isEmpty()) {
+            earningWithCarryOver = entityManager.find(Earnings.class, carryOverIds.get(0));
+        }
+
+        // Fetch all unsettled earnings in oldest-first order
+        Query earningsQuery = entityManager.createQuery(
+                "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
+        earningsQuery.setParameter("id", transactionDTO.getUserId());
+        List<Earnings> earningsList = earningsQuery.getResultList();
+
+        double remainingAmount = amountToSettle;
+        double totalSettled = 0.0;
+
+        for (Earnings earning : earningsList) {
+            if (remainingAmount <= 0) break;
+
+            double pending = earning.getPending();
+
+            if (pending <= remainingAmount) {
+                // Full settlement
+                earning.setPaid(earning.getPaid() + pending);
+                earning.setPending(0.0);
+                earning.setSettled(true);
+                earning.setPaymentDone(true);
+                remainingAmount -= pending;
+                totalSettled += pending;
+            } else {
+                // Partial settlement
+                earning.setPaid(earning.getPaid() + remainingAmount);
+                earning.setPending(pending - remainingAmount);
+                earning.setSettled(false);
+                earning.setPaymentDone(false);
+                totalSettled += remainingAmount;
+                remainingAmount = 0.0;
+            }
+
+            entityManager.merge(earning);
+        }
+
+        // Handle carry over
+        if (earningWithCarryOver != null && (balances[0] + balances[1] >= (-earningWithCarryOver.getCarryOver()))) {
+            earningWithCarryOver.setCarryOver(0.0);
+            entityManager.merge(earningWithCarryOver);
+        }
+
+        // Store transaction record
+        Transaction transaction = new Transaction();
+        transaction.setCurrentMonthPayable(balances[1]);
+        transaction.setLastMonthPayable(balances[0]);
+        transaction.setSettledAmount(totalSettled);
+        transaction.setBalance(availableBalance - totalSettled);
+        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+        transaction.setRole(serviceProvider.getRole());
+        transaction.setUserId(serviceProvider.getService_provider_id());
+        transaction.setDate(new Date());
+
+        entityManager.persist(transaction);
+
+        return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
+    }*/
+    //l3
+   /* @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
+    @Transactional
+    @PostMapping("/settle-amount")
+    public ResponseEntity<?> settleEarnings(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestBody TransactionDTO transactionDTO) {
+
+        if (transactionDTO.getUserId() == null)
+            return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
+
+        if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() <= 0)
+            return ResponseService.generateErrorResponse("Amount to settle must be greater than 0", HttpStatus.BAD_REQUEST);
+
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
+        if (serviceProvider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+
+        double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
+        double availableBalance = balances[0] + balances[1];
+        double requestedSettleAmount = transactionDTO.getAmountToSettle();
+
+        // Fetch carry over entry if exists
+        Earnings earningWithCarryOver = null;
+        Query carryOverQuery = entityManager.createQuery(
+                "SELECT e.id FROM Earnings e WHERE e.carryOver < 0 AND e.providerId = :id", Long.class);
+        carryOverQuery.setParameter("id", transactionDTO.getUserId());
+        List<Long> carryOverIds = carryOverQuery.getResultList();
+        if (!carryOverIds.isEmpty()) {
+            earningWithCarryOver = entityManager.find(Earnings.class, carryOverIds.get(0));
+        }
+
+        // Fetch all unsettled earnings in oldest-first order
+        Query earningsQuery = entityManager.createQuery(
+                "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
+        earningsQuery.setParameter("id", transactionDTO.getUserId());
+        List<Earnings> earningsList = earningsQuery.getResultList();
+
+        double remainingAmount = requestedSettleAmount;
+        double totalSettled = 0.0;
+        Earnings lastEarningUpdated = null;
+
+        for (Earnings earning : earningsList) {
+            if (remainingAmount <= 0) break;
+
+            double pending = earning.getPending();
+
+            if (pending <= remainingAmount) {
+                // Full settlement
+                earning.setPaid(earning.getPaid() + pending);
+                earning.setPending(0.0);
+                earning.setSettled(true);
+                earning.setPaymentDone(true);
+                remainingAmount -= pending;
+                totalSettled += pending;
+            } else {
+                // Partial settlement
+                earning.setPaid(earning.getPaid() + remainingAmount);
+                earning.setPending(pending - remainingAmount);
+                earning.setSettled(false);
+                earning.setPaymentDone(false);
+                totalSettled += remainingAmount;
+                remainingAmount = 0.0;
+            }
+
+            entityManager.merge(earning);
+            lastEarningUpdated = earning;
+        }
+
+        //@Note- Handle carry over if there's still remaining amount after all earnings are settled
+        if (remainingAmount > 0 && lastEarningUpdated != null) {
+            lastEarningUpdated.setCarryOver(-remainingAmount);
+            entityManager.merge(lastEarningUpdated);
+        }
+
+        // Clean up existing carryOver if it was covered by available balance
+        if (earningWithCarryOver != null && (availableBalance >= -earningWithCarryOver.getCarryOver())) {
+            earningWithCarryOver.setCarryOver(0.0);
+            entityManager.merge(earningWithCarryOver);
+        }
+
+        // Record the transaction
+        Transaction transaction = new Transaction();
+        transaction.setCurrentMonthPayable(balances[1]);
+        transaction.setLastMonthPayable(balances[0]);
+        transaction.setSettledAmount(requestedSettleAmount);
+        transaction.setBalance(availableBalance - requestedSettleAmount);
+        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+        transaction.setRole(serviceProvider.getRole());
+        transaction.setUserId(serviceProvider.getService_provider_id());
+        transaction.setDate(new Date());
+
+        entityManager.persist(transaction);
+
+        return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
+    }*/
+    //v2
+   /* @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
+    @Transactional
+    @PostMapping("/settle-amount")
+    public ResponseEntity<?> settleEarnings(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestBody TransactionDTO transactionDTO) {
+
+        if (transactionDTO.getUserId() == null)
+            return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
+
+        if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() <= 0)
+            return ResponseService.generateErrorResponse("Amount to settle must be greater than 0", HttpStatus.BAD_REQUEST);
+
+        ServiceProviderEntity provider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
+        if (provider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+
+        double[] balances = paymentService.balances(provider.getService_provider_id());
+        double loanBalance = provider.getSurplus() != null ? provider.getSurplus() : 0.0; // rename from surplus to loanBalance
+
+        // balances[0] = last month pending
+        // balances[1] = this month pending
+        // balances[2] = previously stored loan balance (for compatibility, but we will rely on provider.loanBalance now)
+        double availableBalance = balances[0] + balances[1] + loanBalance; // loanBalance is negative or zero
+
+        double requestedSettleAmount = transactionDTO.getAmountToSettle();
+
+        // Fetch all unsettled earnings oldest first
+        Query earningsQuery = entityManager.createQuery(
+                "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
+        earningsQuery.setParameter("id", transactionDTO.getUserId());
+        List<Earnings> earningsList = earningsQuery.getResultList();
+
+        double remainingAmount = requestedSettleAmount;
+
+        for (Earnings earning : earningsList) {
+            if (remainingAmount <= 0) break;
+
+            double pending = earning.getPending();
+
+            // Settle as much as possible from remainingAmount
+            double paidNow = Math.min(pending, remainingAmount);
+            earning.setPaid(earning.getPaid() + paidNow);
+            earning.setPending(pending - paidNow);
+            remainingAmount -= paidNow;
+
+            if (earning.getPending() > 0) {
+                // Pending not zero, check if loan balance (negative) can cover the rest of this earning
+                if (loanBalance < 0) {
+                    double amountToCover = earning.getPending();
+                    double loanAbs = Math.abs(loanBalance);
+
+                    if (loanAbs >= amountToCover) {
+                        // Loan fully covers remaining pending
+                        earning.setPending(0.0);
+                        earning.setSettled(true);
+                        earning.setPaymentDone(true);
+
+                        // Reduce negative loan balance by amount covered
+                        loanBalance += amountToCover; // e.g. loanBalance = -50 + 50 = 0
+
+                    } else {
+                        // Loan partially covers pending
+                        earning.setPending(amountToCover - loanAbs);
+                        earning.setSettled(false);
+                        earning.setPaymentDone(false);
+
+                        // Loan fully used
+                        loanBalance = 0.0;
+                    }
+                } else {
+                    // No negative loan balance to cover, earning remains unsettled
+                    earning.setSettled(false);
+                    earning.setPaymentDone(false);
+                }
+            } else {
+                // Fully settled earning
+                earning.setSettled(true);
+                earning.setPaymentDone(true);
+            }
+
+            entityManager.merge(earning);
+        }
+
+        // Calculate total unpaid at start (excluding loanBalance, which is accounted here)
+        double totalUnpaidAtStart = balances[0] + balances[1];
+
+        // Amount directly applied to earnings from requested settle amount
+        double amountAppliedToEarnings = requestedSettleAmount - remainingAmount;
+
+        // Adjust loanBalance based on settle amount vs unpaid
+        if (requestedSettleAmount > totalUnpaidAtStart) {
+            // Overpayment beyond unpaid earnings increases negative loan (more debt)
+            double overpayment = requestedSettleAmount - totalUnpaidAtStart;
+            loanBalance -= overpayment; // e.g. loanBalance = -1000 - 1000 = -2000 (more debt)
+        } else if (requestedSettleAmount < totalUnpaidAtStart) {
+            // Settled less than unpaid, loanBalance stays as-is (no positive loan)
+            // Do nothing here; loanBalance cannot go positive
+        }
+
+        // If loanBalance got positive due to adjustments, reset it to zero because positive loan is invalid
+        if (loanBalance > 0) {
+            loanBalance = 0.0;
+        }
+
+        // Persist updated loan balance
+        provider.setSurplus(loanBalance);
+        entityManager.merge(provider);
+
+        // Create and persist Transaction
+        Transaction transaction = new Transaction();
+        transaction.setLastMonthPayable(balances[0]);
+        transaction.setCurrentMonthPayable(balances[1]);
+        // transaction.setSurplus(loanBalance); // If you want to keep this for records
+
+        transaction.setSettledAmount(requestedSettleAmount);
+        transaction.setBalance(balances[0] + balances[1] + loanBalance - requestedSettleAmount);
+        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+        transaction.setRole(provider.getRole());
+        transaction.setUserId(provider.getService_provider_id());
+        transaction.setDate(new Date());
+
+        entityManager.persist(transaction);
+
+        return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
+    }*/
+
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
+    @Transactional
+    @PostMapping("/settle-amount")
+    public ResponseEntity<?> settleEarnings(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestBody TransactionDTO transactionDTO) {
+
+        if (transactionDTO.getUserId() == null)
+            return ResponseService.generateErrorResponse("User id is required", HttpStatus.BAD_REQUEST);
+
+        if (transactionDTO.getAmountToSettle() == null || transactionDTO.getAmountToSettle() <= 0)
+            return ResponseService.generateErrorResponse("Amount to settle must be greater than 0", HttpStatus.BAD_REQUEST);
+
+        ServiceProviderEntity provider = entityManager.find(ServiceProviderEntity.class, transactionDTO.getUserId());
+        if (provider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+
+        double[] balances = paymentService.balances(provider.getService_provider_id());
+        double requestedSettleAmount = transactionDTO.getAmountToSettle();
+
+        // Fetch unsettled earnings ordered oldest first
+        Query earningsQuery = entityManager.createQuery(
+                "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
+        earningsQuery.setParameter("id", transactionDTO.getUserId());
+        List<Earnings> earningsList = earningsQuery.getResultList();
+
+        double remainingAmount = requestedSettleAmount;
+        double currentSurplus = provider.getSurplus() != null ? provider.getSurplus() : 0.0;
+
+        for (Earnings earning : earningsList) {
+            if (remainingAmount <= 0) break;
+
+            double pending = earning.getPending();
+            double paidNow = Math.min(pending, remainingAmount);
+
+            // Pay from the requested amount first
+            earning.setPaid(earning.getPaid() + paidNow);
+            earning.setPending(pending - paidNow);
+            remainingAmount -= paidNow;
+
+            // If earning still has pending, try to cover from negative surplus (loan)
+            if (earning.getPending() > 0 && currentSurplus < 0) {
+                double amountToCover = earning.getPending();
+                double surplusAbs = Math.abs(currentSurplus);
+
+                if (surplusAbs >= amountToCover) {
+                    // Surplus fully covers remaining pending
+                    earning.setPending(0.0);
+                    earning.setSettled(true);
+                    earning.setPaymentDone(true);
+
+                    currentSurplus += amountToCover; // Reduce negative surplus (loan repaid)
+                } else {
+                    // Surplus partially covers remaining pending
+                    earning.setPending(amountToCover - surplusAbs);
+                    earning.setSettled(false);
+                    earning.setPaymentDone(false);
+
+                    currentSurplus = 0.0; // Surplus fully used
+                }
+            } else if (earning.getPending() == 0) {
+                // Fully settled earning
+                earning.setSettled(true);
+                earning.setPaymentDone(true);
+            } else {
+                // Pending > 0 and surplus >= 0
+                earning.setSettled(false);
+                earning.setPaymentDone(false);
+            }
+
+            entityManager.merge(earning);
+        }
+
+        // Calculate total unpaid from balances (without surplus)
+        double totalUnpaidAtStart = balances[0] + balances[1];
+
+        // Adjust surplus: if settled more than unpaid, surplus (loan) increases (more negative)
+        if (requestedSettleAmount > totalUnpaidAtStart) {
+            double overpayment = requestedSettleAmount - totalUnpaidAtStart;
+            currentSurplus -= overpayment;
+        } else if (requestedSettleAmount < totalUnpaidAtStart) {
+            // If less settled than unpaid, loan increases by unused unpaid amount
+            double unusedAmount = totalUnpaidAtStart - requestedSettleAmount;
+            currentSurplus += unusedAmount;
+            // But ensure surplus never becomes positive
+            if (currentSurplus > 0) currentSurplus = 0;
+        }
+
+        // Update provider surplus (loan)
+        provider.setSurplus(currentSurplus);
+        entityManager.merge(provider);
+
+        // Calculate final balance after settlement and surplus adjustments
+        double finalBalance = balances[0] + balances[1] + currentSurplus;
+        if (finalBalance < 0) finalBalance = 0; // balance can’t be negative
+
+        // Create and persist transaction
+        Transaction transaction = new Transaction();
+        transaction.setLastMonthPayable(balances[0]);
+        transaction.setCurrentMonthPayable(balances[1]);
+        // transaction.setSurplus(currentSurplus); // Uncomment if Transaction has surplus field
+
+        transaction.setSettledAmount(requestedSettleAmount);
+        transaction.setBalance(finalBalance);
+        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+        transaction.setRole(provider.getRole());
+        transaction.setUserId(provider.getService_provider_id());
+        transaction.setDate(new Date());
+
+        entityManager.persist(transaction);
+
+        return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
     }
+
+}
 
 

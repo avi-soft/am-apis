@@ -27,7 +27,7 @@ import java.util.Date;
 public class Earnings{
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-            @JsonProperty("txnId")
+    @JsonProperty("txnId")
     Long id;
 
     @Column(name = "order_id")

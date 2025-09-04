@@ -85,7 +85,7 @@ public class ServiceProviderEntity {
     @SequenceGenerator(
             name = "service_provider_seq",
             sequenceName = "service_provider_sequence",
-            initialValue = 100,
+            initialValue = 128,
             allocationSize = 1
     )
     private Long service_provider_id;
@@ -117,10 +117,12 @@ public class ServiceProviderEntity {
     @Pattern(regexp = "^[A-Z]{5}\\d{4}[A-Z]{1}$", message = "Invalid format. Use 5 uppercase letters, 4 digits, and 1 uppercase letter.")
 
     private String pan_number;
+
     @Column(name = "completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean completed;
+    private Boolean completed=false;
     @Column(name = "approved", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean approved = false;
+
     @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isArchived = false;
     private String otp;
@@ -315,8 +317,8 @@ public class ServiceProviderEntity {
 
     @Column(name = "policy_acknowledgement", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean policyAcknowledgement = false;
-
-
+    @Column(name = "surplus_payment", columnDefinition = "DOUBLE PRECISION DEFAULT 0")
+    private Double surplus;
 }
 
 
