@@ -386,7 +386,7 @@ public class QualificationDetailsService {
             qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
             // Sort the list based on qualificationId
             if(qualificationDetails != null) {
-                qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_id).reversed());
+                qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_detail_id).reversed());
             }
 
             return sharedUtilityService.mapQualificationsForServiceProvider(qualificationDetails);
