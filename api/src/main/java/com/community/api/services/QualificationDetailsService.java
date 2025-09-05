@@ -394,7 +394,7 @@ public class QualificationDetailsService {
         CustomCustomer customCustomer = findCustomCustomerById(userId);
         qualificationDetails = customCustomer.getQualificationDetailsList();
         if(qualificationDetails != null) {
-            qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_id).reversed());
+            qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_detail_id).reversed());
         }
         return sharedUtilityService.mapQualificationsForCustomer(qualificationDetails);
     }
