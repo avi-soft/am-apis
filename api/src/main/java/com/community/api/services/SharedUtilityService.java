@@ -327,7 +327,7 @@ public class SharedUtilityService {
                 ref.add(referrerDTO);
             }
             customerDetailsForMobile.put("primaryRef", primaryRef);
-            customerDetailsForMobile.put("referrers", ref);
+//            customerDetailsForMobile.put("referrers", ref);
             customerDetailsForMobile.put("otp", customCustomer.getOtp());
             customerDetailsForMobile.put("fathersName", customCustomer.getFathersName());
             customerDetailsForMobile.put("mothersName", customCustomer.getMothersName());
@@ -613,7 +613,7 @@ public class SharedUtilityService {
                 ref.add(referrerDTO);
             }
             customerDetailsForDesktop.put("primary_referrer", primaryRef);
-            customerDetailsForDesktop.put("referrers", ref);
+//            customerDetailsForDesktop.put("referrers", ref);
             customerDetailsForDesktop.put("otp", customCustomer.getOtp());
             customerDetailsForDesktop.put("fathersName", customCustomer.getFathersName());
             customerDetailsForDesktop.put("mothersName", customCustomer.getMothersName());
@@ -1072,6 +1072,7 @@ public class SharedUtilityService {
 
     public List<Map<String, Object>> mapQualificationsForCustomer(List<QualificationDetails> qualificationDetails) {
         return qualificationDetails.stream()
+                .sorted(Comparator.comparing(QualificationDetails::getQualification_detail_id).reversed())
                 .map(qualificationDetail -> {
                     Map<String, Object> qualificationInfo = new HashMap<>();
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
@@ -1199,7 +1200,7 @@ public class SharedUtilityService {
                         subjectDetails.add(tempDetail);
                     }
 
-                    qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
+                    qualificationInfo.put("subject_details", subjectDetails);
                     qualificationInfo.put("otherSubjects", qualificationDetail.getOtherSubjects());
 
                     Map<String, Object> filteredDocument = null;
