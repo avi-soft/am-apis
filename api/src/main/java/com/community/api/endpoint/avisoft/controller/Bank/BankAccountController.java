@@ -166,6 +166,7 @@ public class BankAccountController {
      * @param customerId the customer id
      * @return the bank accounts by customer id
      */
+    @Transactional
     @GetMapping("/get/{customerId}")
     public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam Integer role) {
         try {
