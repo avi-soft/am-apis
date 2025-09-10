@@ -210,7 +210,7 @@ public class EarningsController {
 
                 // Corrected query - returns Long values
                 List<Long> providerIds = entityManager.createQuery(
-                                "SELECT DISTINCT e.providerId FROM Earnings e", Long.class)
+                                "SELECT DISTINCT e.providerId FROM Earnings e WHERE e.pending > 0", Long.class)
                         .getResultList();
 
                 for (Long id : providerIds) {
