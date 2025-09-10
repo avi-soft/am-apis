@@ -10,7 +10,7 @@ DECLARE
     is_active BOOLEAN;
 BEGIN
 
-	RAISE NOTICE '11. Allocate ticket';
+    RAISE NOTICE '11. Allocate ticket';
 
     -- Fetch service provider details
     SELECT sp.maximum_ticket_size, sp.ticket_assigned, sp.ticket_pending, sp.is_active

@@ -31,6 +31,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -383,10 +384,18 @@ public class QualificationDetailsService {
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
             qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
+            // Sort the list based on qualificationId
+            if(qualificationDetails != null) {
+                qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_detail_id).reversed());
+            }
+
             return sharedUtilityService.mapQualificationsForServiceProvider(qualificationDetails);
         }
         CustomCustomer customCustomer = findCustomCustomerById(userId);
         qualificationDetails = customCustomer.getQualificationDetailsList();
+        if(qualificationDetails != null) {
+            qualificationDetails.sort(Comparator.comparing(QualificationDetails::getQualification_detail_id).reversed());
+        }
         return sharedUtilityService.mapQualificationsForCustomer(qualificationDetails);
     }
 

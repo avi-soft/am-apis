@@ -419,7 +419,7 @@ public class AdvertisementService {
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE a.category_id IN (?1) " +
-                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_TIMESTAMP) " +
+//                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND a.archived = 'N' " +
                 "AND bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +

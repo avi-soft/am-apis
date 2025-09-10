@@ -487,7 +487,6 @@ public class ProductController extends CatalogEndpoint {
                     return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.FORBIDDEN);
                 }
                 long existingState = customProduct.getProductState().getProductStateId();
-                System.out.println(existingState+"existing state");
                 if (existingState != 1 && existingState != 2 && existingState != 9) {
                     return ResponseService.generateErrorResponse("Action not allowed: Product must be in 'New', 'Modified', or 'Resubmitted' state to be approved or rejected",HttpStatus.BAD_REQUEST);
                 }
@@ -496,7 +495,7 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(Constant.PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
 
-//            // Validations and checks.
+            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
             if (addProductDto.getPlatformFee() == null)
@@ -508,7 +507,7 @@ public class ProductController extends CatalogEndpoint {
                 if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
                     return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
                 } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
-                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateErrorResponse("Running field required when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
                 }
                 CustomSector sector = entityManager.find(CustomSector.class, addProductDto.getSector());
                 if (sector == null)
@@ -516,13 +515,14 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setSector(sector);
                 customProduct.setSectorRunningField(addProductDto.getSectorRunningField());
             }
+
             // Validation of getActiveEndDate and getGoLiveDate.
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date currentDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             customProduct.setModifiedDate(currentDate);
             customProduct.setAdmitCardDateFrom(originalProduct.getAdmitCardDateFrom());
-            System.out.println(originalProduct.getAdmitCardDateFrom());
+
             customProduct.setAdmitCardDateTo(originalProduct.getAdmitCardDateTo());
             customProduct.setModificationDateFrom(originalProduct.getModificationDateFrom());
             customProduct.setModificationDateTo(originalProduct.getModificationDateTo());
@@ -615,7 +615,6 @@ public class ProductController extends CatalogEndpoint {
 
             List<Post> postList = new ArrayList<>();
             if (addProductDto.getPosts() != null) {
-                System.out.println("hello");
                 if (!addProductDto.getPosts().isEmpty()) {
                     productService.validatePostRequirement(addProductDto, roleId, userId);
                     postList = postService.savePosts(addProductDto.getPosts(), product);
@@ -709,22 +708,19 @@ public class ProductController extends CatalogEndpoint {
                     customProduct.setRejectionComment(null);
                 }
             }
-            System.out.println("product_state id is" + addProductDto.getProductState());
+
             if (addProductDto.getProductState() != null && addProductDto.getProductState() == 3) {
-                System.out.println("hello");
+
                 customProduct.setIsApproved(true);
                 customProduct.setIsEdited(false);
                 if (customProduct.getGoLiveDate().equals(new Date()) || customProduct.getGoLiveDate().before(new Date())) {
-                    System.out.println("yes");
                     CustomProductState productState = entityManager.find(CustomProductState.class, 5L);
                     if (addProductDto.getProductState() == 3L || customProduct.getIsApproved()) {
                         customProduct.setProductState(productState);
                     }
                 }
             }
-            else if(addProductDto.getProductState()==null&&customProduct.getProductState().getProductStateId()==1)
-            {
-
+            else if(addProductDto.getProductState()==null&&customProduct.getProductState().getProductStateId()==1) {
                 CustomProductState  productState=entityManager.find(CustomProductState.class,2L);
                     customProduct.setProductState(productState);
             }

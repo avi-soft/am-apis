@@ -7,7 +7,7 @@ DECLARE
     custom_orders BIGINT[];                       -- Orders in NEW state
 BEGIN
 
-	RAISE NOTICE '9. PRIMARY TICKET STORED PROCEDURE';
+    RAISE NOTICE '9. PRIMARY TICKET STORED PROCEDURE';
 
     -- Step 1: Simulate fetching order state = 1 (NEW)
     IF v_order_state_id IS NULL THEN
@@ -27,13 +27,13 @@ BEGIN
 
     -- Step 3: RBTA logic — will append to assigned_tickets
     IF custom_orders IS NOT NULL AND array_length(custom_orders, 1) > 0 THEN
-	    CALL public.random_binding_ticket_allocation(custom_orders, assigned_tickets);
-		RAISE NOTICE 'Assigned Tickets (RBTA) {for normal flow}: %', assigned_tickets;
-	END IF;
+        CALL public.random_binding_ticket_allocation(custom_orders, assigned_tickets);
+       RAISE NOTICE 'Assigned Tickets (RBTA) {for normal flow}: %', assigned_tickets;
+    END IF;
 
     RAISE NOTICE 'AFter RBTA Order is %', custom_orders;
 
-	IF custom_orders IS NOT NULL AND array_length(custom_orders, 1) > 0 THEN
+    IF custom_orders IS NOT NULL AND array_length(custom_orders, 1) > 0 THEN
     -- Step 4: VDTA logic — will also append to assigned_tickets
     CALL public.vertical_distribution_ticket_allocation(custom_orders, available_service_providers, assigned_tickets);
     RAISE NOTICE 'Final Assigned Tickets (RBTA + VDTA) {for normal flow}: %', assigned_tickets;
