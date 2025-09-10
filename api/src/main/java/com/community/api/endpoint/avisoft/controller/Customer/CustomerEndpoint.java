@@ -2691,7 +2691,9 @@ public class CustomerEndpoint {
             }
 
             entityManager.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("Referrer Set", sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false), HttpStatus.OK);
+            Map<String, Object> response = sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false);
+            response.put("documents", null);
+            return ResponseService.generateSuccessResponse("Referrer Set", response, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
