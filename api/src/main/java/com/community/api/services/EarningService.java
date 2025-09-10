@@ -43,20 +43,24 @@ public class EarningService {
             if(platformFee == null || platformFee.equals(0d) || ticket.getAssignee() == null) {
                 log.info("Either platform fee is null or zero or assignee is null");
             } else {
-                platformFee = (2 * platformFee )/ 5;
 
                 Earnings earnings = new Earnings();
                 earnings.setDate(new Date());
                 earnings.setOrderId(order.getId());
                 earnings.setPlatformFee(platformFee);
+
+                platformFee = (2 * platformFee )/ 5;
                 earnings.setCommission(platformFee);
                 earnings.setPending(platformFee);
+
                 earnings.setPaid(0d);
                 earnings.setPaymentDone(false);
                 earnings.setTicketId(ticket.getTicketId());
                 earnings.setProviderId(ticket.getAssignee());
                 earnings.setOrderAmount(order.getSubTotal().getAmount().longValue());
                 earnings.setSettled(false);
+
+                entityManager.merge(earnings);
             }
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
