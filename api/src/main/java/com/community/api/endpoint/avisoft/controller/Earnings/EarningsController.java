@@ -73,7 +73,7 @@ public class EarningsController {
             @RequestParam(required = false) Long spId,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from,
-            @RequestParam(required = false,defaultValue ="0") Integer page,
+            @RequestParam(required = false,defaultValue ="0") Integer offset,
             @RequestParam(required = false,defaultValue = "30")Integer limit) throws Exception {
 
 
@@ -171,13 +171,13 @@ public class EarningsController {
                 result.add(earning);
             }
         }
-        int fromIndex = Math.min((page) * limit,result.size());
+        int fromIndex = Math.min((offset) * limit,result.size());
         int toIndex = Math.min(fromIndex + limit, result.size());
         Map<String,Object> resultMap=new HashMap<>();
         double[]balances=paymentService.balances(spId);
         resultMap.put("total_number_of_items",result.size());
         resultMap.put("total_number_of_pages",result.size()/limit);
-        resultMap.put("current_page",page);
+        resultMap.put("current_page",offset);
         resultMap.put("last_month_payable", balances[0]);
         resultMap.put("this_month_payable", balances[1]);
         resultMap.put("surplus", balances[2]); // Optional: include it explicitly
@@ -210,7 +210,7 @@ public class EarningsController {
 
                 // Corrected query - returns Long values
                 List<Long> providerIds = entityManager.createQuery(
-                                "SELECT DISTINCT e.providerId FROM Earnings e", Long.class)
+                                "SELECT DISTINCT e.providerId FROM Earnings e WHERE e.pending > 0", Long.class)
                         .getResultList();
 
                 for (Long id : providerIds) {
@@ -380,7 +380,48 @@ public class EarningsController {
             else
                 return ResponseService.generateErrorResponse("Transaction has already been unsettled", HttpStatus.BAD_REQUEST);
         }
-        earnings.setSettled(settle);
+        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,earnings.getProviderId());
+        if(serviceProvider.getSurplus()<0&&settle)
+        {
+            return ResponseService.generateErrorResponse("Cannot unsettle an earning when due is left",HttpStatus.BAD_REQUEST);
+        }
+        if(Boolean.FALSE.equals(settle)&&serviceProvider.getSurplus()<0)
+        {
+            if(-(serviceProvider.getSurplus())>earnings.getPending())
+            {
+                serviceProvider.setSurplus(-(serviceProvider.getSurplus())+earnings.getPending());
+                earnings.setPaid(earnings.getPending());
+                earnings.setPending(0.0);
+                earnings.setSettled(true);
+                earnings.setPaymentDone(true);
+                entityManager.merge(serviceProvider);
+                entityManager.merge(earnings);
+            }
+            else if(-(serviceProvider.getSurplus())<=earnings.getPending())
+            {
+
+                earnings.setPaid((-serviceProvider.getSurplus()));
+                earnings.setPending(earnings.getPending()-(-serviceProvider.getSurplus()));
+                serviceProvider.setSurplus(0.0);
+                if(earnings.getPending()>0) {
+                    earnings.setSettled(false);
+                    earnings.setPaymentDone(false);
+                }
+                else
+                {
+                    earnings.setSettled(true);
+                    earnings.setPaymentDone(true);
+                }
+                entityManager.merge(serviceProvider);
+                earnings.setSettled(earnings.isSettled());
+                entityManager.merge(earnings);
+            }
+        }
+        else
+        {
+            earnings.setSettled(settle);
+        }
+
         entityManager.merge(earnings);
         return ResponseService.generateSuccessResponse("Transaction status altered",earnings,HttpStatus.OK);
     }
@@ -721,7 +762,7 @@ public class EarningsController {
         double[] balances = paymentService.balances(provider.getService_provider_id());
         double requestedSettleAmount = transactionDTO.getAmountToSettle();
 
-        // Fetch unsettled earnings ordered oldest first
+        // Fetch all unsettled earnings oldest first
         Query earningsQuery = entityManager.createQuery(
                 "SELECT e FROM Earnings e WHERE e.providerId = :id AND e.settled = false ORDER BY e.date ASC", Earnings.class);
         earningsQuery.setParameter("id", transactionDTO.getUserId());
@@ -730,43 +771,40 @@ public class EarningsController {
         double remainingAmount = requestedSettleAmount;
         double currentSurplus = provider.getSurplus() != null ? provider.getSurplus() : 0.0;
 
+        // First, settle earnings from requested amount and surplus if negative
         for (Earnings earning : earningsList) {
-            if (remainingAmount <= 0) break;
+            if (remainingAmount <= 0 && currentSurplus >= 0) break;
 
             double pending = earning.getPending();
-            double paidNow = Math.min(pending, remainingAmount);
 
-            // Pay from the requested amount first
-            earning.setPaid(earning.getPaid() + paidNow);
-            earning.setPending(pending - paidNow);
-            remainingAmount -= paidNow;
+            // Apply from requested amount first
+            double paidNow = 0.0;
+            if (remainingAmount > 0) {
+                paidNow = Math.min(pending, remainingAmount);
+                earning.setPaid(earning.getPaid() + paidNow);
+                earning.setPending(pending - paidNow);
+                remainingAmount -= paidNow;
+                pending -= paidNow;
+            }
 
-            // If earning still has pending, try to cover from negative surplus (loan)
-            if (earning.getPending() > 0 && currentSurplus < 0) {
-                double amountToCover = earning.getPending();
+            // If still pending and surplus negative, use surplus to cover
+            if (pending > 0 && currentSurplus < 0) {
                 double surplusAbs = Math.abs(currentSurplus);
+                double coverFromSurplus = Math.min(pending, surplusAbs);
 
-                if (surplusAbs >= amountToCover) {
-                    // Surplus fully covers remaining pending
-                    earning.setPending(0.0);
-                    earning.setSettled(true);
-                    earning.setPaymentDone(true);
+                earning.setPaid(earning.getPaid() + coverFromSurplus);
+                earning.setPending(pending - coverFromSurplus);
+                currentSurplus += coverFromSurplus;  // reduces negative surplus (towards zero)
 
-                    currentSurplus += amountToCover; // Reduce negative surplus (loan repaid)
-                } else {
-                    // Surplus partially covers remaining pending
-                    earning.setPending(amountToCover - surplusAbs);
-                    earning.setSettled(false);
-                    earning.setPaymentDone(false);
+                pending -= coverFromSurplus;
+            }
 
-                    currentSurplus = 0.0; // Surplus fully used
-                }
-            } else if (earning.getPending() == 0) {
-                // Fully settled earning
+            // Update earning status
+            if (pending <= 0) {
+                earning.setPending(0.0);
                 earning.setSettled(true);
                 earning.setPaymentDone(true);
             } else {
-                // Pending > 0 and surplus >= 0
                 earning.setSettled(false);
                 earning.setPaymentDone(false);
             }
@@ -774,37 +812,70 @@ public class EarningsController {
             entityManager.merge(earning);
         }
 
-        // Calculate total unpaid from balances (without surplus)
+        // Edge case handling:
+        // If surplus is still negative, but total paid + pending earnings cover the loan fully,
+        // mark those earnings settled and set surplus to zero.
+
+        double totalPendingAndPaid = 0.0;
+        for (Earnings e : earningsList) {
+            totalPendingAndPaid += (e.getPending() + e.getPaid());
+        }
+
+        if (currentSurplus < 0 && totalPendingAndPaid >= Math.abs(currentSurplus)) {
+            double loanCoverageRemaining = Math.abs(currentSurplus);
+
+            for (Earnings earning : earningsList) {
+                if (loanCoverageRemaining <= 0) break;
+
+                double pending = earning.getPending();
+                if (pending > 0) {
+                    if (pending <= loanCoverageRemaining) {
+                        earning.setPending(0.0);
+                        earning.setSettled(true);
+                        earning.setPaymentDone(true);
+                        loanCoverageRemaining -= pending;
+                    } else {
+                        earning.setPending(pending - loanCoverageRemaining);
+                        earning.setSettled(false);
+                        earning.setPaymentDone(false);
+                        loanCoverageRemaining = 0;
+                    }
+                    entityManager.merge(earning);
+                } else if (!earning.isSettled()) {
+                    earning.setSettled(true);
+                    earning.setPaymentDone(true);
+                    entityManager.merge(earning);
+                }
+            }
+            // Loan fully covered, set surplus to zero
+            currentSurplus = 0.0;
+        }
+
+        // Now adjust surplus if requestedSettleAmount differs from unpaid balances (last month + this month)
         double totalUnpaidAtStart = balances[0] + balances[1];
 
-        // Adjust surplus: if settled more than unpaid, surplus (loan) increases (more negative)
         if (requestedSettleAmount > totalUnpaidAtStart) {
             double overpayment = requestedSettleAmount - totalUnpaidAtStart;
             currentSurplus -= overpayment;
         } else if (requestedSettleAmount < totalUnpaidAtStart) {
-            // If less settled than unpaid, loan increases by unused unpaid amount
             double unusedAmount = totalUnpaidAtStart - requestedSettleAmount;
             currentSurplus += unusedAmount;
-            // But ensure surplus never becomes positive
-            if (currentSurplus > 0) currentSurplus = 0;
         }
 
-        // Update provider surplus (loan)
+        // Never let surplus be positive
+        if (currentSurplus > 0) currentSurplus = 0;
+
         provider.setSurplus(currentSurplus);
         entityManager.merge(provider);
 
-        // Calculate final balance after settlement and surplus adjustments
-        double finalBalance = balances[0] + balances[1] + currentSurplus;
-        if (finalBalance < 0) finalBalance = 0; // balance can’t be negative
-
-        // Create and persist transaction
+        // Create and persist transaction record
         Transaction transaction = new Transaction();
         transaction.setLastMonthPayable(balances[0]);
         transaction.setCurrentMonthPayable(balances[1]);
-        // transaction.setSurplus(currentSurplus); // Uncomment if Transaction has surplus field
+        // transaction.setSurplus(currentSurplus); // if applicable
 
         transaction.setSettledAmount(requestedSettleAmount);
-        transaction.setBalance(finalBalance);
+        transaction.setBalance(balances[0] + balances[1] + balances[2] - requestedSettleAmount);
         transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
         transaction.setRole(provider.getRole());
         transaction.setUserId(provider.getService_provider_id());
@@ -814,6 +885,7 @@ public class EarningsController {
 
         return ResponseService.generateSuccessResponse("Transaction settled successfully", transaction, HttpStatus.OK);
     }
+
 
 }
 

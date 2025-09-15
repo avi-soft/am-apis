@@ -14,6 +14,7 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
+import com.community.api.entity.Earnings;
 import com.community.api.entity.EmailQueue;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
@@ -89,6 +90,8 @@ public class TicketStateService {
     ServiceProviderActionController serviceProviderActionController;
     @Autowired
     private TransactionTemplate transactionTemplate;
+    @Autowired
+    private EarningService earningService;
 
 
     public List<CustomTicketState> getAllTicketState() throws Exception {
@@ -126,108 +129,10 @@ public class TicketStateService {
         }
     }
 
-//    @Transactional
-//    public void updateSpTicketAvailability(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) throws Exception {
-//        try {
-//            log.info("HERE {}, {}", oldSp, newSp);
-//            if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
-//                ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
-//                if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-//                    exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
-//                } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
-//                    exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
-//                }
-//                entityManager.merge(exServiceProvider);
-//
-//                ServiceProviderEntity newServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
-//                if (nextState != null) {
-//                    if (nextState.getTicketState().equals("TO-DO")) {
-//                        newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
-//                    }
-//                    if (nextState.getTicketState().equals("CLOSE")) {
-//                        newServiceProvider.setTicketCompleted(newServiceProvider.getTicketCompleted() + 1);
-//                    }
-//                    if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
-//                        newServiceProvider.setTicketPending(newServiceProvider.getTicketPending() + 1);
-//                    }
-//                } else {
-//                    // Generally this is what going to run
-//                    newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
-//                }
-//
-//                entityManager.merge(newServiceProvider);
-//            } else if (newSp != null) {
-//                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
-//
-//                // TODO NEEDS TO CHECK THIS @RAMAN
-//                if (nextState != null) {
-//                    if (nextState.getTicketState().equals("TO-DO")) {
-//                        serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
-//                    }
-//                    if (nextState.getTicketState().equals("CLOSE")) {
-//                        serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted() + 1);
-//                    }
-//                    if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
-//                        serviceProvider.setTicketPending(serviceProvider.getTicketPending() + 1);
-//                    }
-//                } else {
-//                    // Generally this is what going to run
-//                    serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
-//                }
-//
-//                entityManager.merge(serviceProvider);
-//            }
-//
-//            // Approve and close ticket flow.
-//            /*if(nextState != null) {
-//                if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
-//                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
-//                    serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()-1);
-//                    serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
-//
-//                    entityManager.merge(serviceProvider);
-//                } else if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
-//                    // which is true always but here a condition for better understanding of logic.
-//                    if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
-//                        ServiceProviderEntity reviewTicketServiceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
-//                        reviewTicketServiceProvider.setTicketPending(reviewTicketServiceProvider.getTicketPending() - 1);
-//                        reviewTicketServiceProvider.setTicketCompleted(reviewTicketServiceProvider.getTicketCompleted() + 1);
-//
-//                        if (ticket.getParentTicket().getIsComplete()) {
-//                            ServiceProviderEntity parentTicketServiceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getParentTicket().getAssignee());
-//                            parentTicketServiceProvider.setTicketPending(parentTicketServiceProvider.getTicketPending() - 1);
-//                            parentTicketServiceProvider.setTicketCompleted(parentTicketServiceProvider.getTicketCompleted() + 1);
-//
-//                            entityManager.merge(parentTicketServiceProvider);
-//                        }
-//
-//                        entityManager.merge(reviewTicketServiceProvider);
-//                    } else {
-//                        ServiceProviderEntity assignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
-//                        assignee.setTicketPending(assignee.getTicketPending() - 1);
-//                        assignee.setTicketCompleted(assignee.getTicketCompleted() + 1);
-//
-//                        entityManager.merge(assignee);
-//                    }
-//                }
-//            }*/
-//
-//        } catch (IllegalArgumentException illegalArgumentException) {
-//            exceptionHandlingService.handleException(illegalArgumentException);
-//            throw new Exception(illegalArgumentException.getMessage());
-//        } catch (Exception exception) {
-//            exceptionHandlingService.handleException(exception);
-//            throw new Exception(exception.getMessage());
-//        }
-//
-//    }
-
     @Transactional
     public CustomServiceProviderTicket updateTicket(CreateTicketDto createTicketDTO, List<MultipartFile> files, Long ticketId, String authHeader) throws Exception {
         try {
-            if (createTicketDTO == null) {
-                log.info("CREATE TICKET DTO IS NULL");
-            }
+
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
                 throw new IllegalArgumentException("At least one parameter is required to update the ticket");
             }
@@ -396,6 +301,9 @@ public class TicketStateService {
                     orderState.setModifierUserId(tokenUserId);
                     orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
+
+                    // Earning section
+                    earningService.createEarning(ticket);
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(3);
@@ -494,6 +402,9 @@ public class TicketStateService {
                             orderState.setModifierUserId(tokenUserId);
                             orderState.setModifierRole(tokenRole);
                             entityManager.merge(orderState);
+
+                            // Earning section
+                            earningService.createEarning(parentTicket);
                         }
 
                         if (parentTicketAssignee != null) {

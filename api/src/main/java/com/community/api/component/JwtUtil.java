@@ -134,10 +134,19 @@ public class JwtUtil {
     }
 
     private boolean isMobileDevice(String userAgent) {
-        String devicePattern = "android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini";
-        return userAgent != null && userAgent.toLowerCase().matches(".*(" + devicePattern + ").*");
-    }
+        String[] mobileIndicators = {
+                "android", "webos", "iphone", "ipad", "ipod", "blackberry",
+                "iemobile", "opera mini", "Dart/3.8 (dart:io)" // for Flutter
+        };
 
+        for (String indicator : mobileIndicators) {
+            if (userAgent.contains(indicator)) {
+                System.out.println("device match true (matched: " + indicator + ")");
+                return true;
+            }
+        }
+        return false;
+    }
 
 /*
     public String generateToken(Long id, Integer role, String ipAddress, String userAgent) {
