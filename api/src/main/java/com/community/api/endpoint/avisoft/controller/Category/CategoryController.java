@@ -1,6 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.Category;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddCategoryDto;
@@ -8,34 +9,29 @@ import com.community.api.dto.CategoryDto;
 import com.community.api.dto.CategoryExtDTO;
 import com.community.api.dto.CategoryProductDTO;
 import com.community.api.dto.CustomCategoryWrapper;
+import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.ProductCompressedDTO;
 import com.community.api.entity.CustomProduct;
-import com.community.api.dto.CustomProductWrapper;
 import com.community.api.services.CategoryService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.google.gson.JsonObject;
-import io.swagger.models.auth.In;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import com.community.api.dto.CategoryDto;
-
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -46,7 +42,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -62,15 +57,12 @@ public class CategoryController extends CatalogEndpoint {
 
     private final ExceptionHandlingService exceptionHandlingService;
     private final CategoryService categoryService;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
     @Autowired
     JwtUtil jwtTokenUtil;
-
     @Autowired
     RoleService roleService;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     public CategoryController(ExceptionHandlingService exceptionHandlingService, CategoryService categoryService) {
@@ -78,7 +70,7 @@ public class CategoryController extends CatalogEndpoint {
         this.categoryService = categoryService;
     }
 
-
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider})
     @PostMapping("/add")
     public ResponseEntity<?> addCategory(HttpServletRequest request, @RequestBody AddCategoryDto addCategoryDto) {
         try {
@@ -108,11 +100,11 @@ public class CategoryController extends CatalogEndpoint {
             if (addCategoryDto.getDescription() != null && !addCategoryDto.getDescription().trim().isEmpty()) {
                 addCategoryDto.setDescription(addCategoryDto.getDescription().trim());
                 categoryImpl.setDescription(addCategoryDto.getDescription());
-            }else{
+            } else {
                 return ResponseService.generateErrorResponse("CATEGORY DESCRIPTION CANNOT BE EMPTY OR NULL", HttpStatus.BAD_REQUEST);
             }
 
-            if(addCategoryDto.getLongDescription() != null && !addCategoryDto.getLongDescription().trim().isEmpty()){
+            if (addCategoryDto.getLongDescription() != null && !addCategoryDto.getLongDescription().trim().isEmpty()) {
                 addCategoryDto.setLongDescription(addCategoryDto.getLongDescription().trim());
                 categoryImpl.setLongDescription(addCategoryDto.getLongDescription());
             }
@@ -126,6 +118,7 @@ public class CategoryController extends CatalogEndpoint {
             if (addCategoryDto.getActiveEndDate() != null && !addCategoryDto.getActiveEndDate().after(addCategoryDto.getActiveStartDate())) {
                 return ResponseService.generateErrorResponse("ACTIVE END DATE CANNOT BE BEFORE OR EQUAL TO ACTIVE START DATE(CURRENT DATE)", HttpStatus.BAD_REQUEST);
             }
+            categoryImpl.setActiveEndDate(addCategoryDto.getActiveEndDate());
 
             Category category = catalogService.saveCategory(categoryImpl);
 
@@ -135,7 +128,7 @@ public class CategoryController extends CatalogEndpoint {
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -169,7 +162,7 @@ public class CategoryController extends CatalogEndpoint {
                         for (BigInteger productId : productIdList) {
                             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
 
-                            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
+                            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate() != null &&
                                     customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
                                     customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
 
@@ -212,10 +205,10 @@ public class CategoryController extends CatalogEndpoint {
 
         } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -279,10 +272,10 @@ public class CategoryController extends CatalogEndpoint {
 
         } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -293,8 +286,8 @@ public class CategoryController extends CatalogEndpoint {
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "30") int limit,
-            @RequestParam(value = "ext",required = false,defaultValue = "false") Boolean ext,
-            @RequestHeader(value = "Authorization",required = false) String authHeader) {
+            @RequestParam(value = "ext", required = false, defaultValue = "false") Boolean ext,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
             Integer roleId = 5;
             String role = Constant.roleUser;
@@ -321,12 +314,11 @@ public class CategoryController extends CatalogEndpoint {
             } else if (((Status) category).getArchived() == 'Y') {
                 return ResponseService.generateErrorResponse("CATEGORY IS ARCHIVED", HttpStatus.NOT_FOUND);
             }
-            if (ext)
-            {
-                List<Object[]> rows =categoryService.getAllProductsByCategoryIdCompressed(categoryId,offset,limit);
-                System.out.println("res"+rows);
-                BigInteger count=categoryService.getAllProductsByCategoryIdCount(categoryId);
-                List<ProductCompressedDTO>products=new ArrayList<>();
+            if (ext) {
+                List<Object[]> rows = categoryService.getAllProductsByCategoryIdCompressed(categoryId, offset, limit);
+                System.out.println("res" + rows);
+                BigInteger count = categoryService.getAllProductsByCategoryIdCount(categoryId);
+                List<ProductCompressedDTO> products = new ArrayList<>();
                 for (Object[] row : rows) {
                     System.out.println("inside loop");
                     ProductCompressedDTO dto = new ProductCompressedDTO();
@@ -335,7 +327,7 @@ public class CategoryController extends CatalogEndpoint {
                     products.add(dto);
                     /* activeCategories.add(dto);*/
                 }
-                CategoryProductDTO categoryProductDTO=new CategoryProductDTO();
+                CategoryProductDTO categoryProductDTO = new CategoryProductDTO();
                 categoryProductDTO.setCategoryId(categoryId);
                 categoryProductDTO.setCategoryName(category.getName());
                 categoryProductDTO.setProducts(products);
@@ -347,7 +339,7 @@ public class CategoryController extends CatalogEndpoint {
                 response.put("totalItems", totalItems);
                 response.put("totalPages", totalPages);
                 response.put("currentPage", offset);
-                return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND",response, HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND", response, HttpStatus.OK);
             }
             List<BigInteger> productIdList = categoryService.getAllProductsByCategoryId(categoryId);
             List<CustomProductWrapper> products = new ArrayList<>();
@@ -355,21 +347,19 @@ public class CategoryController extends CatalogEndpoint {
             for (BigInteger productId : productIdList) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
 
-                if(role.equalsIgnoreCase(Constant.roleUser))
-                {
+                if (role.equalsIgnoreCase(Constant.roleUser)) {
                     if (customProduct != null &&
                             ((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
                             !customProduct.getGoLiveDate().after(new Date()) &&
-                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
+                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) &&
                             customProduct.getIsApproved()) {
 
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct);
                         products.add(wrapper);
                     }
-                }
-                else {
+                } else {
                     if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
                             customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
@@ -387,7 +377,7 @@ public class CategoryController extends CatalogEndpoint {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems && offset!=0) {
+            if (fromIndex >= totalItems && offset != 0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
@@ -403,7 +393,7 @@ public class CategoryController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND", response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -430,7 +420,7 @@ public class CategoryController extends CatalogEndpoint {
             }
             Category category = this.catalogService.findCategoryById(categoryId);
 
-            if (category != null && ((Status)category).getArchived() != 'Y') {
+            if (category != null && ((Status) category).getArchived() != 'Y') {
                 List<BigInteger> productIdList = categoryService.getAllProductsByCategoryId(categoryId);
 
                 for (BigInteger productId : productIdList) {
@@ -475,12 +465,12 @@ public class CategoryController extends CatalogEndpoint {
 
             Category category = this.catalogService.findCategoryById(categoryId);
 
-            if (category != null && ((Status)category).getArchived() != 'Y') {
+            if (category != null && ((Status) category).getArchived() != 'Y') {
 
                 if (addCategoryDto.getName() != null && !addCategoryDto.getName().trim().isEmpty()) { // trim works on nonNull values only.
                     category.setName(addCategoryDto.getName().trim());
                 }
-                if (addCategoryDto.getDescription()!= null && !addCategoryDto.getDescription().trim().isEmpty()) {
+                if (addCategoryDto.getDescription() != null && !addCategoryDto.getDescription().trim().isEmpty()) {
                     category.setDescription(addCategoryDto.getDescription().trim());
                 }
                 if (addCategoryDto.getActiveEndDate() != null && !addCategoryDto.getActiveEndDate().after(addCategoryDto.getActiveStartDate()) && !addCategoryDto.getActiveEndDate().after(new Date())) {
@@ -507,7 +497,7 @@ public class CategoryController extends CatalogEndpoint {
 
                 CustomCategoryWrapper wrapper = new CustomCategoryWrapper(); // Wrap and return the updated category details
                 wrapper.wrapDetailsCategory(category, products, request);
-                return ResponseService.generateSuccessResponse("CATEGORY UPDATED SUCCESSFULLY",wrapper, HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("CATEGORY UPDATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
             } else {
                 return ResponseService.generateErrorResponse("CATEGORY NOT FOUND.", HttpStatus.NOT_FOUND);
@@ -529,10 +519,9 @@ public class CategoryController extends CatalogEndpoint {
             HttpServletRequest request,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "30") int limit,
-            @RequestParam(value = "ext",defaultValue ="false",required = false)Boolean ext) {
+            @RequestParam(value = "ext", defaultValue = "false", required = false) Boolean ext) {
         try {
-            if(ext)
-            {
+            if (ext) {
                 List<CategoryExtDTO> activeCategories = new ArrayList<>();
                 Query query = entityManager.createNativeQuery(
                         "SELECT category_id, name FROM blc_category " +
@@ -545,10 +534,10 @@ public class CategoryController extends CatalogEndpoint {
                         "SELECT COUNT(category_id) FROM blc_category " +
                                 "WHERE archived = 'N' " +
                                 "AND default_parent_category_id IS NULL " +
-                                "AND (active_end_date IS NULL OR active_end_date > CURRENT_DATE) " );
+                                "AND (active_end_date IS NULL OR active_end_date > CURRENT_DATE) ");
 
-                query.setParameter("limit",limit);
-                query.setParameter("offset",offset);
+                query.setParameter("limit", limit);
+                query.setParameter("offset", offset);
                 List<Object[]> rows = query.getResultList();
                 for (Object[] row : rows) {
                     CategoryExtDTO dto = new CategoryExtDTO();
@@ -628,7 +617,6 @@ public class CategoryController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
 
 
 }
