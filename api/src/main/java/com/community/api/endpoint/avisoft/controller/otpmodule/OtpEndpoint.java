@@ -138,9 +138,9 @@ public class OtpEndpoint {
                 }
             }
 
-            CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhoneWithOtp(customerDetails.getMobileNumber(), countryCode);
+            CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhoneWithOtp(mobileNumber, countryCode);
             if (existingCustomer != null) {
-                return responseService.generateErrorResponse(ApiConstants.CUSTOMER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
+                return responseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
             }
 
             Bucket bucket = rateLimiterService.resolveBucket(customerDetails.getMobileNumber(), "/otp/send-otp");
@@ -257,7 +257,7 @@ public class OtpEndpoint {
                 if (otpEntered.equals(storedOtp)) {
                     if (!existingCustomer.getPolicyAcknowledgement() && (ackId == null || ackId.isEmpty()))
                         return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
-                    else if (existingCustomer.getPolicyAcknowledgement() && ackId != null) {
+                    else if (existingCustomer.getPolicyAcknowledgement() && ackId != null && !tempAuth) {
                         return ResponseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
                     } else if (!existingCustomer.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
                         try {

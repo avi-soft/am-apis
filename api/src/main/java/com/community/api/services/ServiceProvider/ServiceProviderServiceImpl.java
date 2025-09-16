@@ -3381,5 +3381,4 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         target.setIsAcknowledged(source.getIsAcknowledged());
     }
 
-
 }

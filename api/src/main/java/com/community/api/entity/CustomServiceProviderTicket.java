@@ -108,8 +108,7 @@ public class CustomServiceProviderTicket {
 
     @OneToOne
     @JsonIgnore
-    @JoinColumn(name = "ORDER_ID")
-    @JsonProperty("order")
+    @JoinColumn(name = "ORDER_ID", unique = true)
     private OrderImpl order;
 
     @Column(name = "comment", columnDefinition = "TEXT")

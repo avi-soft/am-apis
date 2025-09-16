@@ -166,6 +166,7 @@ public class BankAccountController {
      * @param customerId the customer id
      * @return the bank accounts by customer id
      */
+    @Transactional
     @GetMapping("/get/{customerId}")
     public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam Integer role) {
         try {
@@ -181,8 +182,9 @@ public class BankAccountController {
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
-                if (roleId == 4)
-                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
+                // Commented out the code as Frontend demanded to get the bank-details of the customer by the service provider.
+                /*if (roleId == 4)
+                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);*/
             }
             if (roleToCheck.getRole_name().equals(Constant.roleServiceProvider)) {
                 ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class, customerId);

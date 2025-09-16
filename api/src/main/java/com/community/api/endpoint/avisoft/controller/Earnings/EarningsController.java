@@ -73,7 +73,7 @@ public class EarningsController {
             @RequestParam(required = false) Long spId,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from,
-            @RequestParam(required = false,defaultValue ="0") Integer page,
+            @RequestParam(required = false,defaultValue ="0") Integer offset,
             @RequestParam(required = false,defaultValue = "30")Integer limit) throws Exception {
 
 
@@ -171,13 +171,13 @@ public class EarningsController {
                 result.add(earning);
             }
         }
-        int fromIndex = Math.min((page) * limit,result.size());
+        int fromIndex = Math.min((offset) * limit,result.size());
         int toIndex = Math.min(fromIndex + limit, result.size());
         Map<String,Object> resultMap=new HashMap<>();
         double[]balances=paymentService.balances(spId);
         resultMap.put("total_number_of_items",result.size());
         resultMap.put("total_number_of_pages",result.size()/limit);
-        resultMap.put("current_page",page);
+        resultMap.put("current_page",offset);
         resultMap.put("last_month_payable", balances[0]);
         resultMap.put("this_month_payable", balances[1]);
         resultMap.put("surplus", balances[2]); // Optional: include it explicitly
@@ -210,7 +210,7 @@ public class EarningsController {
 
                 // Corrected query - returns Long values
                 List<Long> providerIds = entityManager.createQuery(
-                                "SELECT DISTINCT e.providerId FROM Earnings e", Long.class)
+                                "SELECT DISTINCT e.providerId FROM Earnings e WHERE e.pending > 0", Long.class)
                         .getResultList();
 
                 for (Long id : providerIds) {
