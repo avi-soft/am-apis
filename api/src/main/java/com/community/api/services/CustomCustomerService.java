@@ -129,7 +129,7 @@ public class CustomCustomerService {
         return em.createQuery(Constant.PHONE_QUERY_OTP, CustomCustomer.class)
                 .setParameter("mobileNumber", mobileNumber)
                 .setParameter("countryCode", countryCode)
-                .setParameter("otp", null)
+//                .setParameter("otp", null)
                 .getResultStream()
                 .findFirst()
                 .orElse(null);
