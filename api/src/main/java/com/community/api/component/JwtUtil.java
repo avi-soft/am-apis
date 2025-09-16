@@ -138,10 +138,13 @@ public class JwtUtil {
                 "android", "webos", "iphone", "ipad", "ipod", "blackberry",
                 "iemobile", "opera mini", "Dart/3.8 (dart:io)" // for Flutter
         };
-
+        if(userAgent == null) {
+            return false;
+        }
+        String ua = userAgent.toLowerCase();
         for (String indicator : mobileIndicators) {
-            if (userAgent.contains(indicator)) {
-                System.out.println("device match true (matched: " + indicator + ")");
+            if (ua.contains(indicator)) {
+                log.info("device match true (matched: {} )", indicator);
                 return true;
             }
         }
