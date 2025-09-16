@@ -16,6 +16,7 @@ import com.community.api.services.CategoryService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
@@ -47,6 +48,7 @@ import java.util.Map;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/category-custom")
 public class CategoryController extends CatalogEndpoint {
@@ -316,11 +318,9 @@ public class CategoryController extends CatalogEndpoint {
             }
             if (ext) {
                 List<Object[]> rows = categoryService.getAllProductsByCategoryIdCompressed(categoryId, offset, limit);
-                System.out.println("res" + rows);
                 BigInteger count = categoryService.getAllProductsByCategoryIdCount(categoryId);
                 List<ProductCompressedDTO> products = new ArrayList<>();
                 for (Object[] row : rows) {
-                    System.out.println("inside loop");
                     ProductCompressedDTO dto = new ProductCompressedDTO();
                     dto.setProductId(((BigInteger) row[0]).longValue());
                     dto.setMetaTitle((String) row[1]);
@@ -350,6 +350,7 @@ public class CategoryController extends CatalogEndpoint {
                 if (role.equalsIgnoreCase(Constant.roleUser)) {
                     if (customProduct != null &&
                             ((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate() != null &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
                             !customProduct.getGoLiveDate().after(new Date()) &&
                             !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT) &&
@@ -360,9 +361,10 @@ public class CategoryController extends CatalogEndpoint {
                         products.add(wrapper);
                     }
                 } else {
+                    log.info("product id is: {}", customProduct.getId());
                     if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
-                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
-                            customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+                            customProduct.getDefaultSku().getActiveEndDate() != null &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date()) )) {
 
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct);
@@ -397,13 +399,13 @@ public class CategoryController extends CatalogEndpoint {
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -439,7 +441,7 @@ public class CategoryController extends CatalogEndpoint {
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -473,8 +475,15 @@ public class CategoryController extends CatalogEndpoint {
                 if (addCategoryDto.getDescription() != null && !addCategoryDto.getDescription().trim().isEmpty()) {
                     category.setDescription(addCategoryDto.getDescription().trim());
                 }
-                if (addCategoryDto.getActiveEndDate() != null && !addCategoryDto.getActiveEndDate().after(addCategoryDto.getActiveStartDate()) && !addCategoryDto.getActiveEndDate().after(new Date())) {
-                    return ResponseService.generateErrorResponse("ACTIVE END DATE CANNOT BE BEFORE OR EQUAL TO ACTIVE START DATE(CURRENT DATE)", HttpStatus.INTERNAL_SERVER_ERROR);
+                if (addCategoryDto.getLongDescription() != null && !addCategoryDto.getLongDescription().trim().isEmpty()) {
+                    category.setLongDescription(addCategoryDto.getLongDescription().trim());
+                }
+
+                if (addCategoryDto.getActiveEndDate() != null && addCategoryDto.getActiveStartDate() != null && !addCategoryDto.getActiveEndDate().after(addCategoryDto.getActiveStartDate()) && !addCategoryDto.getActiveEndDate().after(new Date())) {
+                    return ResponseService.generateErrorResponse("ACTIVE END DATE CANNOT BE BEFORE OR EQUAL TO ACTIVE START DATE(CURRENT DATE)", HttpStatus.BAD_REQUEST);
+                }
+                if(addCategoryDto.getActiveEndDate() != null) {
+                    category.setActiveEndDate(addCategoryDto.getActiveEndDate());
                 }
                 if (addCategoryDto.getDisplayTemplate() != null && !addCategoryDto.getDisplayTemplate().trim().isEmpty()) {
                     category.setDisplayTemplate(addCategoryDto.getDisplayTemplate().trim());
@@ -504,7 +513,7 @@ public class CategoryController extends CatalogEndpoint {
             }
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
