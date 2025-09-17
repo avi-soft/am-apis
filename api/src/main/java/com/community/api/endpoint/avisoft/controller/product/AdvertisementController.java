@@ -10,8 +10,10 @@ import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CompressedProductWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.ProductCompressedDTO;
-import com.community.api.entity.*;
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.Role;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.GenderService;
 import com.community.api.services.ProductService;
@@ -22,12 +24,10 @@ import com.community.api.services.RoleService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
-
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,20 +48,20 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 import static com.community.api.component.Constant.request;
 import static com.community.api.services.ProductService.stripTime;
-import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
-import static elemental2.core.JsRegExp.input;
 
 @RestController
 @RequestMapping(value = "/advertisement", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -111,7 +111,6 @@ public class AdvertisementController {
         try {
             Long categoryId = Long.parseLong(categoryIdString);
             Category category = advertisementService.validateSubCategory(categoryId);
-
             advertisementService.validateAdvertisement(addAdvertisementDto);
 
             Role role = productService.getRoleByToken(authHeader);
@@ -132,7 +131,6 @@ public class AdvertisementController {
         } catch (DataIntegrityViolationException dataIntegrityViolationException) {
             exceptionHandlingService.handleException(dataIntegrityViolationException);
             return ResponseService.generateErrorResponse(dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
-
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -289,14 +287,14 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleName.equals(Constant.roleServiceProvider)) {
                     if (!creatorId.equals(tokenUserId))
-                        return ResponseService.generateErrorResponse("Not authorized", HttpStatus.FORBIDDEN);
+                        return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                     if (id != null) {
                         Query query = entityManager.createNativeQuery("SELECT Count(advertisement_id) from advertisement where creator_user_id = :id and advertisement_id = :aid");
                         query.setParameter("id", tokenUserId);
                         query.setParameter("aid", id);
                         BigInteger count = (BigInteger) query.getSingleResult();
                         if (count.intValue() == 0)
-                            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                            return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                     }
                 }
             }
@@ -319,7 +317,7 @@ public class AdvertisementController {
                     response.put("currentPage", 1);
                     return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
                 } else
-                    return ResponseService.generateErrorResponse("Advertisement not found", HttpStatus.OK);
+                    return ResponseService.generateErrorResponse("Advertisement not found", HttpStatus.NOT_FOUND);
             }
 
             if ("ASC".equalsIgnoreCase(sortOrder)) {
@@ -396,6 +394,10 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+            }
+
+            if(categories == null || categories.isEmpty()) {
+                throw new IllegalArgumentException("Category is null (Mandatory)");
             }
             List<Long> longList = Arrays.stream(categories.split(","))
                     .map(Long::parseLong)
@@ -658,6 +660,10 @@ public class AdvertisementController {
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+            }
+
+            if(categories == null || categories.isEmpty()) {
+                throw new IllegalArgumentException("Category is null (Mandatory)");
             }
             List<Long> longList = Arrays.stream(categories.split(","))
                     .map(Long::parseLong)

@@ -24,10 +24,8 @@ public class AddAdvertisementDto {
     @JsonProperty("notification_start_date")
     private Date notificationStartDate;
 
-
     @JsonProperty("new_notification_start_date")
     private Date newNotificationStartDate;
-
 
     @JsonProperty("notification_end_date")
     private Date notificationEndDate;

@@ -115,7 +115,7 @@ public class SubjectController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin})
+    /*@Authorize(value = {Constant.roleSuperAdmin})
     @DeleteMapping("/remove-subject-by-id/{subjectIdString}")
     public ResponseEntity<?> removeSubjectBySubjectId(@PathVariable String subjectIdString) {
         try {
@@ -137,7 +137,7 @@ public class SubjectController {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
+    }*/
 
     @GetMapping("/get-subjects-by-steam-id/{streamId}")
     public ResponseEntity<?> getSubjectsByStream(@PathVariable Long streamId) {

@@ -50,6 +50,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -115,22 +116,39 @@ public class ServiceProviderActionController {
     public ResponseEntity<?> communicateWithCustomers(
             @FormDataOnly CommunicationRequest request,
             @RequestParam Integer role,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @RequestParam(defaultValue = "false") Boolean contactUs,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
             if (role == null)
                 return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
             if (roleService.findRoleName(role) == null)
                 return ResponseService.generateErrorResponse("Invalid role specified", HttpStatus.BAD_REQUEST);
             // Validate service provider
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId = jwtTokenUtil.extractId(jwtToken);
-            if (!actionAccess(authHeader)) {
+            Integer roleId = null;
+            Long userId = null;
+            if(!contactUs) {
+                String jwtToken = authHeader.substring(7);
+                roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                userId = jwtTokenUtil.extractId(jwtToken);
+            } else {
+                // default roleId in case of without token.
+                roleId = 1;
+            }
+
+            if (!contactUs && !actionAccess(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO COMMUNICATE WITH CUSTOMER", HttpStatus.FORBIDDEN);
+            }
+
+            if(contactUs) {
+                List<ServiceProviderEntity> serviceProviderEntityList = getAllSuperAdmin(1, false);
+                List<Long> ids = serviceProviderEntityList.stream()
+                        .map(ServiceProviderEntity::getService_provider_id)
+                        .collect(Collectors.toList());
+                request.setUserIds(ids);
             }
             ServiceProviderEntity serviceProvider = null;
             ServiceProviderEntity customAdmin = null;
-            if (roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER)) {
+            if (roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER) && !contactUs) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
                 if (serviceProvider == null) {
                     return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
@@ -142,7 +160,7 @@ public class ServiceProviderActionController {
                     throw new IllegalArgumentException("Service Provider does not have referred customers");
                 }
             }
-            if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
+            if (!contactUs && (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider))) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
                 if (serviceProvider == null) {
                     return ResponseService.generateErrorResponse("Admin not found", HttpStatus.NOT_FOUND);
@@ -173,7 +191,7 @@ public class ServiceProviderActionController {
                 return ResponseService.generateErrorResponse("You have to select least one user to communicate with", HttpStatus.BAD_REQUEST);
             }
             for (Long customerId : customerIdsList) {
-                if (roleId >= role)
+                if (roleId >= role && !contactUs)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
                 if (role != 1 && role != 5) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
@@ -1623,6 +1641,40 @@ public class ServiceProviderActionController {
         } catch (MessagingException messagingException) {
             exceptionHandlingService.handleException(messagingException);
             throw new RuntimeException(messagingException);
+        }
+    }
+
+
+    public List<ServiceProviderEntity> getAllSuperAdmin (Integer role, Boolean archived) {
+        try {
+
+            // Build dynamic query based on address filtering logic
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("SELECT DISTINCT s FROM ServiceProviderEntity s WHERE 1 = 1");
+
+            if (role != null) {
+                queryBuilder.append("AND s.role = :role ");
+            }
+            if (archived != null) {
+                queryBuilder.append("AND s.isArchived = :archived ");
+            }
+
+            // Execute query
+            Query finalQuery = entityManager.createQuery(queryBuilder.toString(), ServiceProviderEntity.class);
+
+            if (role != null) {
+                finalQuery.setParameter("role", role);
+            }
+
+            if(archived != null) {
+                finalQuery.setParameter("archived", archived);
+            }
+
+            return finalQuery.getResultList();
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw exception;
         }
     }
 }
