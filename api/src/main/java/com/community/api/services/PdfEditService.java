@@ -146,7 +146,7 @@ public class PdfEditService {
         body.add("files", contentsAsResource);
         body.add("removeFileTypes", "0");
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-        String apiUrl = "https://szhijed7a6.ap.loclx.io/api/v1/customer/upload-documents?customerId=" + customerId;
+        String apiUrl = "https://mybmj9ofbt.ap.loclx.io/api/v1/customer/upload-documents?customerId=" + customerId;
         if (role == 5)
             apiUrl = apiUrl + "&extUpdate=true";
         System.out.println(apiUrl);
