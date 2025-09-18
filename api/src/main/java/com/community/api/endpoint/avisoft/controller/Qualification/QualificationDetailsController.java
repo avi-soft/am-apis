@@ -78,11 +78,11 @@ public class QualificationDetailsController {
                     return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, userId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 if (jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
                     roleId = 5;
                 else
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             } else if ((extUp != null && extUp) && (roleId == 1 || roleId == 2)) {
                 jwtToken = authHeader.substring(7);
                 roleId = 5;
