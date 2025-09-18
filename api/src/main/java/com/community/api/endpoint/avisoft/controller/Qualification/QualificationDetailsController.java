@@ -91,6 +91,7 @@ public class QualificationDetailsController {
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id, qualificationDetails, boardUniversityOthers, streamOthers, qualificationOthers, institutionOthers, roleId, role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for " + role, newQualificationDetails, HttpStatus.CREATED);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -147,8 +148,10 @@ public class QualificationDetailsController {
             }
             return ResponseService.generateSuccessResponse("Qualification Details are found for " + role, qualificationDetails, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -191,6 +194,7 @@ public class QualificationDetailsController {
             QualificationDetails qualificationDetailsToDelete = qualificationDetailsService.deleteQualificationDetail(id, qualificationDetailId, role);
             return responseService.generateResponse(HttpStatus.OK, "Qualification Detail is deleted successfully for " + role, qualificationDetailsToDelete);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -249,6 +253,7 @@ public class QualificationDetailsController {
             entityManager.merge(qualificationDetailsToUpdate);
             return responseService.generateResponse(HttpStatus.OK, "Qualification Detail is updated successfully for " + role, qualificationDetailsToUpdate);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
