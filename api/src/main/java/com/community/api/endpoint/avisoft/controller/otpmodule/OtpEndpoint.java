@@ -139,7 +139,7 @@ public class OtpEndpoint {
             }
 
             CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhoneWithOtp(mobileNumber, countryCode);
-            if (existingCustomer != null) {
+            if (existingCustomer != null && existingCustomer.getIsAcknowledged()) {
                 return responseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
             }
 
@@ -256,7 +256,7 @@ public class OtpEndpoint {
 
                 if (otpEntered.equals(storedOtp)) {
                     if (!existingCustomer.getPolicyAcknowledgement() && (ackId == null || ackId.isEmpty()))
-                        return ResponseService.generateErrorResponse("Need acknowledgement for user", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateErrorResponse("Need acknowledgement for user Please Sign Up to Proceed", HttpStatus.BAD_REQUEST);
                     else if (existingCustomer.getPolicyAcknowledgement() && ackId != null && !tempAuth) {
                         return ResponseService.generateErrorResponse("An account associated with this phone number already exists. Please log in to continue.", HttpStatus.BAD_REQUEST);
                     } else if (!existingCustomer.getPolicyAcknowledgement() && (ackId != null || !ackId.isEmpty())) {
