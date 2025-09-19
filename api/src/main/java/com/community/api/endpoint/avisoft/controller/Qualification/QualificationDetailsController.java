@@ -268,6 +268,7 @@ public class QualificationDetailsController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Qualification Details does not exist", HttpStatus.NOT_FOUND);
         } catch (EntityAlreadyExistsException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Qualification already exists", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
