@@ -10,8 +10,19 @@ import com.community.api.endpoint.avisoft.controller.Acknowledgement.Acknowledge
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.ExternalUseToken;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Role;
+import com.community.api.entity.StateCode;
 import com.community.api.services.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -19,48 +30,49 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
-import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
-import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderService;
-import org.broadleafcommerce.profile.core.domain.*;
+import org.broadleafcommerce.profile.core.domain.Address;
+import org.broadleafcommerce.profile.core.domain.CountryImpl;
+import org.broadleafcommerce.profile.core.domain.Customer;
+import org.broadleafcommerce.profile.core.domain.CustomerAddress;
+import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CountryService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
-import javax.persistence.Query;
-import javax.persistence.EntityManager;
 import javax.persistence.Column;
-import javax.persistence.TypedQuery;
+import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
@@ -76,19 +88,17 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.Iterator;
-import java.util.HashMap;
-import java.util.Date;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
@@ -111,6 +121,8 @@ public class CustomerEndpoint {
     QualificationService qualificationService;
     @Autowired
     GenderService genderService;
+    @Autowired
+    AcknowledgementWebhook webhook;
     private PasswordEncoder passwordEncoder;
     private CustomerService customerService;  //@TODO- do this task asap
     private ExceptionHandlingImplement exceptionHandling;
@@ -271,16 +283,15 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Map<String, String> errorMessages = new LinkedHashMap<>();
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if(roleId==4)
-            {
-                if(customerId==null)
-                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
-                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
-                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+            if (roleId == 4) {
+                if (customerId == null)
+                    return ResponseService.generateErrorResponse("Id not provided", HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                if (!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+            } else if ((roleId == 5 && !tokenUserId.equals(customerId))) {
                 return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
             }
             details = sanitizerService.sanitizeInputMap(details);
@@ -1782,24 +1793,22 @@ public class CustomerEndpoint {
 
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId=jwtTokenUtil.extractId(jwtToken);
-            if(roleId==5&&!userId.equals(customerId))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
+            if (roleId == 5 && !userId.equals(customerId)) {
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             }
 
-            if((extUpdate!=null&&extUpdate)&&roleId==4)
-            {
-                if(customerId==null)
-                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
-                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-                if(customCustomer==null)
-                    return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
-                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,userId);
-                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+            if ((extUpdate != null && extUpdate) && roleId == 4) {
+                if (customerId == null)
+                    return ResponseService.generateErrorResponse("Id not provided", HttpStatus.NOT_FOUND);
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                if (customCustomer == null)
+                    return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, userId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
-                if(jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
-                    roleId=5;
+                if (jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                    roleId = 5;
                 else
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
@@ -1830,7 +1839,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2)&&!extUpdate) {
+            if (!customerId.equals(userId) && (roleId != 1 && roleId != 2) && !extUpdate) {
                 return ResponseService.generateErrorResponse("Forbidden Access.", HttpStatus.FORBIDDEN);
             }
 
@@ -1919,7 +1928,7 @@ public class CustomerEndpoint {
             }
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
 
-            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId)&&(username).equals(existingCustomerByUsername.getUsername())) {
+            if ((existingCustomerByUsername != null) && !existingCustomerByUsername.getId().equals(customerId) && (username).equals(existingCustomerByUsername.getUsername())) {
                 return ResponseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
 
             } else {
@@ -2445,7 +2454,6 @@ public class CustomerEndpoint {
         }
     }
 
-
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
@@ -2486,8 +2494,7 @@ public class CustomerEndpoint {
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-@Autowired
-    AcknowledgementWebhook webhook;
+
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
@@ -2496,16 +2503,15 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            if(roleId==4)
-            {
-                if(customerId==null)
-                    return ResponseService.generateErrorResponse("Id not provided",HttpStatus.NOT_FOUND);
-                ExternalUseToken externalUseToken=entityManager.find(ExternalUseToken.class,tokenUserId);
-                if(externalUseToken==null||externalUseToken.getToken()==null||externalUseToken.getToken().isEmpty())
+            if (roleId == 4) {
+                if (customerId == null)
+                    return ResponseService.generateErrorResponse("Id not provided", HttpStatus.NOT_FOUND);
+                ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
+                if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                if(!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
+                if (!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-            } else if((roleId == 5 && !tokenUserId.equals(customerId))) {
+            } else if ((roleId == 5 && !tokenUserId.equals(customerId))) {
                 return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
             }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
@@ -2638,11 +2644,11 @@ public class CustomerEndpoint {
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            if(role.getRole_name().equals(roleServiceProvider)) {
+            if (role.getRole_name().equals(roleServiceProvider)) {
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
-                }
+            }
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
