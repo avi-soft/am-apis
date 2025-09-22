@@ -78,11 +78,11 @@ public class QualificationDetailsController {
                     return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, userId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 if (jwtTokenUtil.extractId(externalUseToken.getToken()).equals(id))
                     roleId = 5;
                 else
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             } else if ((extUp != null && extUp) && (roleId == 1 || roleId == 2)) {
                 jwtToken = authHeader.substring(7);
                 roleId = 5;
@@ -91,6 +91,7 @@ public class QualificationDetailsController {
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id, qualificationDetails, boardUniversityOthers, streamOthers, qualificationOthers, institutionOthers, roleId, role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for " + role, newQualificationDetails, HttpStatus.CREATED);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -106,7 +107,7 @@ public class QualificationDetailsController {
             return ResponseService.generateErrorResponse("Qualification does not exist", HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -134,11 +135,10 @@ public class QualificationDetailsController {
                 else
                     return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
-
-//            else
-//            {
-//                roleId=5;
-//            }
+            /*else
+            {
+                roleId=5;
+            }*/
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             List<Map<String, Object>> qualificationDetails = qualificationDetailsService.getQualificationDetailsByCustomerId(id, role);
 
@@ -148,15 +148,17 @@ public class QualificationDetailsController {
             }
             return ResponseService.generateSuccessResponse("Qualification Details are found for " + role, qualificationDetails, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
             return ResponseService.generateErrorResponse("Customer does not exist", HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -192,6 +194,7 @@ public class QualificationDetailsController {
             QualificationDetails qualificationDetailsToDelete = qualificationDetailsService.deleteQualificationDetail(id, qualificationDetailId, role);
             return responseService.generateResponse(HttpStatus.OK, "Qualification Detail is deleted successfully for " + role, qualificationDetailsToDelete);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -204,7 +207,7 @@ public class QualificationDetailsController {
             return ResponseService.generateErrorResponse("Qualification Details does not exist", HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -250,6 +253,7 @@ public class QualificationDetailsController {
             entityManager.merge(qualificationDetailsToUpdate);
             return responseService.generateResponse(HttpStatus.OK, "Qualification Detail is updated successfully for " + role, qualificationDetailsToUpdate);
         } catch (CustomerDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             if (role.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 return ResponseService.generateErrorResponse("Service Provider does not exist", HttpStatus.NOT_FOUND);
             }
@@ -264,10 +268,11 @@ public class QualificationDetailsController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Qualification Details does not exist", HttpStatus.NOT_FOUND);
         } catch (EntityAlreadyExistsException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Qualification already exists", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }

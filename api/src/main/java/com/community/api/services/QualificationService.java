@@ -31,16 +31,18 @@ public class QualificationService {
     private QualificationService qualificationService;
     @Autowired
     private ResponseService responseService;
+
     public List<Qualification> getAllQualifications(Boolean archived) {
         TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
-        query.setParameter("archived",archived);
+        query.setParameter("archived", archived);
         List<Qualification> qualifications = query.getResultList();
         return qualifications;
     }
-//    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in dscription
+
+    //    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in description
     @Transactional
     public Qualification addQualification(@RequestBody Qualification qualification) throws Exception {
-        Qualification qualificationToBeSaved =new Qualification();
+        Qualification qualificationToBeSaved = new Qualification();
         int id = findCount() + 1;
         if (qualification.getQualification_name() == null || qualification.getQualification_name().trim().isEmpty()) {
             throw new IllegalArgumentException("Qualification name cannot be empty or consist only of whitespace");
@@ -54,12 +56,10 @@ public class QualificationService {
         if (!(qualification.getQualification_description() instanceof String)) {
             throw new IllegalArgumentException("Qualification description must be a string");
         }
-        if(qualification.getIs_stream_required()==null)
-        {
+        if (qualification.getIs_stream_required() == null) {
             throw new IllegalArgumentException("You have to give whether stream required or not for qualification");
         }
-        if(qualification.getIs_subjects_required()==null)
-        {
+        if (qualification.getIs_subjects_required() == null) {
             throw new IllegalArgumentException("You have to give whether subject required or not for qualification");
         }
         String description = qualification.getQualification_description();
@@ -85,10 +85,11 @@ public class QualificationService {
         entityManager.persist(qualificationToBeSaved);
         return qualificationToBeSaved;
     }
+
     @Transactional
-    public Qualification edit(Integer qualificationId,@RequestBody Qualification qualification) throws Exception {
-        Qualification qualificationToBeSaved = entityManager.find(Qualification.class,qualificationId);
-        if(qualificationToBeSaved==null)
+    public Qualification edit(Integer qualificationId, @RequestBody Qualification qualification) throws Exception {
+        Qualification qualificationToBeSaved = entityManager.find(Qualification.class, qualificationId);
+        if (qualificationToBeSaved == null)
             throw new IllegalArgumentException("Qualification not found");
         if (qualification.getQualification_name() == null || qualification.getQualification_name().trim().isEmpty()) {
             throw new IllegalArgumentException("Qualification name cannot be empty or consist only of whitespace");
@@ -99,12 +100,10 @@ public class QualificationService {
         if (!(qualification.getQualification_description() instanceof String)) {
             throw new IllegalArgumentException("Qualification description must be a string");
         }
-        if(qualification.getIs_stream_required()==null)
-        {
+        if (qualification.getIs_stream_required() == null) {
             throw new IllegalArgumentException("You have to give whether stream required or not for qualification");
         }
-        if(qualification.getIs_subjects_required()==null)
-        {
+        if (qualification.getIs_subjects_required() == null) {
             throw new IllegalArgumentException("You have to give whether subject required or not for qualification");
         }
         String description = qualification.getQualification_description();
@@ -115,7 +114,7 @@ public class QualificationService {
 
         List<Qualification> qualifications = qualificationService.getAllQualifications(false);
         for (Qualification existingQualification : qualifications) {
-            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())&& !existingQualification.getQualification_id().equals(qualificationId)) {
+            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name()) && !existingQualification.getQualification_id().equals(qualificationId)) {
                 throw new IllegalArgumentException("Qualification with the same name already exists");
             }
         }
@@ -128,6 +127,7 @@ public class QualificationService {
         entityManager.merge(qualificationToBeSaved);
         return qualificationToBeSaved;
     }
+
     public Long getSecondMaxSortOrder() {
         String query = "SELECT q.sort_order FROM Qualification q ORDER BY q.sort_order DESC";
         List<Long> sortOrders = entityManager.createQuery(query, Long.class)
@@ -173,7 +173,7 @@ public class QualificationService {
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOMETHING WENT WRONG: "+ exception.getMessage());
+            throw new Exception("SOMETHING WENT WRONG: " + exception.getMessage());
         }
     }
 }
