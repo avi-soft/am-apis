@@ -639,39 +639,45 @@ public class CartEndPoint extends BaseEndpoint {
     @Transactional
     @GetMapping("/policy")
     public ResponseEntity<?>getOrderPolicy(HttpServletRequest request,@RequestHeader(value = "Authorization", required = false)String authHeader) throws Exception {
-        System.out.println(fileServerUrl+"/"+policyPath);
+        try {
+            System.out.println(fileServerUrl+"/"+policyPath);
       /*  String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long userId=jwtTokenUtil.extractId(jwtToken);*/
-        TypedQuery<ShortAccessToken> query = entityManager.createQuery(
-                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
-                ShortAccessToken.class
-        );
-        query.setParameter("uid", 22L);
-        query.setParameter("role", 1);
-        String ip = request.getRemoteAddr();
-        String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
-        List<ShortAccessToken> resultList = query.getResultList();
+            TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                    "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                    ShortAccessToken.class
+            );
+            query.setParameter("uid", 22L);
+            query.setParameter("role", 1);
+            String ip = request.getRemoteAddr();
+            String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
+            List<ShortAccessToken> resultList = query.getResultList();
 
-        if (resultList.isEmpty()) {
-            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
-                    .userId(22L)
-                    .token(token)
-                    .role(1)
-                    .expired(false)
-                    .build();
-            entityManager.persist(shortAccessToken);
-        } else {
-            ShortAccessToken shortAccessToken = resultList.get(0);
-            shortAccessToken.setToken(token);
-            shortAccessToken.setExpired(false);
-            entityManager.merge(shortAccessToken);
+            if (resultList.isEmpty()) {
+                ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                        .userId(22L)
+                        .token(token)
+                        .role(1)
+                        .expired(false)
+                        .build();
+                entityManager.persist(shortAccessToken);
+            } else {
+                ShortAccessToken shortAccessToken = resultList.get(0);
+                shortAccessToken.setToken(token);
+                shortAccessToken.setExpired(false);
+                entityManager.merge(shortAccessToken);
+            }
+            /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+            Map<String,String>respone=new HashMap<>();
+            respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
+            respone.put("seed", documentEndpoint.generateUniqueId());
+            return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Error creating order " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
-        Map<String,String>respone=new HashMap<>();
-        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
-        respone.put("seed", documentEndpoint.generateUniqueId());
-        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+
     }
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
@@ -975,7 +981,6 @@ public class CartEndPoint extends BaseEndpoint {
             razorpayException.printStackTrace();
             return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
-
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error creating order " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

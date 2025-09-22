@@ -1,4 +1,4 @@
-  package com.community.api.endpoint.avisoft.controller.Document;
+package com.community.api.endpoint.avisoft.controller.Document;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
@@ -8,18 +8,32 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.Role;
 import com.community.api.entity.ShortAccessToken;
-import com.community.api.services.*;
+import com.community.api.services.CustomDocumentTypeService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.FileService;
+import com.community.api.services.PdfEditService;
+import com.community.api.services.PrivilegeService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
-import com.mchange.util.IntEnumeration;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,15 +45,13 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.*;
-
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
-
 import java.util.Date;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,51 +63,65 @@ import java.util.stream.Collectors;
 import static com.community.api.component.Constant.CHARACTERS;
 import static com.community.api.component.Constant.random;
 
-import static io.jsonwebtoken.JwsHeader.ALGORITHM;
-
 
 @RestController
 @RequestMapping(value = "/document-type")
 public class DocumentEndpoint {
+    private static final String AES_ALGORITHM = "AES";
+    private static String key = "2025202220202512";
+    @Autowired
+    PdfEditService pdfEditService;
+    @Autowired
+    JwtUtil jwtUtil;
     @Autowired
     private JwtUtil jwtTokenUtil;
-
     @Autowired
     private PrivilegeService privilegeService;
-
     @Autowired
     private CustomDocumentTypeService documentTypeService;
-
     @Autowired
     private FileService fileService;
-
-
     @Autowired
     private DocumentStorageService documentStorageService;
-
-
-    private static String key="2025202220202512";
-
-
     @Autowired
     private RoleService roleService;
     private EntityManager entityManager;
     private ExceptionHandlingImplement exceptionHandling;
     private ResponseService responseService;
+    @Value("${policy.path}")
+    private String policyPath;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
 
     public DocumentEndpoint(EntityManager entityManager, ExceptionHandlingImplement exceptionHandling, ResponseService responseService) {
         this.entityManager = entityManager;
         this.exceptionHandling = exceptionHandling;
         this.responseService = responseService;
     }
-    @Value("${policy.path}")
-    private String policyPath;
-    @Value("${file.server.url}")
-    private String fileServerUrl;
 
-    @Autowired
-    PdfEditService pdfEditService;
-    public  String generateUniqueId() {
+    public static String decrypt(String encryptedData) throws Exception {
+        try {
+            // Decode the URL-safe Base64 string
+            byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
+
+            // Initialize the SecretKeySpec and Cipher for decryption
+            SecretKeySpec secretKey = new SecretKeySpec(Constant.KEY.getBytes(), AES_ALGORITHM); //@TODO-remove key from constants
+            Cipher cipher = Cipher.getInstance(AES_ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+            // Decrypt the data
+            byte[] decryptedData = cipher.doFinal(decodedData);
+            System.out.println("i am returning");
+            // Convert the decrypted data back to a String
+            return new String(decryptedData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+
+        }
+    }
+
+    public String generateUniqueId() {
         long timestamp = Instant.now().toEpochMilli();  // Time-based component
         StringBuilder id = new StringBuilder();
 
@@ -111,81 +137,77 @@ public class DocumentEndpoint {
 
         return id.toString();
     }
+
     @Transactional
     @GetMapping("/policy")
-    public ResponseEntity<?>getPolicy(HttpServletRequest request) throws Exception {
-        System.out.println(fileServerUrl+"/"+policyPath);
-        TypedQuery<ShortAccessToken> query = entityManager.createQuery(
-                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
-                ShortAccessToken.class
-        );
-        query.setParameter("uid", 22L);
-        query.setParameter("role", 1);
-        String ip = request.getRemoteAddr();
-        String token=jwtUtil.generateShortLivedToken(22L, 1, ip);
-        List<ShortAccessToken> resultList = query.getResultList();
+    public ResponseEntity<?> getPolicy(HttpServletRequest request) throws Exception {
+        try {
+            System.out.println(fileServerUrl + "/" + policyPath);
+            TypedQuery<ShortAccessToken> query = entityManager.createQuery(
+                    "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                    ShortAccessToken.class
+            );
+            query.setParameter("uid", 22L);
+            query.setParameter("role", 1);
+            String ip = request.getRemoteAddr();
+            String token = jwtUtil.generateShortLivedToken(22L, 1, ip);
+            List<ShortAccessToken> resultList = query.getResultList();
 
-        if (resultList.isEmpty()) {
-            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
-                    .userId(22L)
-                    .token(token)
-                    .role(1)
-                    .expired(false)
-                    .build();
-            entityManager.persist(shortAccessToken);
-        } else {
-            ShortAccessToken shortAccessToken = resultList.get(0);
-            shortAccessToken.setToken(token);
-            shortAccessToken.setExpired(false);
-            entityManager.merge(shortAccessToken);
+            if (resultList.isEmpty()) {
+                ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                        .userId(22L)
+                        .token(token)
+                        .role(1)
+                        .expired(false)
+                        .build();
+                entityManager.persist(shortAccessToken);
+            } else {
+                ShortAccessToken shortAccessToken = resultList.get(0);
+                shortAccessToken.setToken(token);
+                shortAccessToken.setExpired(false);
+                entityManager.merge(shortAccessToken);
+            }
+            /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
+            Map<String, String> respone = new HashMap<>();
+            respone.put("policy_url", fileServerUrl + "/" + documentStorageService.encrypt(policyPath) + "?x9f3a=" + token);
+            respone.put("seed", generateUniqueId());
+            return ResponseService.generateSuccessResponse("policy_url", respone, HttpStatus.OK);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        /*pdfEditService.sendPdfToApi(pdfEditService.createPdfInMemory());*/
-        Map<String,String>respone=new HashMap<>();
-        respone.put("policy_url",fileServerUrl+"/"+documentStorageService.encrypt(policyPath)+"?x9f3a="+token);
-        respone.put("seed",generateUniqueId());
-        return ResponseService.generateSuccessResponse("policy_url",respone,HttpStatus.OK);
+
     }
-
-
-
-
 
     @RequestMapping(value = "/create", method = RequestMethod.POST)
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            DocumentType documentTypeToAdd = documentTypeService.addDocumentTypes(documentType,authHeader);
-            return  ResponseService.generateSuccessResponse("Document type created successfully", documentTypeToAdd, HttpStatus.CREATED);
-        }
-        catch (IllegalArgumentException e) {
+            DocumentType documentTypeToAdd = documentTypeService.addDocumentTypes(documentType, authHeader);
+            return ResponseService.generateSuccessResponse("Document type created successfully", documentTypeToAdd, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PutMapping("/update/{documentTypeId}")
-    public ResponseEntity<?> updateDocumentType(@PathVariable Integer documentTypeId, @RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization")String authHeader)
-    {
-        try
-        {
-            DocumentType updatedDocumentType= documentTypeService.updateDocumentType(documentTypeId,documentType,authHeader);
-            return responseService.generateResponse(HttpStatus.OK,"DocumentType is updated successfully", updatedDocumentType);
-        }
-        catch (IllegalArgumentException e) {
+    public ResponseEntity<?> updateDocumentType(@PathVariable Integer documentTypeId, @RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            DocumentType updatedDocumentType = documentTypeService.updateDocumentType(documentTypeId, documentType, authHeader);
+            return responseService.generateResponse(HttpStatus.OK, "DocumentType is updated successfully", updatedDocumentType);
+        } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e)
-        {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
         }
     }
 
-//    @Authorize(value = {Constant.roleSuperAdmin})
+    //    @Authorize(value = {Constant.roleSuperAdmin})
     @PutMapping("/manage/{id}")
     public ResponseEntity<?> manageDocumentTypeStatus(
             @PathVariable Integer id,
@@ -203,22 +225,22 @@ public class DocumentEndpoint {
     }
 
     @GetMapping("/get-all-document")
-    public ResponseEntity<?> getAllDocuments(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
+    public ResponseEntity<?> getAllDocuments(@RequestParam(required = false, defaultValue = "false") Boolean archived) {
         try {
             List<DocumentType> documentTypes;
 
             TypedQuery<DocumentType> query = entityManager.createQuery("SELECT dt FROM DocumentType dt WHERE dt.archived = :archived ORDER BY dt.sort_order ASC", DocumentType.class);
-            query.setParameter("archived",archived);
-            documentTypes=query.getResultList();
+            query.setParameter("archived", archived);
+            documentTypes = query.getResultList();
 
             if (documentTypes.isEmpty()) {
-                return responseService.generateErrorResponse(archived?"No any document-type is archived":"No any document-type is unarchived", HttpStatus.OK);
+                return responseService.generateErrorResponse(archived ? "No any document-type is archived" : "No any document-type is unarchived", HttpStatus.OK);
             }
 
             return responseService.generateSuccessResponse("Document Types retrieved successfully", documentTypes, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error retrieving Document Types", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -235,7 +257,7 @@ public class DocumentEndpoint {
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -244,17 +266,17 @@ public class DocumentEndpoint {
     @GetMapping("/get-document-of-customer")
     public ResponseEntity<?> getDocumentOfCustomer(
             @RequestParam Long customerId,
-            @RequestParam(required = false) Integer role,@RequestHeader(value = "Authorization")String authHeader,
+            @RequestParam(required = false) Integer role, @RequestHeader(value = "Authorization") String authHeader,
             HttpServletRequest request) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role roleCheck=roleService.getRoleByRoleId(roleId);
+            Role roleCheck = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((roleCheck.getRole_name().equals(Constant.roleUser)&&!Objects.equals(tokenUserId, customerId)))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((roleCheck.getRole_name().equals(Constant.roleUser) && !Objects.equals(tokenUserId, customerId)))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             if (role != null) {
                 if (roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER)) {
@@ -271,7 +293,7 @@ public class DocumentEndpoint {
                     query1.setParameter("serviceProviderEntity", serviceProviderEntity);
                     List<ServiceProviderDocument> serviceProviderDocuments = query1.getResultList();
                     if (serviceProviderDocuments.isEmpty()) {
-                        return responseService.generateSuccessResponse("No documents found",null ,HttpStatus.OK);
+                        return responseService.generateSuccessResponse("No documents found", null, HttpStatus.OK);
                     }
                     List<DocumentResponse> documentResponses = serviceProviderDocuments.stream()
                             .map(serviceProviderDocument -> {
@@ -283,7 +305,7 @@ public class DocumentEndpoint {
                                     throw new RuntimeException(e);
                                 }
                                 String fileUrl = null;
-                                    fileUrl = fileService.getFileUrl(filePath, request);
+                                fileUrl = fileService.getFileUrl(filePath, request);
                                 String document_name = documentStorageService.findRoleName(serviceProviderDocument.getDocumentType());
                                 Date created_date = serviceProviderDocument.getUploadedDate();
 
@@ -305,7 +327,7 @@ public class DocumentEndpoint {
                 query.setParameter("customer", customer);
                 List<Document> documents = query.getResultList();
                 if (documents.isEmpty()) {
-                    return responseService.generateSuccessResponse("No documents found",null ,HttpStatus.OK);
+                    return responseService.generateSuccessResponse("No documents found", null, HttpStatus.OK);
                 }
                 List<DocumentResponse> documentResponses = documents.stream()
                         .map(document -> {
@@ -331,36 +353,11 @@ public class DocumentEndpoint {
 
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error retrieving Documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    private static final String AES_ALGORITHM = "AES";
-    public static String decrypt(String encryptedData) throws Exception {
-        try {
-            // Decode the URL-safe Base64 string
-            byte[] decodedData = Base64.getUrlDecoder().decode(encryptedData);
-
-            // Initialize the SecretKeySpec and Cipher for decryption
-            SecretKeySpec secretKey = new SecretKeySpec(Constant.KEY.getBytes(), AES_ALGORITHM ); //@TODO-remove key from constants
-            Cipher cipher = Cipher.getInstance(AES_ALGORITHM );
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
-
-            // Decrypt the data
-            byte[] decryptedData = cipher.doFinal(decodedData);
-            System.out.println("i am returning");
-            // Convert the decrypted data back to a String
-            return new String(decryptedData);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-
-        }
-    }
-    @Autowired
-    JwtUtil jwtUtil;
-
 
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @Transactional
@@ -391,7 +388,7 @@ public class DocumentEndpoint {
                 id = Long.parseLong(matcher.group(2)); // The ID
                 System.out.println("Role: " + role + ", Extracted ID: " + id);
             } else {
-                id=22L;
+                id = 22L;
                 /*System.out.println(" ID not found in filePath");
                 throw new IllegalArgumentException("Invalid file path");*/
             }
@@ -400,14 +397,13 @@ public class DocumentEndpoint {
             String ip = request.getHeader("X-Forwarded-For");
             System.out.println("➡ Client IP: " + ip);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id);
-            ServiceProviderEntity sp=null;
-            if(customCustomer==null)
-            {
-                sp=entityManager.find(ServiceProviderEntity.class,id);
+            ServiceProviderEntity sp = null;
+            if (customCustomer == null) {
+                sp = entityManager.find(ServiceProviderEntity.class, id);
             }
-            int roleId=4;
-            if(customCustomer!=null)
-                 roleId = 5;
+            int roleId = 4;
+            if (customCustomer != null)
+                roleId = 5;
             String tokenToAdd = jwtUtil.generateShortLivedToken(id, roleId, ip);
             System.out.println("✅ Generated short-lived token: " + tokenToAdd);
 
@@ -416,14 +412,13 @@ public class DocumentEndpoint {
 
             String securedFileUrl = fileUrl + "?token=" + URLEncoder.encode(tokenToAdd, StandardCharsets.UTF_8);
             System.out.println("✅ Secured file URL for remote fetch: " + securedFileUrl);
-            String folderName=null;
+            String folderName = null;
             try {
                 // Prepare actual name & extension from remote content-type
-                 folderName= filePath.split("\\\\")[filePath.split("\\\\").length - 2];
+                folderName = filePath.split("\\\\")[filePath.split("\\\\").length - 2];
                 System.out.println("➡ Folder name from file path: " + folderName);
-            }catch (Exception e)
-            {
-               folderName="testImage";
+            } catch (Exception e) {
+                folderName = "testImage";
             }
 
             URL url = new URL(securedFileUrl);
@@ -440,21 +435,17 @@ public class DocumentEndpoint {
             else extension = ".bin";
 
             System.out.println("✅ Determined file extension: " + extension);
-            String downloadFileName=null;
-            if(customCustomer!=null) {
-                downloadFileName   = customCustomer.getFirstName() + " " +
+            String downloadFileName = null;
+            if (customCustomer != null) {
+                downloadFileName = customCustomer.getFirstName() + " " +
                         customCustomer.getLastName() + " " +
                         folderName + extension;
-            }
-            else if(sp!=null)
-            {
-                 downloadFileName = sp.getFirst_name() + " " +
+            } else if (sp != null) {
+                downloadFileName = sp.getFirst_name() + " " +
                         sp.getLast_name() + " " +
                         folderName + extension;
-            }
-            else
-            {
-                downloadFileName="test";
+            } else {
+                downloadFileName = "test";
             }
             System.out.println("✅ Final custom download filename: " + downloadFileName);
 
