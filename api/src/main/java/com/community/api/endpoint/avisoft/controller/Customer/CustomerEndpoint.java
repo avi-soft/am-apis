@@ -1731,7 +1731,7 @@ public class CustomerEndpoint {
             Role role = roleService.getRoleByRoleId(roleId);
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (role.getRole_name().equals(roleServiceProvider) && ticketId != null) {
                 CustomServiceProviderTicket ticket = em.find(CustomServiceProviderTicket.class, ticketId);
@@ -1739,11 +1739,11 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Invalid ticket", HttpStatus.BAD_REQUEST);
                 Order order = orderService.findOrderById(ticket.getOrder().getId());
                 if (!ticket.getAssignee().equals(tokenUserId) || !order.getCustomer().getId().equals(customerId) || (ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW) || ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
-                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             } else if (role.getRole_name().equals(roleServiceProvider)) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
                 if (serviceProvider == null)
-                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 System.out.println("here");
                 Query query = entityManager.createNativeQuery("Select count(customer_id) from customer_referrer where customer_id = :cid and service_provider_id =:sid");
                 query.setParameter("cid", customCustomer.getId());
@@ -1757,7 +1757,7 @@ public class CustomerEndpoint {
             }
             if (customCustomer.getArchived() != null) {
                 if (customCustomer.getArchived().equals(true) && !role.getRole_name().equals(SUPER_ADMIN) && !role.getRole_name().equals(ADMIN) && !role.getRole_name().equals(SERVICE_PROVIDER)) {
-                    return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.UNAUTHORIZED);
                 }
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
@@ -2508,11 +2508,11 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Id not provided", HttpStatus.NOT_FOUND);
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 if (!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             } else if ((roleId == 5 && !tokenUserId.equals(customerId))) {
-                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
@@ -2557,7 +2557,7 @@ public class CustomerEndpoint {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in deleting customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Some issue in submitting customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2647,14 +2647,14 @@ public class CustomerEndpoint {
             if (role.getRole_name().equals(roleServiceProvider)) {
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             if (customCustomer.getArchived().equals(true)) {
-                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.UNAUTHORIZED);
             }
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
@@ -2705,7 +2705,7 @@ public class CustomerEndpoint {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error setting customer's referrer " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Error setting customer's referrer " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
