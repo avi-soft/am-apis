@@ -3726,7 +3726,7 @@ public class CustomerEndpoint {
             response.put("totalItems", customProducts.size());
             long totalPages = (customProducts.size() + limit - 1) / limit;
             response.put("totalPages", totalPages);
-            response.put("currentPage", offset + 1);
+            response.put("currentPage", offset);
             return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
