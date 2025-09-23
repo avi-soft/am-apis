@@ -5,10 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +20,6 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Qualification
 {
     @Id
@@ -52,4 +54,5 @@ public class Qualification
             inverseJoinColumns = @JoinColumn(name = "stream_id")
     )
     private List<CustomStream> streams = new ArrayList<>();
+
 }
