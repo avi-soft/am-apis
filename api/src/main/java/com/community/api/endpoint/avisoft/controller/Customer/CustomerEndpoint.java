@@ -3534,7 +3534,7 @@ public class CustomerEndpoint {
         response.put("totalItems", resultCount);
         long totalPages = (resultCount.longValue() + limit - 1) / limit;
         response.put("totalPages", totalPages);
-        response.put("currentPage", offset + 1);
+        response.put("currentPage", offset);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
 
