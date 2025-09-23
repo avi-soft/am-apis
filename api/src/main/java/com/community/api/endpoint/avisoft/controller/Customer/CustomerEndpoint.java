@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.BankAccountDTO;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.ProductDetailsDTO;
@@ -185,6 +186,8 @@ public class CustomerEndpoint {
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
     private StatusChangeEmailService statusChangeEmailService;
+    @Autowired
+    BankAccountService bankAccountService;
 
     public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -1763,6 +1766,12 @@ public class CustomerEndpoint {
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
             Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest);
 
+            List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId, 5);
+            if(!bankAccounts.isEmpty()) {
+                customerDetails.put("is_bank_details_available", true);
+            } else {
+                customerDetails.put("is_bank_details_available", false);
+            }
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
         } catch (Exception e) {
@@ -3534,7 +3543,7 @@ public class CustomerEndpoint {
         response.put("totalItems", resultCount);
         long totalPages = (resultCount.longValue() + limit - 1) / limit;
         response.put("totalPages", totalPages);
-        response.put("currentPage", offset + 1);
+        response.put("currentPage", offset);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
 
@@ -3725,7 +3734,7 @@ public class CustomerEndpoint {
             response.put("totalItems", customProducts.size());
             long totalPages = (customProducts.size() + limit - 1) / limit;
             response.put("totalPages", totalPages);
-            response.put("currentPage", offset + 1);
+            response.put("currentPage", offset);
             return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
