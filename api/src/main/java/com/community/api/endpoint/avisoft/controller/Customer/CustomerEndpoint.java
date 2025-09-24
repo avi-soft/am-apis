@@ -260,16 +260,18 @@ public class CustomerEndpoint {
             Customer customer = customerService.readCustomerById(customerId);
             if (customer == null) {
                 return ResponseService.generateErrorResponse("Customer with this ID does not exist", HttpStatus.NOT_FOUND);
-
             } else {
+                /*if(!customer.getCustomerAddresses().isEmpty()) {
+                    for(CustomerAddress address: customer.getCustomerAddresses()) {
+                        address.setCustomer(null);
+                    }
+                }*/
                 return ResponseService.generateSuccessResponse("Customer with this ID is found " + customerId, customer, HttpStatus.OK);
-
             }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error retrieving Customer", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @Transactional
@@ -279,23 +281,27 @@ public class CustomerEndpoint {
             Boolean externalUpdate = false;
             Boolean isValidDate = null;
             Boolean isValidDateDomicile = null;
+
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             Map<String, String> errorMessages = new LinkedHashMap<>();
+
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+
             if (roleId == 4) {
                 if (customerId == null)
                     return ResponseService.generateErrorResponse("Id not provided", HttpStatus.NOT_FOUND);
                 ExternalUseToken externalUseToken = entityManager.find(ExternalUseToken.class, tokenUserId);
                 if (externalUseToken == null || externalUseToken.getToken() == null || externalUseToken.getToken().isEmpty())
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
                 if (!jwtTokenUtil.extractId(externalUseToken.getToken()).equals(customerId))
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             } else if ((roleId == 5 && !tokenUserId.equals(customerId))) {
-                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.FORBIDDEN);
             }
             details = sanitizerService.sanitizeInputMap(details);
 
@@ -325,8 +331,8 @@ public class CustomerEndpoint {
                     iterator.remove(); // Safely remove using the iterator
                     errorMessages.add(key + " cannot be null");
                 }
-            }*/
-           /* if (!errorMessages.isEmpty()) {
+            }
+            if (!errorMessages.isEmpty()) {
                 String message = String.join(", ", errorMessages.values());
                 return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
             }*/
@@ -340,6 +346,7 @@ public class CustomerEndpoint {
             if (customCustomer.getArchived().equals(true)) {
                 return ResponseService.generateSuccessResponse("Your account is suspended. Please contact support.", "archived", HttpStatus.FORBIDDEN);
             }
+
             List<OtherItem> existingItems = customCustomer.getOtherItems();
             String secondaryMobileNumber = (String) details.get("secondaryMobileNumber");
             String mobileNumber = (String) details.get("mobileNumber");
@@ -369,7 +376,7 @@ public class CustomerEndpoint {
                     customCustomer.setHasStateCategory(false);
                 }
             }
-          /*  else
+          /*else
             {
                 return ResponseService.generateErrorResponse("Need to provide whether state level category or not",HttpStatus.BAD_REQUEST);
             }*/
@@ -403,7 +410,6 @@ public class CustomerEndpoint {
                     }
                 }
             }
-
 
             details.remove("familyIncome");
 
@@ -607,7 +613,6 @@ public class CustomerEndpoint {
                     customCustomer.setExService(false);
                 }
             }
-
 
             if (details.containsKey("domicile")) {
                 Boolean domicile = (Boolean) details.get("domicile");
@@ -921,7 +926,7 @@ public class CustomerEndpoint {
                     Integer result = ((Number) query.getSingleResult()).intValue();
                     System.out.println("result" + result);
                     if (result > 0) {
-                        errorMessages.put("adharNumber", "Aadhaar number already in use!!");
+                        errorMessages.put("adharNumber", "Aadhaar number already in use.");
                         details.remove("adharNumber");
                     }
                 }
@@ -949,9 +954,9 @@ public class CustomerEndpoint {
 
                 // Parse the string to a Date object
                 String dob = (String) details.get("dob").toString();
-                //if (!dob.before(new Date())) {
-                //errorMessages.add("DOB must be of past.");
-                //}
+                /*if (!dob.before(new Date())) {
+                    errorMessages.add("DOB must be of past.");
+                }*/
                 int age = sharedUtilityServiceApi.calculateAge(dob);
                 if (age < 0)
                     errorMessages.put("dob", "Invalid date of birth");
@@ -970,7 +975,6 @@ public class CustomerEndpoint {
                         if (document.getDocumentType().getDocument_type_id().equals(3) && document.getIsArchived().equals(false)) {
                             throw new IllegalArgumentException("You cannot select NA as true if live photo is already uploaded");
                         }
-
                     }
                 }
                 customCustomer.setIsLivePhotoNa(isLivePhotoNa);
@@ -997,7 +1001,6 @@ public class CustomerEndpoint {
                             }
                         }
                     }
-
                 }
                 customCustomer.setIsNccCertificate(isNccCertificate);
 
@@ -1211,7 +1214,7 @@ public class CustomerEndpoint {
 
             if (details.containsKey("chestSizeCms") && !details.get("chestSizeCms").toString().trim().isEmpty()) {
                 if (customCustomer.getGender().equals("Female")) {
-                    errorMessages.put("chestSizeCms", "Cannot add chest size with female");
+                    errorMessages.put("chestSizeCms", "Cannot add chest size for gender : Female");
                 } else {
                     String chestSizeCms = (String) details.get("chestSizeCms");
                     if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
@@ -1373,7 +1376,6 @@ public class CustomerEndpoint {
                     customCustomer.setOtherReligion((String) details.get("otherReligion"));
 //                    entityManager.merge(customCustomer);
                 }
-//
             }
             if (details.containsKey("otherReligion")) {
                 details.remove("otherReligion");
@@ -1462,7 +1464,6 @@ public class CustomerEndpoint {
                     customCustomer.setOtherCategory((String) details.get("otherCategory"));
 //                    entityManager.merge(customCustomer);
                 }
-//
 
             } else if (!details.containsKey("category")) {
                 if (customCustomer.getCategory() != null) {
@@ -1884,11 +1885,10 @@ public class CustomerEndpoint {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
-    @Transactional
     /*@Authorize(value = {Constant.roleUser})*/
+    @Transactional
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
@@ -1900,7 +1900,7 @@ public class CustomerEndpoint {
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
 
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             updates = sanitizerService.sanitizeInputMap(updates);
 
             if (customerService == null) {
@@ -1912,7 +1912,7 @@ public class CustomerEndpoint {
                 username = username.trim();
 
             if (username.isEmpty() || username.contains(" ")) {
-                return ResponseService.generateErrorResponse("Invalid username", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Invalid username", HttpStatus.BAD_REQUEST);
             }
             Customer customer = customerService.readCustomerById(customerId);
             if (customer == null) {
@@ -1945,13 +1945,12 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Error updating username", HttpStatus.INTERNAL_SERVER_ERROR);
-
         }
     }
 
@@ -1967,10 +1966,9 @@ public class CustomerEndpoint {
 
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
-
             }
             //details=sanitizerService.sanitizeInputMap(details);
 
@@ -1992,7 +1990,6 @@ public class CustomerEndpoint {
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-
 
                     return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
                 } else {
@@ -2025,6 +2022,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("No Records found for this ID " + id, HttpStatus.NOT_FOUND);
             }
         } catch (NumberFormatException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -2085,7 +2083,7 @@ public class CustomerEndpoint {
                 addressDTO.setCustomerId(newAddress.getCustomer().getId());
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, newAddress.getCustomer().getId());
                 if (customCustomer == null) {
-                    return ResponseService.generateErrorResponse("Error saving address", HttpStatus.INTERNAL_SERVER_ERROR);
+                    return ResponseService.generateErrorResponse("Customer not Found", HttpStatus.NOT_FOUND);
                 }
                 addressDTO.setPhoneNumber(customCustomer.getMobileNumber());
                 customCustomer.setIsAcknowledged(false);
@@ -2097,6 +2095,7 @@ public class CustomerEndpoint {
 
             }
         } catch (NumberFormatException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -2124,16 +2123,16 @@ public class CustomerEndpoint {
                 }
                 return ResponseService.generateSuccessResponse("Addresses details : ", listOfAddresses, HttpStatus.OK);
             } else {
-                return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.INTERNAL_SERVER_ERROR);
-
+                return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
 
 
         } catch (NumberFormatException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error in retreiving Address", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error in fetching Address List", HttpStatus.INTERNAL_SERVER_ERROR);
 
         }
     }
@@ -2156,11 +2155,11 @@ public class CustomerEndpoint {
 
             }
         } catch (NumberFormatException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error saving Address", HttpStatus.INTERNAL_SERVER_ERROR);
-
+            return ResponseService.generateErrorResponse("Error Fetching Address", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
