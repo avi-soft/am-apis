@@ -60,9 +60,8 @@ public class ServiceProviderRankController {
             return responseService.generateResponse(HttpStatus.OK, "Service Provider Test Rank List Retrieved Successfully", serviceProviderTestRankList);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider})
