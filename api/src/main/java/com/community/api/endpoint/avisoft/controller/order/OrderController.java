@@ -54,7 +54,6 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
-import org.broadleafcommerce.core.web.order.OrderState;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -453,7 +452,8 @@ public class OrderController {
             }
             return null;
         } catch (Exception exception) {
-            return ResponseService.generateErrorResponse("Some error occured", HttpStatus.INTERNAL_SERVER_ERROR);
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Some error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
