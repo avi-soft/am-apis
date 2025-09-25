@@ -4,7 +4,6 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
-import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomOrderState;
@@ -25,10 +24,8 @@ import com.community.api.services.BankAccountService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.OrderStatusByStateService;
-import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.PrivilegeService;
 import com.community.api.services.QualificationService;
-import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
@@ -43,7 +40,6 @@ import com.community.api.utils.ServiceProviderDocument;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -98,8 +94,6 @@ public class ServiceProviderController {
     @Autowired
     QualificationService qualificationService;
     @Autowired
-    AcknowledgementWebhook webhook;
-    @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
     private BankAccountService bankAccountService;
@@ -129,12 +123,6 @@ public class ServiceProviderController {
     private SharedUtilityService sharedUtilityService;
     @Autowired
     private SanitizerService sanitizerService;
-    @Autowired
-    private OrderService orderService;
-    @Autowired
-    private ReserveCategoryDtoService reserveCategoryDtoService;
-    @Autowired
-    private PhysicalRequirementDtoService physicalRequirementDtoService;
     @Autowired
     private JwtUtil jwtTokenUtil;
     @Autowired
