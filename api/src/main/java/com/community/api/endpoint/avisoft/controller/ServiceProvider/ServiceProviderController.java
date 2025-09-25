@@ -380,6 +380,7 @@ public class ServiceProviderController {
         }
     }
 
+    @Transactional
     @GetMapping("get-service-provider")
     public ResponseEntity<?> getServiceProviderById(@RequestParam Long userId) throws Exception {
         try {
@@ -387,7 +388,7 @@ public class ServiceProviderController {
             if (serviceProviderEntity.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             if (serviceProviderEntity == null) {
-                throw new Exception("ServiceProvider with ID " + userId + " not found");
+                return ResponseService.generateErrorResponse("SP not Found with this id.", HttpStatus.NOT_FOUND);
             }
             return ResponseEntity.ok(serviceProviderEntity);
         } catch (IllegalArgumentException e) {
@@ -441,7 +442,6 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some issue in fetching addressNames " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
