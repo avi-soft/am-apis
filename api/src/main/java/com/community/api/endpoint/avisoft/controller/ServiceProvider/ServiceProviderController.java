@@ -195,10 +195,9 @@ public class ServiceProviderController {
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
         if (serviceProvider.getRole() != roleId && !Objects.equals(tokenUserId, spId))
-            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
         if (serviceProvider == null)
             return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
-
 
         // List of required fields
         List<String> REQUIRED_FIELDS = Arrays.asList(
@@ -276,7 +275,7 @@ public class ServiceProviderController {
                 }
             }
             if (serviceProvider.getIsCFormAvailable() && serviceProvider.getRegistration_number() == null)
-                return ResponseService.generateErrorResponse("Registeration number is not filled", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Registration number is not filled", HttpStatus.BAD_REQUEST);
             if (serviceProvider.getInfra().isEmpty())
                 return ResponseService.generateErrorResponse("Infra list cannot be empty", HttpStatus.BAD_REQUEST);
             if (serviceProvider.getHas_technical_knowledge() && serviceProvider.getSkills().isEmpty())
@@ -409,7 +408,7 @@ public class ServiceProviderController {
             }
             ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if (existingServiceProvider == null) {
-                return responseService.generateErrorResponse("Service Provider Not found", HttpStatus.BAD_REQUEST);
+                return responseService.generateErrorResponse("Service Provider Not found", HttpStatus.NOT_FOUND);
             }
             List<ServiceProviderAddress> addresses = existingServiceProvider.getSpAddresses();
             serviceProviderAddress.setState(districtService.findStateById(Integer.parseInt(serviceProviderAddress.getState())));
@@ -678,7 +677,7 @@ public class ServiceProviderController {
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
             if (role != null && (role <= roleId && roleId != 5) && Boolean.TRUE.equals(!ext))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
 
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
@@ -692,10 +691,10 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
             if (role != null && role == 2 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
             if (role != null && role == 1 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
             // Validate full_name (only alphabets and spaces allowed)
             if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
@@ -1064,9 +1063,9 @@ public class ServiceProviderController {
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
     @PutMapping("manage-sp")
     public ResponseEntity<?> activateOrSuspendSp(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
-        //extracting info from jwt token
         int actionCount = 0, successCount = 0;
-        System.out.println("hii");
+
+        //extracting info from jwt token
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
