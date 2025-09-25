@@ -12,5 +12,4 @@ import lombok.Setter;
 public class GiveUploadedImageScoreDTO
 {
     private Integer image_test_scores;
-
 }

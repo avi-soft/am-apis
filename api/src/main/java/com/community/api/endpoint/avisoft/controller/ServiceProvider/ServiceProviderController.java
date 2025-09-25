@@ -44,7 +44,6 @@ import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.service.OrderService;
-
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -927,7 +926,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
