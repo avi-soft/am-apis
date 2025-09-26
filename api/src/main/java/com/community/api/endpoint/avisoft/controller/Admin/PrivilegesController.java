@@ -9,16 +9,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.transaction.Transactional;
 
 @RestController
 @RequestMapping(value = "/privileges",
-        produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE }
+        produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
 )
 public class PrivilegesController {
     @Autowired
@@ -27,11 +27,12 @@ public class PrivilegesController {
     private PrivilegeService privilegeService;
     @Autowired
     private ResponseService responseService;
+
     @Transactional
     @RequestMapping(value = "assign-privilege", method = RequestMethod.POST)
     public ResponseEntity<?> assignPrivilege(@RequestParam int privilege_id, @RequestParam Long id, @RequestParam int role_id) {
         try {
-           return privilegeService.assignPrivilege(privilege_id,id,role_id);
+            return privilegeService.assignPrivilege(privilege_id, id, role_id);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error assigning privilege", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -61,10 +62,11 @@ public class PrivilegesController {
             return responseService.generateErrorResponse("Error removing ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @RequestMapping(value = "get-privileges-for-service-provider", method = RequestMethod.GET)
     public ResponseEntity<?> getAllPrivileges(@RequestParam Long serviceProviderId) {
         try {
-            return responseService.generateSuccessResponse("Data",privilegeService.getServiceProviderPrivilege(serviceProviderId),HttpStatus.OK);
+            return responseService.generateSuccessResponse("Data", privilegeService.getServiceProviderPrivilege(serviceProviderId), HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error removing ", HttpStatus.INTERNAL_SERVER_ERROR);
