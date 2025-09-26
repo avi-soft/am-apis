@@ -76,7 +76,7 @@ public class SchedulerController {
         );
 
         processBuilder.environment().put("PGPASSWORD", password);
-        processBuilder.directory(new File("C:/Program Files/PostgreSQL/13/bin"));
+        processBuilder.directory(new File("C:/Program Files/PostgreSQL/16/bin"));
 
         Schedule schedule = entityManager.find(Schedule.class, 3L);
         if (schedule == null) {
