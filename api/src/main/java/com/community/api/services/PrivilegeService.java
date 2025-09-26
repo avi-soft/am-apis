@@ -5,7 +5,6 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -82,7 +81,7 @@ public class PrivilegeService {
                 if (spPrivileges.contains(privilege))
                     spPrivileges.remove(privilege);
                 else
-                    return responseService.generateErrorResponse("Privilege not assigned", HttpStatus.FORBIDDEN);
+                    return responseService.generateErrorResponse("Privilege not assigned", HttpStatus.BAD_REQUEST);
                 serviceProvider.setPrivileges(spPrivileges);
                 entityManager.merge(serviceProvider);
                 return responseService.generateSuccessResponse("Privilege removed successfully",serviceProvider, HttpStatus.OK);
