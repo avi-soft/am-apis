@@ -11,7 +11,6 @@ import com.community.api.services.BankAccountService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.mchange.util.AlreadyExistsException;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +18,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.social.NotAuthorizedException;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.ValidationException;
 import java.util.HashMap;
@@ -31,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The type Bank account controller.
@@ -85,7 +91,7 @@ public class BankAccountController {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (Objects.equals(roleId, bankAccountDTO.getRole()) && !Objects.equals(tokenUserId, bankAccountDTO.getUserId()))
-                return ResponseService.generateSuccessResponse("Forbidden","forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateSuccessResponse("Forbidden Access","forbidden", HttpStatus.FORBIDDEN);
 
             if (customerId == null) {
                 return ResponseService.generateSuccessResponse("Customer Id not specified","customerId", HttpStatus.BAD_REQUEST);
@@ -155,7 +161,7 @@ public class BankAccountController {
             return ResponseService.generateSuccessResponse("Failed Validation" + v.getMessage(),"validationException", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateSuccessResponse(e.getMessage(),"generalException", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse(e.getMessage(),"Exception Occurred: ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -192,10 +198,10 @@ public class BankAccountController {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
                 if (roleId == 5)
-                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
             if (roleId.equals(role) && !tokenUserId.equals(customerId))
-                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             if (customerId == null) {
                 return ResponseService.generateErrorResponse("User Id not specified", HttpStatus.BAD_REQUEST);
             }
@@ -208,7 +214,6 @@ public class BankAccountController {
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-
         }
     }
 
@@ -230,12 +235,12 @@ public class BankAccountController {
             // Validate path variable
             Map<String,String> errorMessages = new HashMap<>();
             if (accountId == null) {
-                return ResponseService.generateSuccessResponse("Account ID is required","accountId", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Account ID is required", HttpStatus.BAD_REQUEST);
             }
             // Check if account exists
             Optional<BankDetails> existingAccount = bankAccountService.getBankAccountById(accountId);
             if (existingAccount.isEmpty()) {
-                return ResponseService.generateSuccessResponse("Bank account not found", "accountId",HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Bank account not found", HttpStatus.NOT_FOUND);
             }
             if (bindingResult.hasErrors()) {
                 bindingResult.getFieldErrors().forEach(error ->
@@ -279,11 +284,11 @@ public class BankAccountController {
                     updatedBankAccountDTO, HttpStatus.OK);
 
         } catch (NotAuthorizedException e) {
-            return ResponseService.generateSuccessResponse(e.getMessage(), "notAuthorizedException",HttpStatus.FORBIDDEN);
+            exceptionHandling.handleException(e);
+            return ResponseService.generateSuccessResponse(e.getMessage(), "Forbidden Access",HttpStatus.FORBIDDEN);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateSuccessResponse("Failed to update bank account","generalException",
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Failed to update bank account", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

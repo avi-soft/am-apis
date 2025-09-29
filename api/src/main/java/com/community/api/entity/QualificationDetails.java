@@ -1,15 +1,14 @@
 package com.community.api.entity;
+
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.utils.CustomDateDeserializer;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
-import com.fasterxml.jackson.annotation.*;
-
-import java.io.Serial;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,16 +29,12 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
-import javax.persistence.OrderColumn;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.validation.constraints.Size;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
-import java.util.Iterator;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -48,6 +43,12 @@ import java.util.List;
 @Table(name = "qualification_details")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QualificationDetails {
+
+    @ElementCollection
+    @CollectionTable(name = "other_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "other_subject_name")
+    List<String> otherSubjects = new ArrayList<>();
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
@@ -61,19 +62,18 @@ public class QualificationDetails {
     @JoinColumn(name = "institution_id", nullable = false)
     private Institution institution;
 
-
     @Column(name = "date_of_passing")
     @JsonDeserialize(using = CustomDateDeserializer.class)
     private Date date_of_passing;
 
-    @Column(name = "examination_role_number",nullable = true)
+    @Column(name = "examination_role_number", nullable = true)
     private String examination_role_number;
 
-    @Column(name = "course_duration_in_months",nullable = true)
+    @Column(name = "course_duration_in_months", nullable = true)
     private Long course_duration_in_months;
 
     //    @NotNull(message = "Examination Registration Number is required")
-    @Column(name = "examination_registration_number",nullable = true)
+    @Column(name = "examination_registration_number", nullable = true)
     private String examination_registration_number;
 
     @NotNull(message = "board or university id is required")
@@ -83,15 +83,13 @@ public class QualificationDetails {
     @Column(name = "stream_id")
     private Long stream_id;
 
-
     @Column(name = "total_marks")
     private String total_marks;
-
 
     @Column(name = "marks_obtained")
     private String marks_obtained;
 
-    @Column(name = "is_grade",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(name = "is_grade", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_grade;
 
     @Column(name = "grade_value")
@@ -107,16 +105,14 @@ public class QualificationDetails {
     @Column(name = "qualification_id", nullable = false)
     private Integer qualification_id;
 
-
     @Column(name = "total_marks_type")
     private String total_marks_type;
 
-
-    @Column(name = "cumulative_percentage_value" )
+    @Column(name = "cumulative_percentage_value")
     private Double cumulative_percentage_value;
 
-    @Column(name = "cumulative_cgpa_value" ,columnDefinition = "DOUBLE DEFAULT 0.0")
-    private Double cumulative_cgpa_value= 0.0;
+    @Column(name = "cumulative_cgpa_value", columnDefinition = "DOUBLE DEFAULT 0.0")
+    private Double cumulative_cgpa_value = 0.0;
 
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
@@ -170,7 +166,6 @@ public class QualificationDetails {
     private ServiceProviderDocument serviceProviderDocument;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-
     @JoinTable(
             name = "qualification_detail_other_item",
             joinColumns = @JoinColumn(name = "qualification_detail_id"),
@@ -184,9 +179,5 @@ public class QualificationDetails {
         this.institution = new Institution();
         this.institution.setInstitution_id(institutionId);
     }
-    @ElementCollection
-    @CollectionTable(name = "other_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
-    @Column(name = "other_subject_name")
-    List<String> otherSubjects=new ArrayList<>();
 
 }

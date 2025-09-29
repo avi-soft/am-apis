@@ -545,6 +545,7 @@ public class SharedUtilityService {
                 customerDetailsForMobile.put("documents", filteredDocuments);
             }
 
+
             return customerDetailsForMobile;
         } else {
             Map<String, Object> customerDetailsForDesktop = new HashMap<>();

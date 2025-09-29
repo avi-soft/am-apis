@@ -788,7 +788,7 @@ public class ServiceProviderTicketService {
 //            customServiceProviderTicket.setTicketAssignDate(createdDate);
             reviewTicket.setModifiedDate(createdDate);
 //            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
-            reviewTicket.setComment(parentTicket.getComment());
+            reviewTicket.setComment(createTicketDto.getComment().trim());
             reviewTicket.setParentTicket(parentTicket);
 
             CustomTicketState ticketState = ticketStateService.getTicketStateByTicketStateId(1L); // Sate (to-do)
@@ -800,9 +800,9 @@ public class ServiceProviderTicketService {
             reviewTicket.setTicketType(ticketType);
             reviewTicket.setComment(createTicketDto.getComment());
 
-            reviewTicket = entityManager.merge(reviewTicket);
             // If there exists some files then upload them as well.
             reviewTicket = entityManager.merge(reviewTicket);
+//            reviewTicket = entityManager.merge(reviewTicket);
             if (files != null) {
 
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, reviewTicket, tokenUserId, tokenRole);
