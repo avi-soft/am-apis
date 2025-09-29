@@ -4,7 +4,6 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
-import com.community.api.endpoint.avisoft.controller.Acknowledgement.AcknowledgementWebhook;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomOrderState;
@@ -25,10 +24,8 @@ import com.community.api.services.BankAccountService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.OrderStatusByStateService;
-import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.PrivilegeService;
 import com.community.api.services.QualificationService;
-import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
@@ -43,8 +40,6 @@ import com.community.api.utils.ServiceProviderDocument;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import org.broadleafcommerce.core.order.service.OrderService;
-
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -99,8 +94,6 @@ public class ServiceProviderController {
     @Autowired
     QualificationService qualificationService;
     @Autowired
-    AcknowledgementWebhook webhook;
-    @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
     private BankAccountService bankAccountService;
@@ -131,12 +124,6 @@ public class ServiceProviderController {
     @Autowired
     private SanitizerService sanitizerService;
     @Autowired
-    private OrderService orderService;
-    @Autowired
-    private ReserveCategoryDtoService reserveCategoryDtoService;
-    @Autowired
-    private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
     private JwtUtil jwtTokenUtil;
     @Autowired
     private RoleService roleService;
@@ -165,10 +152,11 @@ public class ServiceProviderController {
             entityManager.merge(serviceProviderEntity);
             return responseService.generateSuccessResponse("Skill assigned to service provider id : " + serviceProviderEntity.getService_provider_id(), serviceProviderEntity, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error assigning skill: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error assigning skill: " + e.getMessage());
         }
     }
 
@@ -207,10 +195,9 @@ public class ServiceProviderController {
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
         if (serviceProvider.getRole() != roleId && !Objects.equals(tokenUserId, spId))
-            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
         if (serviceProvider == null)
             return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
-
 
         // List of required fields
         List<String> REQUIRED_FIELDS = Arrays.asList(
@@ -227,6 +214,7 @@ public class ServiceProviderController {
 //                "password",                  // @NotEmpty + @JsonIgnore
                 "is_running_business_unit"// @NotEmpty (despite @Nullable)
         );
+
         //validating all required fields
         for (String fieldName : REQUIRED_FIELDS) {
             try {
@@ -287,7 +275,7 @@ public class ServiceProviderController {
                 }
             }
             if (serviceProvider.getIsCFormAvailable() && serviceProvider.getRegistration_number() == null)
-                return ResponseService.generateErrorResponse("Registeration number is not filled", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Registration number is not filled", HttpStatus.BAD_REQUEST);
             if (serviceProvider.getInfra().isEmpty())
                 return ResponseService.generateErrorResponse("Infra list cannot be empty", HttpStatus.BAD_REQUEST);
             if (serviceProvider.getHas_technical_knowledge() && serviceProvider.getSkills().isEmpty())
@@ -341,10 +329,11 @@ public class ServiceProviderController {
             entityManager.merge(serviceProviderToBeDeleted);
             return responseService.generateSuccessResponse("Service Provider Archived", null, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error deleting: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting: " + e.getMessage());
         }
     }
 
@@ -382,6 +371,7 @@ public class ServiceProviderController {
             }/*else
                     return new ResponseEntity<>("Password do not match", HttpStatus.BAD_REQUEST);*/
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -389,6 +379,7 @@ public class ServiceProviderController {
         }
     }
 
+    @Transactional
     @GetMapping("get-service-provider")
     public ResponseEntity<?> getServiceProviderById(@RequestParam Long userId) throws Exception {
         try {
@@ -396,14 +387,15 @@ public class ServiceProviderController {
             if (serviceProviderEntity.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             if (serviceProviderEntity == null) {
-                throw new Exception("ServiceProvider with ID " + userId + " not found");
+                return ResponseService.generateErrorResponse("SP not Found with this id.", HttpStatus.NOT_FOUND);
             }
             return ResponseEntity.ok(serviceProviderEntity);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Some fetching account " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Some fetching account " + e.getMessage());
         }
     }
 
@@ -416,7 +408,7 @@ public class ServiceProviderController {
             }
             ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if (existingServiceProvider == null) {
-                return responseService.generateErrorResponse("Service Provider Not found", HttpStatus.BAD_REQUEST);
+                return responseService.generateErrorResponse("Service Provider Not found", HttpStatus.NOT_FOUND);
             }
             List<ServiceProviderAddress> addresses = existingServiceProvider.getSpAddresses();
             serviceProviderAddress.setState(districtService.findStateById(Integer.parseInt(serviceProviderAddress.getState())));
@@ -428,10 +420,11 @@ public class ServiceProviderController {
             entityManager.merge(existingServiceProvider);
             return responseService.generateSuccessResponse("Address added successfully", serviceProviderAddress, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error adding address " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding address " + e.getMessage());
         }
     }
 
@@ -441,13 +434,13 @@ public class ServiceProviderController {
             TypedQuery<ServiceProviderAddressRef> query = entityManager.createQuery(Constant.jpql, ServiceProviderAddressRef.class);
             return responseService.generateSuccessResponse("List of addresses : ", query.getResultList(), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Some issue in fetching addressNames " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse("Some issue in fetching addressNames " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
@@ -592,10 +585,11 @@ public class ServiceProviderController {
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false);
             return ResponseService.generateSuccessResponse("Service Provider details retrieved successfully", serviceProviderMap, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -641,10 +635,11 @@ public class ServiceProviderController {
 
             return ResponseService.generateSuccessResponse("List of service providers with completed test status: ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -682,7 +677,7 @@ public class ServiceProviderController {
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
             if (role != null && (role <= roleId && roleId != 5) && Boolean.TRUE.equals(!ext))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
 
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
@@ -696,10 +691,10 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
             if (role != null && role == 2 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
             if (role != null && role == 1 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             }
             // Validate full_name (only alphabets and spaces allowed)
             if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
@@ -790,14 +785,12 @@ public class ServiceProviderController {
                 }
             }
 
-
             if (rank != null) {
                 for (Long id : rank) {
                     if (serviceProviderRankService.getServiceProviderRankByRankId(id) == null)
                         return ResponseService.generateErrorResponse("Invalid rank Id", HttpStatus.BAD_REQUEST);
                 }
             }
-
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
@@ -867,10 +860,9 @@ public class ServiceProviderController {
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -924,10 +916,11 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("List of referred candidates:", response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -973,7 +966,7 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("Order Requests :", spOrderRequests, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1020,7 +1013,7 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("Ticket Returned", ticket, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in returning ticket: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in returning ticket: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1070,9 +1063,9 @@ public class ServiceProviderController {
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
     @PutMapping("manage-sp")
     public ResponseEntity<?> activateOrSuspendSp(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
-        //extracting info from jwt token
         int actionCount = 0, successCount = 0;
-        System.out.println("hii");
+
+        //extracting info from jwt token
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -1245,10 +1238,10 @@ public class ServiceProviderController {
         try {
             return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false), HttpStatus.OK);
         } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Could not complete profile due to an error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})

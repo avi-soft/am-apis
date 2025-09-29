@@ -25,14 +25,12 @@ public class ServiceProviderTestStatusController {
     private ResponseService responseService;
     private ServiceProviderTestStatusService serviceProviderTestStatusService;
 
-
     public ServiceProviderTestStatusController(EntityManager entityManager, ResponseService responseService, ExceptionHandlingImplement exceptionHandling, ServiceProviderTestStatusService serviceProviderTestStatusService) {
         this.responseService = responseService;
         this.entityManager = entityManager;
         this.exceptionHandling = exceptionHandling;
         this.serviceProviderTestStatusService = serviceProviderTestStatusService;
     }
-
 
     @GetMapping("/get-all-service-provider-test-status")
     public ResponseEntity<?> getAllServiceProviderTestStatus() {
@@ -45,6 +43,7 @@ public class ServiceProviderTestStatusController {
             }
             return responseService.generateResponse(HttpStatus.OK, "Service Provider Test Status List Retrieved Successfully", serviceProviderTestStatusList);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -66,4 +65,5 @@ public class ServiceProviderTestStatusController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }*/
+
 }

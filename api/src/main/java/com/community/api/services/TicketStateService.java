@@ -348,7 +348,7 @@ public class TicketStateService {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
                         throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
                     }
-                    ticket.setComment(createTicketDTO.getComment().trim());
+//                    ticket.setComment(createTicketDTO.getComment().trim());
                     if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                         if (!ticket.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");

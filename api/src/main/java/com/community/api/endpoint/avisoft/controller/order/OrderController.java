@@ -5,13 +5,12 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.OrderStateGroupDto;
 import com.community.api.dto.SPDto;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.avisoft.controller.cart.CartEndPoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
-import com.community.api.dto.OrderStateGroupDto;
-
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
@@ -44,9 +43,7 @@ import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-
 import javassist.NotFoundException;
-
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -54,7 +51,6 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
-import org.broadleafcommerce.core.web.order.OrderState;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +97,8 @@ public class OrderController {
     @Autowired
     RefundService refundService;
     @Autowired
+    CartEndPoint cartEndPoint;
+    @Autowired
     private EntityManager entityManager;
     @Autowired
     private OrderService orderService;
@@ -140,8 +138,6 @@ public class OrderController {
     private OrderStateRefService orderStateRefService;
     @Autowired
     private ProductService productService;
-    @Autowired
-    private ServiceProviderActionController serviceProviderActionController;
 
 /*    @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
@@ -191,6 +187,8 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Error fetching order list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }*/
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     @Autowired
     public void setEntityManager(EntityManager entityManager) {
@@ -305,6 +303,7 @@ public class OrderController {
             return generateCombinedDTO(authHeader, orders, sortOrder, totalItems.intValue(), totalPages.intValue(), offset);
 
         } catch (NotFoundException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -323,10 +322,11 @@ public class OrderController {
 
             int offset1 = offset * limit;
 
-//            if (orderStateIds != null && orderStateIds.contains(9)) {
-//                orderStateIds.clear();
-//                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 0, 999));
-//            }
+            /*if (orderStateIds != null && orderStateIds.contains(9)) {
+                orderStateIds.clear();
+                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 0, 999));
+            }*/
+
             // Validate order state IDs
             if (orderStateIds != null && !orderStateIds.isEmpty()) {
                 for (Integer id : orderStateIds) {
@@ -453,7 +453,8 @@ public class OrderController {
             }
             return null;
         } catch (Exception exception) {
-            return ResponseService.generateErrorResponse("Some error occured", HttpStatus.INTERNAL_SERVER_ERROR);
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Some error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -501,7 +502,6 @@ public class OrderController {
 
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort, Boolean refund) {
-        System.out.println("Wrapper called");
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
@@ -517,7 +517,6 @@ public class OrderController {
                 }
 
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
-                System.out.println("cancellation rzn is" + orderState.getCancellationReason());
                 Customer customer = customerService.readCustomerById(order.getCustomer().getId());
 
                 if (customer == null) {
@@ -728,7 +727,6 @@ public class OrderController {
                     log.info(String.valueOf(product.getId()));
                     return ResponseService.generateErrorResponse("Target completion date must be b/w product open date and close data and after current date.", HttpStatus.BAD_REQUEST);
                 }
-                log.info("hello");
 
             } else {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
@@ -820,12 +818,12 @@ public class OrderController {
         try {
             CustomOrderStatus customOrderStatus = entityManager.find(CustomOrderStatus.class, orderStatusId);
             if (customOrderStatus == null)
-                return ResponseService.generateErrorResponse("Order Status Id invalid", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Order status Id invalid", HttpStatus.BAD_REQUEST);
             OrderStateRef result = orderStatusByStateService.getOrderStateByOrderStatus(orderStatusId);
             return ResponseService.generateSuccessResponse("Order State Linked :", result, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error in fetching status list : ", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error in fetching state list : ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -865,7 +863,7 @@ public class OrderController {
         groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
         groupedStates.add(new OrderStateGroupDto("Cancelled", Arrays.asList(5, 9)));
-        groupedStates.add(new OrderStateGroupDto("Payment Failed", Arrays.asList(999 )));
+        groupedStates.add(new OrderStateGroupDto("Payment Failed", Arrays.asList(999)));
         groupedStates.add(new OrderStateGroupDto("Cancellation Requested", Arrays.asList(12)));
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
@@ -917,8 +915,6 @@ public class OrderController {
         return ResponseService.generateErrorResponse("Order processed for cancellation", HttpStatus.OK);
     }
 
-    @Autowired
-    CartEndPoint cartEndPoint;
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
@@ -985,19 +981,17 @@ public class OrderController {
                 serviceProviderTicketService.deleteTicket(ticket, serviceProvider);
             }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
-            Product product=cartEndPoint.findProductFromItemAttribute(orderItem);
-            CustomProduct customProduct=entityManager.find(CustomProduct.class,product.getId());
+            Product product = cartEndPoint.findProductFromItemAttribute(orderItem);
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
             Refunds refunds = new Refunds();
             refunds.setOrderId(orderId);
             if (Boolean.TRUE.equals(refund)) {
                 refunds.setRefundAmount(refundAmount);
                 refunds.setRefundState("Initiated");
-            } else if(order.getTotal().getAmount().intValue()+customProduct.getPlatformFee().intValue()==0) {
+            } else if (order.getTotal().getAmount().intValue() + customProduct.getPlatformFee().intValue() == 0) {
                 refunds.setRefundAmount(null);
                 refunds.setRefundState("N/A");
-            }
-            else
-            {
+            } else {
                 refunds.setRefundAmount(null);
                 refunds.setRefundState("Rejected");
             }

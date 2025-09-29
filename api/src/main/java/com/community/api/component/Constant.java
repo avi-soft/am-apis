@@ -283,7 +283,7 @@ public class Constant {
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
-    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY modified_date DESC";
+    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY ticket_history_id DESC";
     public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c join custom_state_codes s on c.division_id = s.state_id where c.archived=false and c.zone_id =:zoneId and s.archived = false Order by division_id ASC";
     public static final String GET_ALL_ZONES="SELECT z FROM Zone z where archived = :archived";
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";

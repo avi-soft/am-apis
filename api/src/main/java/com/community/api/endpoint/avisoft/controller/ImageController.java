@@ -43,7 +43,7 @@ public class ImageController {
             return ResponseService.generateErrorResponse(ioException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingImplement.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
